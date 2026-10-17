@@ -207,6 +207,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     isVariation: false,
     variationId: null
   });
+  const [confirmDeleteGear, setConfirmDeleteGear] = useState(false);
 
   // Estado do Modal Bonito de Confirmação de Exclusão de Venda (Substitui window.confirm)
   const [cancelConfirmModal, setCancelConfirmModal] = useState({
@@ -357,8 +358,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     authService.removeEmailFromProfile(profile, email);
     setEmailRules(authService.getEmailRules());
   };
-
-  const [confirmDeleteGear, setConfirmDeleteGear] = useState(false);
 
   // Abrir Modal de Configurações Completas do Item (Engrenagem ⚙️)
   const handleOpenGearModal = (item) => {

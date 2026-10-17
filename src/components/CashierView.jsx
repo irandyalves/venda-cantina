@@ -441,7 +441,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
            ======================================================== */}
         {pizzaCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
+            <div className="flex items-center mb-2 border-b border-slate-700/60 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="p-1 bg-orange-500/20 text-orange-400 rounded-md border border-orange-500/30">
                   <Pizza className="w-3.5 h-3.5" />
@@ -450,9 +450,6 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                   PIZZA
                 </h2>
               </div>
-              <span className="text-[10px] font-semibold text-orange-300 bg-orange-950/80 px-1.5 py-0.2 rounded-full border border-orange-500/30 font-mono">
-                Pp-XX / Pi-XX
-              </span>
             </div>
 
             {/* BOTÕES DOS SABORES DE PIZZA */}
@@ -678,7 +675,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
            ======================================================== */}
         {acaiCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
+            <div className="flex items-center mb-2 border-b border-slate-700/60 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="p-1 bg-purple-500/20 text-purple-400 rounded-md border border-purple-500/30">
                   <IceCream className="w-3.5 h-3.5" />
@@ -687,9 +684,6 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                   AÇAÍ
                 </h2>
               </div>
-              <span className="text-[10px] font-semibold text-purple-300 bg-purple-950/80 px-1.5 py-0.2 rounded-full border border-purple-500/30 font-mono">
-                A-XX
-              </span>
             </div>
 
             {/* CARDS DE AÇAÍ: MESMA ALTURA E FORMATO DE PIZZA */}
@@ -881,7 +875,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
            ======================================================== */}
         {batataCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
+            <div className="flex items-center mb-2 border-b border-slate-700/60 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="p-1 bg-yellow-500/20 text-yellow-400 rounded-md border border-yellow-500/30">
                   <UtensilsCrossed className="w-3.5 h-3.5" />
@@ -890,9 +884,6 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                   BATATA
                 </h2>
               </div>
-              <span className="text-[10px] font-semibold text-yellow-300 bg-yellow-950/80 px-1.5 py-0.2 rounded-full border border-yellow-500/30 font-mono">
-                B-XX
-              </span>
             </div>
 
             {/* CARDS DE BATATA: MESMA ALTURA E FORMATO DE PIZZA */}
@@ -1084,7 +1075,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
            ======================================================== */}
         {otherCategories.map((cat) => (
           <div key={cat.id} className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
+            <div className="flex items-center mb-2 border-b border-slate-700/60 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="p-1 bg-cyan-500/20 text-cyan-400 rounded-md border border-cyan-500/30">
                   <Utensils className="w-3.5 h-3.5" />
@@ -1093,9 +1084,6 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                   {cat.name}
                 </h2>
               </div>
-              <span className="text-[10px] font-semibold text-cyan-300 bg-cyan-950/80 px-1.5 py-0.2 rounded-full border border-cyan-500/30 font-mono">
-                {cat.prefixDefault || 'Ped-XX'}
-              </span>
             </div>
 
             {/* CARDS: MESMA ALTURA E FORMATO DE PIZZA */}
