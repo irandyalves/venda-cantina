@@ -2241,122 +2241,58 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 )}
               </div>
 
-              {/* SEÇÃO 2: RESUMO DE VENDAS DE HOJE */}
-              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
-                  <div>
-                    <h3 className="font-extrabold text-white text-base">Resumo de Vendas de Hoje</h3>
-                    <p className="text-xs text-slate-400">
-                      {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
-                    </p>
-                  </div>
+              {/* SEÇÃO 2: RESUMO DE VENDAS */}
+              <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-700/80 pb-3">
+                  <h3 className="font-extrabold text-white text-base shrink-0">
+                    Resumo de vendas
+                  </h3>
 
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {turnoHistory.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setShowHistoryList(!showHistoryList)}
-                        className={`px-3 py-1.5 font-bold text-xs rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
-                          showHistoryList 
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' 
-                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                        }`}
-                        title="Ver turnos encerrados arquivados anteriormente"
-                      >
-                        <Archive className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Histórico ({turnoHistory.length})</span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleOpenResetModal}
-                      className="px-3.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-xs rounded-xl border border-rose-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                      title="Zerar comandas e guardar cópia completa no histórico"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" /> Zerar / Fechar Turno
-                    </button>
-                  </div>
-                </div>
-
-                {/* PAINEL SANFONA COM OS TURNOS ARQUIVADOS NO HISTÓRICO */}
-                {showHistoryList && (
-                  <div className="bg-slate-950/90 border border-amber-500/40 rounded-2xl p-4 space-y-3 animate-fadeIn">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                      <div className="flex items-center gap-2">
-                        <Archive className="w-4 h-4 text-amber-400" />
-                        <h4 className="text-xs font-black uppercase text-amber-300 tracking-wider">
-                          Cópias Salvas no Histórico de Turnos
-                        </h4>
+                  {/* CARDS COM TOTALIZADORES NA FRENTE DO TÍTULO */}
+                  <div className="flex items-center gap-2 flex-wrap flex-1 justify-start">
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase leading-none">Total Geral</div>
+                      <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">R$ {totalGeral.toFixed(2)}</div>
+                      <div className="text-[8px] text-slate-500 leading-none">
+                        {activeOrders.length} ativas
+                        {todayOrders.length - activeOrders.length > 0 && (
+                          <span className="text-rose-400 font-bold ml-1">
+                            ({todayOrders.length - activeOrders.length} excl.)
+                          </span>
+                        )}
                       </div>
-                      <span className="text-[10px] text-slate-400">
-                        {turnoHistory.length} turno(s) arquivado(s)
-                      </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
-                      {turnoHistory.map((hist) => (
-                        <div key={hist.id} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between gap-1.5 hover:border-slate-700 transition-colors">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="text-xs font-black text-amber-300 truncate">
-                                {hist.event?.name || 'Cantina Geral'}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 shrink-0">
-                                📅 {hist.archivedAtFormatted || new Date(hist.archivedAt).toLocaleString('pt-BR')}
-                              </span>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight">
-                                R$ {(hist.totalRevenue || 0).toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1 leading-none font-mono">
-                            <span><strong className="text-slate-300">{hist.totalOrders}</strong> ped.</span>
-                            <span>PIX: R$ {(hist.paymentBreakdown?.pix || 0).toFixed(2)}</span>
-                            <span>Din: R$ {(hist.paymentBreakdown?.dinheiro || 0).toFixed(2)}</span>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                      <div className="text-[9px] font-bold text-emerald-400 uppercase leading-none">PIX</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalPix.toFixed(2)}</div>
                     </div>
-                  </div>
-                )}
 
-                {/* CARDS COM TOTALIZADORES */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-700">
-                    <div className="text-[11px] font-bold text-slate-400 uppercase">Total Geral</div>
-                    <div className="text-xl font-black text-emerald-400 mt-1">R$ {totalGeral.toFixed(2)}</div>
-                    <div className="text-[10px] text-slate-400">
-                      {activeOrders.length} vendas ativas
-                      {todayOrders.length - activeOrders.length > 0 && (
-                        <span className="text-rose-400 font-bold ml-1">
-                          ({todayOrders.length - activeOrders.length} excluídas)
-                        </span>
-                      )}
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                      <div className="text-[9px] font-bold text-teal-400 uppercase leading-none">Dinheiro</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalDinheiro.toFixed(2)}</div>
+                    </div>
+
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                      <div className="text-[9px] font-bold text-blue-400 uppercase leading-none">Débito</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalDebito.toFixed(2)}</div>
+                    </div>
+
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                      <div className="text-[9px] font-bold text-indigo-400 uppercase leading-none">Crédito</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalCredito.toFixed(2)}</div>
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-700">
-                    <div className="text-[11px] font-bold text-emerald-400 uppercase">PIX</div>
-                    <div className="text-lg font-black text-white mt-1">R$ {totalPix.toFixed(2)}</div>
-                  </div>
-
-                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-700">
-                    <div className="text-[11px] font-bold text-teal-400 uppercase">Dinheiro</div>
-                    <div className="text-lg font-black text-white mt-1">R$ {totalDinheiro.toFixed(2)}</div>
-                  </div>
-
-                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-700">
-                    <div className="text-[11px] font-bold text-blue-400 uppercase">Débito</div>
-                    <div className="text-lg font-black text-white mt-1">R$ {totalDebito.toFixed(2)}</div>
-                  </div>
-
-                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-700">
-                    <div className="text-[11px] font-bold text-indigo-400 uppercase">Crédito</div>
-                    <div className="text-lg font-black text-white mt-1">R$ {totalCredito.toFixed(2)}</div>
-                  </div>
+                  {/* BOTÃO APENAS ÍCONE ZERAR */}
+                  <button
+                    type="button"
+                    onClick={handleOpenResetModal}
+                    className="p-2.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95 shrink-0"
+                    title="Zerar / Fechar Turno"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
                 </div>
 
                 {/* TABELA DE PEDIDOS DE HOJE COM HISTÓRICO ESMAECIDO E EXCLUSÃO DE VENDAS */}
