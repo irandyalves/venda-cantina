@@ -274,8 +274,8 @@ export default function KitchenView({ onNavigate }) {
                 >
                   {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
                   {isNewestHighlight && (
-                    <div className="absolute -top-3 left-4 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-lg animate-bounce">
-                      <Sparkles className="w-3 h-3" />
+                    <div className="absolute -top-3 left-4 bg-purple-600 border border-purple-400/60 text-white font-black text-[10px] px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-bounce">
+                      <Sparkles className="w-3 h-3 text-purple-200" />
                       <span>NOVO PEDIDO CHEGOU!</span>
                     </div>
                   )}
