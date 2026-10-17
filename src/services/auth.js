@@ -13,83 +13,13 @@ const PROFILES_STORAGE_KEY = 'cantina_user_profiles';
 const ACTIVE_PROFILE_KEY = 'cantina_active_profile';
 const ENVIRONMENTS_STORAGE_KEY = 'cantina_environments';
 
-// Perfis padrão disponíveis
-export const PERFIS = {
-  ADMIN: 'ADMIN',
-  COZINHA: 'COZINHA',
-  PUBLICO: 'PUBLICO'
-};
+import { 
+  PERFIS, 
+  DEFAULT_ENVIRONMENTS, 
+  DEFAULT_EMAIL_RULES 
+} from '../data/defaultEnvironments';
 
-// Ambientes padrão do sistema
-export const DEFAULT_ENVIRONMENTS = [
-  {
-    id: 'ADMIN',
-    name: 'ADMIN (Caixa & Gestão)',
-    shortName: 'ADMIN',
-    type: 'cashier',
-    icon: 'ShieldCheck',
-    color: 'amber',
-    isSystem: true,
-    description: 'Caixa PDV, Gestão & Fechamento de Turno'
-  },
-  {
-    id: 'COZINHA',
-    name: 'COZINHA 1 (Principal)',
-    shortName: 'COZINHA',
-    type: 'kitchen',
-    icon: 'UtensilsCrossed',
-    color: 'orange',
-    isSystem: true,
-    description: 'Painel KDS Cozinha 1, Fogões & Fornos'
-  },
-  {
-    id: 'COZINHA_2',
-    name: 'COZINHA 2',
-    shortName: 'COZINHA-2',
-    type: 'kitchen',
-    icon: 'ChefHat',
-    color: 'indigo',
-    isSystem: false,
-    description: 'Equipe de apoio, fogões adicionais e massas'
-  },
-  {
-    id: 'TENDA',
-    name: 'TENDA',
-    shortName: 'TENDA',
-    type: 'kitchen',
-    icon: 'Store',
-    color: 'emerald',
-    isSystem: false,
-    description: 'Tenda externa de lanches rápidos e açaí'
-  },
-  {
-    id: 'QUADRA',
-    name: 'QUADRA',
-    shortName: 'QUADRA',
-    type: 'kitchen',
-    icon: 'UtensilsCrossed',
-    color: 'amber',
-    isSystem: false,
-    description: 'Área da quadra, fogões e churrasqueiras'
-  },
-  {
-    id: 'PUBLICO',
-    name: 'PÚBLICO (Painel TV)',
-    shortName: 'PÚBLICO',
-    type: 'display',
-    icon: 'Tv',
-    color: 'emerald',
-    isSystem: true,
-    description: 'Painel TV de Chamada de Clientes'
-  }
-];
-
-// Configuração padrão de e-mails autorizados por perfil/ambiente (e-mail opcional)
-const DEFAULT_EMAIL_RULES = {
-  ADMIN: ['irandyalves@gmail.com'],
-  COZINHA: [],
-  PUBLICO: []
-};
+export { PERFIS, DEFAULT_ENVIRONMENTS, DEFAULT_EMAIL_RULES };
 
 class AuthService {
   constructor() {
@@ -179,21 +109,42 @@ class AuthService {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Garante que os ambientes essenciais do sistema existem
+          // Garante que TODOS os ambientes padrão essenciais do sistema existam (COZINHA 1, COZINHA 2, TENDA, QUADRA, ADMIN, PÚBLICO)
           const ids = new Set(parsed.map(e => e.id));
           const missingDefaults = DEFAULT_ENVIRONMENTS.filter(d => !ids.has(d.id));
-          return [...parsed, ...missingDefaults];
+
+          // Atualiza nomes/descrições de itens padrão se estiverem com textos antigos
+          const updated = parsed.map(env => {
+            const defaultMatch = DEFAULT_ENVIRONMENTS.find(d => d.id === env.id);
+            if (defaultMatch && defaultMatch.isSystem) {
+              return { ...defaultMatch, ...env, name: defaultMatch.name, description: defaultMatch.description };
+            }
+            return env;
+          });
+
+          if (missingDefaults.length > 0) {
+            const merged = [...updated, ...missingDefaults];
+            localStorage.setItem(ENVIRONMENTS_STORAGE_KEY, JSON.stringify(merged));
+            return merged;
+          }
+          return updated;
         }
       }
     } catch (e) {
       console.error('Erro ao ler ambientes configurados:', e);
     }
+
+    try {
+      localStorage.setItem(ENVIRONMENTS_STORAGE_KEY, JSON.stringify(DEFAULT_ENVIRONMENTS));
+    } catch (_) {}
     return DEFAULT_ENVIRONMENTS;
   }
 
   saveEnvironments(environments) {
     localStorage.setItem(ENVIRONMENTS_STORAGE_KEY, JSON.stringify(environments));
     window.dispatchEvent(new CustomEvent('cantina_environments_changed', { detail: environments }));
+    // Sincroniza em tempo real com a nuvem no Cloud Firestore para que todos os outros dispositivos vejam imediatamente
+    storageService.saveEnvironmentsCloud(environments);
   }
 
   addEnvironment({ name, shortName, type = 'kitchen', icon = 'UtensilsCrossed', color = 'orange', description = '' }) {

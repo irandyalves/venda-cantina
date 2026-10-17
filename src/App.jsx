@@ -69,14 +69,21 @@ export default function App() {
       }
     };
 
+    const handleEnvsChange = () => {
+      const resolved = resolveEnvironmentFromHashOrActive();
+      setActiveEnvironment(resolved);
+    };
+
     window.addEventListener('hashchange', handleHashChange);
     window.addEventListener('cantina_environment_changed', handleEnvironmentChange);
     window.addEventListener('cantina_profile_changed', handleProfileChange);
+    window.addEventListener('cantina_environments_changed', handleEnvsChange);
 
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
       window.removeEventListener('cantina_environment_changed', handleEnvironmentChange);
       window.removeEventListener('cantina_profile_changed', handleProfileChange);
+      window.removeEventListener('cantina_environments_changed', handleEnvsChange);
     };
   }, []);
 

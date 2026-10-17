@@ -12,6 +12,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { DEFAULT_CATEGORIES } from '../data/defaultProducts';
+import { DEFAULT_ENVIRONMENTS } from '../data/defaultEnvironments';
 
 const FIREBASE_CONFIG_KEY = 'cantina_firebase_config';
 const LOCAL_ORDERS_KEY = 'cantina_local_orders';
@@ -23,6 +24,9 @@ const LOCAL_EVENTS_LIST_KEY = 'cantina_events_list';
 const LOCAL_TURNO_HISTORY_KEY = 'cantina_turno_history';
 const COLLECTION_ORDERS = 'cantina_pedidos';
 const COLLECTION_HISTORY = 'cantina_historico_turnos';
+const COLLECTION_SETTINGS = 'cantina_configuracoes';
+const DOC_ENVIRONMENTS = 'ambientes';
+const DOC_ROUTING = 'roteamento';
 
 // Configuração padrão com o banco Cloud Firestore ATIVO na conta do usuário
 export const DEFAULT_FIREBASE_CONFIG = {
@@ -49,6 +53,8 @@ class StorageService {
     // Central de assinantes de pedidos
     this.orderSubscribers = new Set();
     this.unsubscribeFirestore = null;
+    this.unsubscribeEnvironments = null;
+    this.unsubscribeRouting = null;
     this.pollTimer = null;
     this.lastOrdersJson = '';
     this.isReconnecting = false;
@@ -148,8 +154,17 @@ class StorageService {
       try { this.unsubscribeFirestore(); } catch (_) {}
       this.unsubscribeFirestore = null;
     }
+    if (this.unsubscribeEnvironments) {
+      try { this.unsubscribeEnvironments(); } catch (_) {}
+      this.unsubscribeEnvironments = null;
+    }
+    if (this.unsubscribeRouting) {
+      try { this.unsubscribeRouting(); } catch (_) {}
+      this.unsubscribeRouting = null;
+    }
 
     try {
+      // 1. Listener de pedidos em tempo real
       const colRef = collection(this.db, COLLECTION_ORDERS);
       this.unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
         const list = [];
@@ -173,8 +188,116 @@ class StorageService {
           }, 2000);
         }
       });
+
+      // 2. Listener de Ambientes em tempo real (garante sincronização para todos os dispositivos)
+      const envDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
+      this.unsubscribeEnvironments = onSnapshot(envDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (Array.isArray(data.environments) && data.environments.length > 0) {
+            console.log(`📡 [Firestore Realtime] ${data.environments.length} ambientes sincronizados da nuvem`);
+            this.handleCloudEnvironments(data.environments);
+          }
+        } else {
+          // Se ainda não existir documento na nuvem, semeia com os ambientes locais/padrão
+          this.seedCloudEnvironments();
+        }
+      }, (err) => {
+        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar ambientes:', err);
+      });
+
+      // 3. Listener de Roteamento de Produção em tempo real na nuvem
+      const routingDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
+      this.unsubscribeRouting = onSnapshot(routingDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.routing) {
+            console.log('📡 [Firestore Realtime] Roteamento de produção sincronizado da nuvem');
+            this.handleCloudRouting(data.routing);
+          }
+        }
+      }, (err) => {
+        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar roteamento:', err);
+      });
     } catch (err) {
       console.error('❌ Erro ao configurar onSnapshot:', err);
+    }
+  }
+
+  // Semeia ambientes padrão no Firestore
+  async seedCloudEnvironments() {
+    if (!this.isFirebaseReady || !this.db) return;
+    try {
+      const docRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
+      await setDoc(docRef, {
+        environments: DEFAULT_ENVIRONMENTS,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      console.log('🌱 Ambientes padrão semeados no Firestore');
+    } catch (err) {
+      console.warn('Falha ao semear ambientes:', err);
+    }
+  }
+
+  // Processa ambientes recebidos do Firestore e atualiza todos os componentes
+  handleCloudEnvironments(cloudEnvs) {
+    try {
+      const cloudIds = new Set(cloudEnvs.map(e => e.id));
+      const missingDefaults = DEFAULT_ENVIRONMENTS.filter(d => !cloudIds.has(d.id));
+      const fullList = [...cloudEnvs, ...missingDefaults];
+
+      localStorage.setItem('cantina_environments', JSON.stringify(fullList));
+      window.dispatchEvent(new CustomEvent('cantina_environments_changed', { detail: fullList }));
+
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'ENVIRONMENTS_UPDATED', payload: fullList });
+      }
+    } catch (e) {
+      console.error('Erro ao processar ambientes da nuvem:', e);
+    }
+  }
+
+  // Salva ambientes no Firestore na nuvem para propagar a todos os aparelhos
+  async saveEnvironmentsCloud(environments) {
+    if (!this.isFirebaseReady || !this.db) return;
+    try {
+      const docRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
+      await setDoc(docRef, {
+        environments,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      console.log('☁️ Ambientes salvos no Firestore na nuvem com sucesso:', environments.length);
+    } catch (err) {
+      console.error('⚠️ Erro ao salvar ambientes no Firestore:', err);
+    }
+  }
+
+  // Processa roteamento de produção vindo da nuvem
+  handleCloudRouting(cloudRouting) {
+    try {
+      localStorage.setItem('cantina_production_routing', JSON.stringify(cloudRouting));
+      window.dispatchEvent(new CustomEvent('cantina_production_routing_changed', { detail: cloudRouting }));
+
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'PRODUCTION_ROUTING_UPDATED', payload: cloudRouting });
+      }
+    } catch (e) {
+      console.error('Erro ao processar roteamento da nuvem:', e);
+    }
+  }
+
+  // Salva roteamento no Firestore na nuvem
+  async saveProductionRoutingCloud(routing) {
+    if (!this.isFirebaseReady || !this.db) return;
+    try {
+      const docRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
+      await setDoc(docRef, {
+        routing,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      console.log('☁️ Roteamento salvo no Firestore na nuvem com sucesso');
+    } catch (err) {
+      console.error('⚠️ Erro ao salvar roteamento no Firestore:', err);
     }
   }
 
@@ -236,6 +359,12 @@ class StorageService {
         if (event.data?.type === 'EVENT_CHANGED') {
           window.dispatchEvent(new CustomEvent('cantina_event_changed', { detail: event.data.payload }));
         }
+        if (event.data?.type === 'ENVIRONMENTS_UPDATED') {
+          window.dispatchEvent(new CustomEvent('cantina_environments_changed', { detail: event.data.payload }));
+        }
+        if (event.data?.type === 'PRODUCTION_ROUTING_UPDATED') {
+          window.dispatchEvent(new CustomEvent('cantina_production_routing_changed', { detail: event.data.payload }));
+        }
       };
     }
 
@@ -252,6 +381,18 @@ class StorageService {
           try {
             const parsed = JSON.parse(e.newValue);
             window.dispatchEvent(new CustomEvent('cantina_event_changed', { detail: parsed }));
+          } catch (_) {}
+        }
+        if (e.key === 'cantina_environments') {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            window.dispatchEvent(new CustomEvent('cantina_environments_changed', { detail: parsed }));
+          } catch (_) {}
+        }
+        if (e.key === 'cantina_production_routing') {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            window.dispatchEvent(new CustomEvent('cantina_production_routing_changed', { detail: parsed }));
           } catch (_) {}
         }
       });
@@ -473,6 +614,7 @@ class StorageService {
       syncChannel.postMessage({ type: 'PRODUCTION_ROUTING_UPDATED', payload: routing });
     }
     window.dispatchEvent(new CustomEvent('cantina_production_routing_changed', { detail: routing }));
+    this.saveProductionRoutingCloud(routing);
   }
 
   // --- GESTÃO DE EVENTOS (FESTAS, FESTIVAIS E TURNOS) ---

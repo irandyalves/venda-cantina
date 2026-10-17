@@ -56,6 +56,13 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
     };
   }, []);
 
+  const handleToggle = () => {
+    if (!isOpen) {
+      setEnvironments(authService.getEnvironments());
+    }
+    setIsOpen(!isOpen);
+  };
+
   const handleSelectProfile = (profileId) => {
     setActiveProfile(profileId);
     authService.setActiveProfile(profileId);
@@ -118,7 +125,7 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
       {/* BOTÃO DO AMBIENTE NO CANTO SUPERIOR DIREITO */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-xl border border-slate-700 hover:border-slate-500 shadow-md transition-all active:scale-95 cursor-pointer"
         title="Alternar ambiente de trabalho"
       >
