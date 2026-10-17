@@ -73,7 +73,6 @@ export default function App() {
       {currentView === 'kitchen' && (
         <KitchenView 
           onNavigate={navigateTo}
-          onOpenConfig={handleOpenConfig}
         />
       )}
 

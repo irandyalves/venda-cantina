@@ -12,17 +12,13 @@ import {
   Flame, 
   Check, 
   Sparkles,
-  Settings,
-  Wifi,
-  WifiOff,
-  User,
-  ArrowRight
+  User
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
 import ProfileSelector from './ProfileSelector';
 
-export default function KitchenView({ onNavigate, onOpenConfig }) {
+export default function KitchenView({ onNavigate }) {
   const [orders, setOrders] = useState([]);
   const [activeFilter, setActiveFilter] = useState('active'); // 'active', 'entregue', 'all'
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -157,8 +153,8 @@ export default function KitchenView({ onNavigate, onOpenConfig }) {
             <UtensilsCrossed className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-base font-black text-white tracking-wide flex items-center gap-2">
-              COZINHA & PRODUÇÃO <span className="text-[10px] bg-orange-500/20 text-orange-400 font-bold px-2 py-0.5 rounded-full border border-orange-500/30">KDS</span>
+            <h1 className="text-base font-black text-white tracking-wide">
+              COZINHA & PRODUÇÃO
             </h1>
             <p className="text-xs text-slate-400">
               Fila em tempo real: <strong className="text-orange-400 font-mono">{activeOrders.length} pedidos pendentes</strong>
@@ -166,46 +162,12 @@ export default function KitchenView({ onNavigate, onOpenConfig }) {
           </div>
         </div>
 
-        {/* STATUS DA NUVEM + SONS + CONFIGURAÇÕES ⚙️ + NAVEGAÇÃO */}
-        <div className="flex items-center gap-2">
-          
-          {/* BADGE NUVEM REALTIME */}
-          <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${
-            isFirebaseOnline 
-              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/50' 
-              : 'bg-amber-950/60 text-amber-300 border-amber-600/50'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${isFirebaseOnline ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
-            <span>{isFirebaseOnline ? 'Nuvem Realtime' : 'Modo Local'}</span>
-          </div>
-
-          {/* TESTE DE SONS */}
-          <div className="hidden md:flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
-            <span className="text-slate-400 text-[10px] font-semibold">Testar:</span>
-            <button 
-              onClick={() => soundService.playPizzaSound()}
-              className="px-1.5 py-0.5 bg-red-950/70 hover:bg-red-900 text-red-300 font-bold rounded text-[10px]"
-            >
-              🍕 Pizza
-            </button>
-            <button 
-              onClick={() => soundService.playPotatoSound()}
-              className="px-1.5 py-0.5 bg-amber-950/70 hover:bg-amber-900 text-amber-300 font-bold rounded text-[10px]"
-            >
-              🍟 Batata
-            </button>
-            <button 
-              onClick={() => soundService.playAcaiSound()}
-              className="px-1.5 py-0.5 bg-purple-950/70 hover:bg-purple-900 text-purple-300 font-bold rounded text-[10px]"
-            >
-              🍧 Açaí
-            </button>
-          </div>
-
+        {/* CONTROLES LIMPOS: SOM + SELETOR DE PERFIL */}
+        <div className="flex items-center gap-2.5">
           {/* TOGGLE SOM GERAL */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-xl font-bold text-xs border transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border transition-all ${
               soundEnabled 
                 ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/60' 
                 : 'bg-rose-950/60 text-rose-300 border-rose-600/60'
@@ -213,31 +175,7 @@ export default function KitchenView({ onNavigate, onOpenConfig }) {
             title="Ligar ou desligar avisos sonoros da cozinha"
           >
             {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-rose-400" />}
-            <span className="hidden sm:inline">{soundEnabled ? 'Som Ativo' : 'Mudo'}</span>
-          </button>
-
-          {/* BOTÃO ENGRENAGEM DE CONFIGURAÇÃO NA COZINHA (NOVO) */}
-          <button
-            onClick={() => onOpenConfig && onOpenConfig('products')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-md active:scale-95 border border-amber-500"
-            title="Ajustar preços da pizza, tamanhos de açaí, batatas e cardápio"
-          >
-            <Settings className="w-4 h-4 animate-spin-slow" />
-            <span className="hidden sm:inline">CONFIGURAÇÕES ⚙️</span>
-          </button>
-
-          {/* NAVEGAÇÃO */}
-          <button 
-            onClick={() => onNavigate('cashier')}
-            className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors"
-          >
-            Caixa
-          </button>
-          <button 
-            onClick={() => onNavigate('display')}
-            className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors"
-          >
-            TV
+            <span>{soundEnabled ? 'Som Ativo' : 'Mudo'}</span>
           </button>
 
           {/* PERFIL NO CANTO SUPERIOR DIREITO */}
@@ -246,7 +184,6 @@ export default function KitchenView({ onNavigate, onOpenConfig }) {
               if (profile === 'ADMIN') onNavigate('cashier');
               else if (profile === 'PUBLICO') onNavigate('display');
             }}
-            onOpenConfig={onOpenConfig}
           />
         </div>
       </header>
