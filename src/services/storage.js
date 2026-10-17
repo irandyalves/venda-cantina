@@ -4,14 +4,11 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getFirestore,
   collection,
-  addDoc,
-  updateDoc,
   doc,
+  setDoc,
   onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp,
-  getDocs
+  getDocs,
+  serverTimestamp
 } from 'firebase/firestore';
 import { DEFAULT_CATEGORIES } from '../data/defaultProducts';
 
@@ -43,7 +40,17 @@ class StorageService {
     this.db = null;
     this.isFirebaseReady = false;
     this.connectionStatusListeners = [];
+    
+    // Central de assinantes de pedidos
+    this.orderSubscribers = new Set();
+    this.unsubscribeFirestore = null;
+    this.pollTimer = null;
+    this.lastOrdersJson = '';
+    this.isReconnecting = false;
+
     this.initFirebase();
+    this.setupLocalSync();
+    this.startHeartbeatPolling();
   }
 
   onConnectionStatusChange(callback) {
@@ -55,7 +62,9 @@ class StorageService {
   }
 
   notifyConnectionStatus() {
-    this.connectionStatusListeners.forEach(cb => cb(this.isFirebaseReady));
+    this.connectionStatusListeners.forEach(cb => {
+      try { cb(this.isFirebaseReady); } catch (e) { console.error(e); }
+    });
   }
 
   // Carrega configuração salva no localStorage ou padrão ativo
@@ -64,10 +73,15 @@ class StorageService {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.apiKey) return parsed;
+        // Se o projectId for o do hosting (cantina-express-32161) que não tem o Cloud Firestore habilitado,
+        // descarta e usa automaticamente o DEFAULT_FIREBASE_CONFIG (carga-patrimonio) onde o Firestore está 100% ativo!
+        if (parsed && parsed.projectId && parsed.projectId !== 'cantina-express-32161' && parsed.apiKey) {
+          return parsed;
+        }
       } catch (e) {
         console.error('Erro ao ler configuração salva do Firebase', e);
       }
+      localStorage.removeItem(FIREBASE_CONFIG_KEY);
     }
 
     if (import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_API_KEY.length > 10) {
@@ -106,6 +120,9 @@ class StorageService {
       this.isFirebaseReady = true;
       this.notifyConnectionStatus();
       console.log('✅ Firebase Firestore conectado com sucesso ao projeto:', config.projectId);
+      
+      // Inicia o listener em tempo real imediatamente
+      this.startFirestoreListener();
       return true;
     } catch (e) {
       console.error('❌ Falha ao inicializar Firebase:', e);
@@ -113,6 +130,133 @@ class StorageService {
       this.notifyConnectionStatus();
       return false;
     }
+  }
+
+  // --- SINCRONIZAÇÃO EM TEMPO REAL CENTRALIZADA ---
+
+  // Inicia o listener de snapshot do Cloud Firestore
+  startFirestoreListener() {
+    if (!this.isFirebaseReady || !this.db) return;
+
+    if (this.unsubscribeFirestore) {
+      try { this.unsubscribeFirestore(); } catch (_) {}
+      this.unsubscribeFirestore = null;
+    }
+
+    try {
+      const colRef = collection(this.db, COLLECTION_ORDERS);
+      this.unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        
+        // Ordena por data decrescente de forma segura em JavaScript
+        list.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+        
+        console.log(`📡 [Firestore Realtime] ${list.length} pedidos recebidos via WebSocket da nuvem`);
+        this.notifyOrderSubscribers(list);
+      }, (error) => {
+        console.error('⚠️ [Firestore Realtime] Erro no onSnapshot, agendando reconexão:', error);
+        if (!this.isReconnecting) {
+          this.isReconnecting = true;
+          setTimeout(() => {
+            this.isReconnecting = false;
+            this.startFirestoreListener();
+          }, 2000);
+        }
+      });
+    } catch (err) {
+      console.error('❌ Erro ao configurar onSnapshot:', err);
+    }
+  }
+
+  // Heartbeat Polling ativo a cada 2 segundos para garantir atualização contínua
+  // (essencial para TVs e navegadores móveis que suspendem WebSockets ociosos)
+  startHeartbeatPolling() {
+    if (this.pollTimer) clearInterval(this.pollTimer);
+
+    this.pollTimer = setInterval(async () => {
+      if (this.isFirebaseReady && this.db) {
+        try {
+          const colRef = collection(this.db, COLLECTION_ORDERS);
+          const snap = await getDocs(colRef);
+          const list = [];
+          snap.forEach(docSnap => {
+            list.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          list.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+
+          // Compara se houve alguma alteração (novos pedidos ou status modificado)
+          const currentHash = list.map(o => `${o.id}_${o.status}_${o.updatedAt || o.createdAt}`).join('|');
+          if (currentHash !== this.lastOrdersHash) {
+            this.lastOrdersHash = currentHash;
+            console.log(`🔄 [Heartbeat Sync] Atualização detectada na nuvem (${list.length} pedidos)`);
+            this.notifyOrderSubscribers(list);
+          }
+        } catch (err) {
+          // Falha silenciosa no polling; tenta novamente no próximo ciclo
+        }
+      }
+    }, 2000);
+  }
+
+  // Notifica todos os componentes ativos (Caixa, Cozinha, TV) instantaneamente
+  notifyOrderSubscribers(orders) {
+    // 1. Atualiza cache local
+    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders));
+
+    // 2. Dispara para todos os callbacks ativos nesta tela
+    this.orderSubscribers.forEach(cb => {
+      try { cb(orders); } catch (e) { console.error('Erro em subscriber de pedidos:', e); }
+    });
+
+    // 3. Emite evento interno na janela
+    window.dispatchEvent(new CustomEvent('cantina_orders_internal_sync', { detail: orders }));
+  }
+
+  // Configura sincronização instantânea local (entre abas na mesma máquina)
+  setupLocalSync() {
+    if (syncChannel) {
+      syncChannel.onmessage = (event) => {
+        if (event.data?.type?.startsWith('ORDER_')) {
+          const local = this.getLocalOrders();
+          this.orderSubscribers.forEach(cb => {
+            try { cb(local); } catch (_) {}
+          });
+        }
+      };
+    }
+
+    // Escuta evento 'storage' para navegadores que não compartilham BroadcastChannel
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key === LOCAL_ORDERS_KEY) {
+          const local = this.getLocalOrders();
+          this.orderSubscribers.forEach(cb => {
+            try { cb(local); } catch (_) {}
+          });
+        }
+      });
+    }
+  }
+
+  // Assinatura de pedidos usada pelas telas: Caixa, Cozinha e TV
+  subscribeOrders(callback) {
+    this.orderSubscribers.add(callback);
+
+    // Emite imediatamente o estado atual para renderização instantânea
+    callback(this.getLocalOrders());
+
+    // Se o Firestore estiver ativo, garante que o listener esteja escutando
+    if (this.isFirebaseReady && !this.unsubscribeFirestore) {
+      this.startFirestoreListener();
+    }
+
+    // Retorna função de cancelamento ao desmontar
+    return () => {
+      this.orderSubscribers.delete(callback);
+    };
   }
 
   // Gerador de código de comanda sequencial:
@@ -253,7 +397,16 @@ class StorageService {
       status: 'em_preparo', // Chegou na cozinha já entra Em Preparação direto!
     };
 
-    // 1. Grava no Cloud Firestore com ID explícito
+    // 1. Atualiza e notifica localmente de imediato (0ms de latência no caixa)
+    const localOrders = this.getLocalOrders();
+    localOrders.unshift(order);
+    this.notifyOrderSubscribers(localOrders);
+
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'ORDER_CREATED', payload: order });
+    }
+
+    // 2. Grava no Cloud Firestore na nuvem
     if (this.isFirebaseReady && this.db) {
       try {
         const orderRef = doc(this.db, COLLECTION_ORDERS, orderId);
@@ -267,21 +420,28 @@ class StorageService {
       }
     }
 
-    // 2. Salva localmente para resposta instantânea
-    const localOrders = this.getLocalOrders();
-    localOrders.unshift(order);
-    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(localOrders));
-
-    // 3. Notifica abas locais
-    if (syncChannel) {
-      syncChannel.postMessage({ type: 'ORDER_CREATED', payload: order });
-    }
-
     return order;
   }
 
   async updateOrderStatus(orderId, newStatus) {
     // newStatus pode ser: 'em_preparo', 'pronto', 'entregue', 'cancelado'
+    
+    // 1. Atualiza e notifica localmente de imediato (0ms de latência no clique)
+    const localOrders = this.getLocalOrders();
+    const updated = localOrders.map(ord => {
+      if (ord.id === orderId) {
+        return { ...ord, status: newStatus, updatedAt: Date.now() };
+      }
+      return ord;
+    });
+
+    this.notifyOrderSubscribers(updated);
+
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'ORDER_STATUS_CHANGED', payload: { orderId, newStatus } });
+    }
+
+    // 2. Grava no Cloud Firestore na nuvem
     if (this.isFirebaseReady && this.db) {
       try {
         const orderRef = doc(this.db, COLLECTION_ORDERS, orderId);
@@ -293,20 +453,6 @@ class StorageService {
       } catch (err) {
         console.error('⚠️ Erro ao atualizar status no Firestore:', err);
       }
-    }
-
-    const localOrders = this.getLocalOrders();
-    const updated = localOrders.map(ord => {
-      if (ord.id === orderId) {
-        return { ...ord, status: newStatus, updatedAt: Date.now() };
-      }
-      return ord;
-    });
-
-    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(updated));
-
-    if (syncChannel) {
-      syncChannel.postMessage({ type: 'ORDER_STATUS_CHANGED', payload: { orderId, newStatus } });
     }
 
     return updated;
@@ -321,65 +467,11 @@ class StorageService {
     }
   }
 
-  // Inscrição em tempo real para as telas (Caixa, Cozinha e TV)
-  subscribeOrders(callback) {
-    let unsubscribeFirestore = null;
-
-    if (this.isFirebaseReady && this.db) {
-      try {
-        const q = query(collection(this.db, COLLECTION_ORDERS), orderBy('createdAt', 'desc'));
-        unsubscribeFirestore = onSnapshot(q, (snapshot) => {
-          const list = [];
-          snapshot.forEach((docSnap) => {
-            list.push({ id: docSnap.id, ...docSnap.data() });
-          });
-          console.log(`📡 Firestore Realtime: ${list.length} pedidos recebidos`);
-          // Atualiza o cache local
-          localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(list));
-          callback(list);
-        }, (error) => {
-          console.error('❌ Erro no onSnapshot do Firestore:', error);
-          callback(this.getLocalOrders());
-        });
-      } catch (e) {
-        console.error('❌ Erro ao assinar Firestore:', e);
-        callback(this.getLocalOrders());
-      }
-    } else {
-      // Se não conectou no Firestore, emite estado local
-      callback(this.getLocalOrders());
-    }
-
-    // Escuta sincronizações locais entre abas
-    const onMessage = (event) => {
-      if (event.data?.type?.startsWith('ORDER_')) {
-        callback(this.getLocalOrders());
-      }
-    };
-
-    if (syncChannel) {
-      syncChannel.addEventListener('message', onMessage);
-    }
-
-    // Escuta eventos de storage caso seja em janelas separadas
-    const onStorage = (e) => {
-      if (e.key === LOCAL_ORDERS_KEY) {
-        callback(this.getLocalOrders());
-      }
-    };
-    window.addEventListener('storage', onStorage);
-
-    return () => {
-      if (unsubscribeFirestore) unsubscribeFirestore();
-      if (syncChannel) syncChannel.removeEventListener('message', onMessage);
-      window.removeEventListener('storage', onStorage);
-    };
-  }
-
   // Limpar pedidos do dia
   clearDayOrders() {
     localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify([]));
     this.resetDailyCounters();
+    this.notifyOrderSubscribers([]);
     if (syncChannel) {
       syncChannel.postMessage({ type: 'ORDERS_CLEARED' });
     }

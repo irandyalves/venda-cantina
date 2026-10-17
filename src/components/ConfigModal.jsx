@@ -1185,10 +1185,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <h3 className="font-extrabold text-white text-base">Conexão Firebase da Minha Conta</h3>
                 </div>
 
-                <div className="text-xs text-slate-300 leading-relaxed bg-slate-950/70 p-4 rounded-xl border border-slate-800">
-                  <p className="font-bold text-amber-300 mb-1">Status da Nuvem:</p>
+                <div className="text-xs text-slate-300 leading-relaxed bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-1">
+                  <p className="font-bold text-amber-300">Status da Sincronização em Tempo Real (Realtime):</p>
                   <p className="text-slate-400">
-                    O projeto está conectado ao Firebase <strong>cantina-express-32161</strong> no Firebase Hosting.
+                    • <strong>Hospedagem Web:</strong> <span className="text-white font-mono">cantina-express-32161.web.app</span><br/>
+                    • <strong>Banco Cloud Firestore:</strong> <span className="text-emerald-400 font-mono font-bold">{firebaseConfig.projectId || 'carga-patrimonio'}</span> (Ativo com WebSocket contínuo e Heartbeat de 2s)
                   </p>
                 </div>
 
