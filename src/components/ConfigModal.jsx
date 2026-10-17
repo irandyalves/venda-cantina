@@ -153,7 +153,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [showAddEnvModal, setShowAddEnvModal] = useState(false);
   const [showEditEnvModal, setShowEditEnvModal] = useState(false);
   const [newEnvName, setNewEnvName] = useState('');
-  const [newEnvShortName, setNewEnvShortName] = useState('');
   const [newEnvType, setNewEnvType] = useState('kitchen'); // 'kitchen', 'cashier', 'display'
   const [newEnvDesc, setNewEnvDesc] = useState('');
   const [editingEnv, setEditingEnv] = useState(null);
@@ -546,7 +545,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     try {
       const created = authService.addEnvironment({
         name: cleanName,
-        shortName: newEnvShortName || cleanName,
+        shortName: cleanName,
         type: newEnvType,
         description: newEnvDesc.trim()
       });
@@ -554,7 +553,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       setEmailRules(authService.getEmailRules());
       setShowAddEnvModal(false);
       setNewEnvName('');
-      setNewEnvShortName('');
       setNewEnvType('kitchen');
       setNewEnvDesc('');
       showToast(`Ambiente "${created.name}" cadastrado com sucesso!`, 'Ambiente Criado');
@@ -586,9 +584,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     try {
       authService.updateEnvironment(editingEnv.id, {
         name: cleanName,
-        shortName: editingEnv.shortName || cleanName,
+        shortName: cleanName,
         type: editingEnv.type,
-        description: editingEnv.description.trim()
+        description: (editingEnv.description || '').trim()
       });
       setEnvironments(authService.getEnvironments());
       setShowEditEnvModal(false);
@@ -1431,7 +1429,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     type="button"
                     onClick={() => {
                       setNewEnvName('');
-                      setNewEnvShortName('');
                       setNewEnvType('kitchen');
                       setNewEnvDesc('');
                       setShowAddEnvModal(true);
@@ -1448,7 +1445,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   {environments.map((env) => {
                     const isKitchen = env.type === 'kitchen';
                     const isDisplay = env.type === 'display';
-                    const typeLabel = isKitchen ? '👨‍🍳 COZINHA (KDS)' : isDisplay ? '📺 PAINEL TV' : '💻 CAIXA (PDV)';
+                    const typeLabel = isKitchen ? '👨‍🍳 COZINHA' : isDisplay ? '📺 PAINEL TV' : '💻 CAIXA';
                     const typeBadgeColor = isKitchen 
                       ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' 
                       : isDisplay 
@@ -1503,8 +1500,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           <span className="text-slate-400">
                             {emailCount > 0 ? `${emailCount} e-mail(s)` : 'Acesso livre (sem e-mail)'}
                           </span>
-                          <span className="font-mono text-[10px] text-amber-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
-                            #{env.shortName.toLowerCase().replace(/[\s_]+/g, '-')}
+                          <span className="text-[10px] text-emerald-400 font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                            Ativo
                           </span>
                         </div>
                       </div>
@@ -1588,7 +1585,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                           <div className={`flex items-center gap-1.5 font-black text-sm ${textColor}`}>
                             <IconComp className="w-4 h-4" />
-                            <span className="truncate">{env.shortName || env.name}</span>
+                            <span className="truncate">{env.name || env.shortName}</span>
                           </div>
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 ${textColor}`}>
                             {emails.length} e-mails
@@ -2729,7 +2726,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     Reinício das Filas de Pedidos
                   </span>
                   <p className="text-[11px] text-slate-300 leading-relaxed">
-                    As filas de pedidos do <strong>Caixa</strong>, <strong>Cozinha KDS</strong> e <strong>Painel TV</strong> serão zeradas para que você inicie o próximo turno com tela limpa.
+                    As filas de pedidos do <strong>Caixa</strong>, <strong>Cozinha</strong> e <strong>Painel TV</strong> serão zeradas para que você inicie o próximo turno com tela limpa.
                   </p>
                 </div>
               </div>
@@ -3476,43 +3473,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   required
                   placeholder="Ex: COZINHA 2, TENDA DE LANCHES..."
                   value={newEnvName}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setNewEnvName(val.toUpperCase());
-                    if (!newEnvShortName) setNewEnvShortName(val.toUpperCase());
-                  }}
+                  onChange={(e) => setNewEnvName(e.target.value.toUpperCase())}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-indigo-400"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Sigla / Identificador:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: COZINHA-2"
-                    value={newEnvShortName}
-                    onChange={(e) => setNewEnvShortName(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-amber-300 outline-none focus:border-indigo-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Tipo de Operação: *
-                  </label>
-                  <select
-                    value={newEnvType}
-                    onChange={(e) => setNewEnvType(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-indigo-400 cursor-pointer"
-                  >
-                    <option value="kitchen">🍳 Cozinha / Produção</option>
-                    <option value="cashier">🏪 Caixa / Vendas</option>
-                    <option value="display">📺 Painel TV / Público</option>
-                  </select>
-                </div>
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Tipo de Operação: *
+                </label>
+                <select
+                  value={newEnvType}
+                  onChange={(e) => setNewEnvType(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-indigo-400 cursor-pointer"
+                >
+                  <option value="kitchen">🍳 Cozinha / Produção</option>
+                  <option value="cashier">🏪 Caixa / Vendas</option>
+                  <option value="display">📺 Painel TV / Público</option>
+                </select>
               </div>
 
               <div>
@@ -3568,7 +3546,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     Configurar Ambiente
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Altere o nome, sigla, tipo e descrição do ambiente
+                    Altere o nome, tipo e descrição do ambiente
                   </p>
                 </div>
               </div>
@@ -3596,35 +3574,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Sigla / Identificador:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: COZINHA-2"
-                    value={editingEnv.shortName}
-                    onChange={(e) => setEditingEnv({ ...editingEnv, shortName: e.target.value.toUpperCase() })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-amber-300 outline-none focus:border-emerald-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Tipo de Operação: *
-                  </label>
-                  <select
-                    value={editingEnv.type}
-                    disabled={editingEnv.isSystem}
-                    onChange={(e) => setEditingEnv({ ...editingEnv, type: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-emerald-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="kitchen">🍳 Cozinha / Produção</option>
-                    <option value="cashier">🏪 Caixa / Vendas</option>
-                    <option value="display">📺 Painel TV / Público</option>
-                  </select>
-                </div>
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Tipo de Operação: *
+                </label>
+                <select
+                  value={editingEnv.type}
+                  disabled={editingEnv.isSystem}
+                  onChange={(e) => setEditingEnv({ ...editingEnv, type: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-emerald-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="kitchen">🍳 Cozinha / Produção</option>
+                  <option value="cashier">🏪 Caixa / Vendas</option>
+                  <option value="display">📺 Painel TV / Público</option>
+                </select>
               </div>
 
               <div>

@@ -25,7 +25,7 @@ export const DEFAULT_ENVIRONMENTS = [
     icon: 'UtensilsCrossed',
     color: 'orange',
     isSystem: true,
-    description: 'Painel KDS Cozinha 1, Fogões & Fornos'
+    description: 'Cozinha 1, Fogões & Fornos'
   },
   {
     id: 'COZINHA_2',

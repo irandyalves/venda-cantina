@@ -113,19 +113,25 @@ class AuthService {
           const ids = new Set(parsed.map(e => e.id));
           const missingSystemDefaults = DEFAULT_ENVIRONMENTS.filter(d => d.isSystem && !ids.has(d.id));
 
-          // NUNCA sobrescreve nomes ou descrições personalizados pelo usuário
+          // NUNCA sobrescreve nomes ou descrições personalizados pelo usuário e remove qualquer menção residual a 'KDS'
           const updated = parsed.map(env => {
             const defaultMatch = DEFAULT_ENVIRONMENTS.find(d => d.id === env.id);
+            const rawDesc = env.description !== undefined ? env.description : (defaultMatch?.description || '');
+            const cleanDesc = rawDesc.replace(/\bpainel\s+kds\b/gi, 'Painel').replace(/\bkds\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+
             if (defaultMatch) {
               return {
                 ...defaultMatch,
                 ...env,
                 name: env.name || defaultMatch.name,
                 shortName: env.shortName || defaultMatch.shortName,
-                description: env.description !== undefined ? env.description : defaultMatch.description
+                description: cleanDesc
               };
             }
-            return env;
+            return {
+              ...env,
+              description: cleanDesc
+            };
           });
 
           if (missingSystemDefaults.length > 0) {
