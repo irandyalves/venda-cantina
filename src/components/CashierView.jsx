@@ -77,16 +77,74 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
     }
   }, [selectedProduct]);
 
-  // Totais do rodapé
+  // Totais e listas do rodapé (mais novos em cima)
   const todayOrders = orders.filter(o => {
     const orderDate = new Date(o.createdAt).toDateString();
     return orderDate === new Date().toDateString();
   });
 
-  const countEmPreparo = todayOrders.filter(o => o.status === 'em_preparo').length;
-  const countProntas = todayOrders.filter(o => o.status === 'pronto').length;
-  const countEntregues = todayOrders.filter(o => o.status === 'entregue').length;
+  const sortNewestFirst = (list) => {
+    return [...list].sort((a, b) => {
+      const timeA = new Date(b.createdAt || 0).getTime();
+      const timeB = new Date(a.createdAt || 0).getTime();
+      return timeA - timeB;
+    });
+  };
+
+  const preparingList = sortNewestFirst(todayOrders.filter(o => o.status === 'em_preparo'));
+  const readyList = sortNewestFirst(todayOrders.filter(o => o.status === 'pronto'));
+  const deliveredList = sortNewestFirst(todayOrders.filter(o => o.status === 'entregue'));
+
+  const countEmPreparo = preparingList.length;
+  const countProntas = readyList.length;
+  const countEntregues = deliveredList.length;
   const totalFaturado = todayOrders.reduce((acc, curr) => acc + (Number(curr.totalPrice) || 0), 0);
+
+  // Cores distintas para Pizza, Açaí e Batata nos Cards do Rodapé
+  const getOrderCategoryStyle = (order) => {
+    const cat = (order.category || order.categoryName || '').toLowerCase();
+    if (cat.includes('pizza') || cat.includes('ped') || cat.includes('int')) {
+      return {
+        icon: <Pizza className="w-3.5 h-3.5 text-amber-400 shrink-0" />,
+        border: 'border-amber-500/50 hover:border-amber-400',
+        bg: 'bg-amber-950/40 hover:bg-amber-950/60',
+        badgeColor: 'text-amber-300 bg-amber-950/90 border-amber-500/50',
+        textColor: 'text-amber-200'
+      };
+    }
+    if (cat.includes('acai') || cat.includes('açaí')) {
+      return {
+        icon: <IceCream className="w-3.5 h-3.5 text-purple-400 shrink-0" />,
+        border: 'border-purple-500/50 hover:border-purple-400',
+        bg: 'bg-purple-950/40 hover:bg-purple-950/60',
+        badgeColor: 'text-purple-300 bg-purple-950/90 border-purple-500/50',
+        textColor: 'text-purple-200'
+      };
+    }
+    if (cat.includes('batata') || cat.includes('frita')) {
+      return {
+        icon: <UtensilsCrossed className="w-3.5 h-3.5 text-yellow-400 shrink-0" />,
+        border: 'border-yellow-500/50 hover:border-yellow-400',
+        bg: 'bg-yellow-950/40 hover:bg-yellow-950/60',
+        badgeColor: 'text-yellow-300 bg-yellow-950/90 border-yellow-500/50',
+        textColor: 'text-yellow-200'
+      };
+    }
+    return {
+      icon: <UtensilsCrossed className="w-3.5 h-3.5 text-slate-400 shrink-0" />,
+      border: 'border-slate-700 hover:border-slate-500',
+      bg: 'bg-slate-900/60 hover:bg-slate-850',
+      badgeColor: 'text-slate-300 bg-slate-800 border-slate-600',
+      textColor: 'text-slate-200'
+    };
+  };
+
+  const getItemSummary = (order) => {
+    if (order.variationName) {
+      return `${order.itemName} (${order.variationName})`;
+    }
+    return order.itemName || order.fullDescription || 'Item';
+  };
 
   // 1º PASSO: Selecionar o produto
   const handleSelectPizzaVariation = (flavor, variation) => {
@@ -715,42 +773,199 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
 
       </main>
 
-      {/* RODAPÉ DO CAIXA: EM PREPARAÇÃO, PRONTAS, ENTREGUES */}
-      <footer className="bg-slate-950 border-t border-slate-700 px-3 py-1.5 shrink-0 shadow-lg flex flex-wrap items-center justify-between gap-2 text-[11px]">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/30 px-2 py-1 rounded-lg">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-            <span className="font-bold uppercase tracking-wider text-amber-300 text-[10px]">Em Preparação:</span>
-            <span className="text-xs font-black text-amber-400 bg-amber-950/60 px-1.5 py-0.2 rounded font-mono">
-              {countEmPreparo}
+      {/* ========================================================
+          RODAPÉ DO CAIXA: 3 COLUNAS COM ATÉ 10 ITENS (ROLÁVEL)
+          - EM PREPARAÇÃO, PRONTAS, RETIRADAS
+          - MAIS NOVOS EM CIMA
+          - CARDS: ÍCONE NR PEDIDO | NOME | ITEM
+          - CORES DIFERENTES: PIZZA (AMBER), AÇAÍ (ROXO), BATATA (AMARELO)
+         ======================================================== */}
+      <footer className="bg-slate-950 border-t-2 border-slate-700/80 px-2.5 sm:px-3 py-2 shrink-0 shadow-2xl space-y-1.5">
+        
+        {/* LINHA DE RESUMO SUPERIOR DO RODAPÉ */}
+        <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-1 text-[11px]">
+          <div className="flex items-center gap-2">
+            <span className="font-black text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              <span>FLUXO DE PEDIDOS:</span>
             </span>
+            <span className="text-[10px] text-slate-500 hidden sm:inline">(Mais recentes no topo • Rolagem até 10+ pedidos)</span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 px-2 py-1 rounded-lg">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="font-bold uppercase tracking-wider text-emerald-300 text-[10px]">Prontas:</span>
-            <span className="text-xs font-black text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded font-mono">
-              {countProntas}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-blue-500/15 border border-blue-500/30 px-2 py-1 rounded-lg">
-            <CheckCircle2 className="w-3 h-3 text-blue-400" />
-            <span className="font-bold uppercase tracking-wider text-blue-300 text-[10px]">Entregues:</span>
-            <span className="text-xs font-black text-blue-400 bg-blue-950/60 px-1.5 py-0.2 rounded font-mono">
-              {countEntregues}
-            </span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-0.5 rounded-lg border border-slate-700">
+              <span className="text-slate-400 font-semibold text-[10px]">Total Hoje:</span>
+              <span className="text-xs font-black text-emerald-400 font-mono">
+                R$ {totalFaturado.toFixed(2)}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700">
-            <span className="text-slate-400 font-semibold text-[10px]">Total Hoje:</span>
-            <span className="text-xs font-black text-emerald-400 font-mono">
-              R$ {totalFaturado.toFixed(2)}
-            </span>
+        {/* 3 COLUNAS: EM PREPARAÇÃO, PRONTAS, RETIRADAS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5">
+          
+          {/* COLUNA 1: EM PREPARAÇÃO */}
+          <div className="bg-slate-900/80 rounded-xl border border-amber-500/40 p-2 flex flex-col shadow-inner">
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-amber-500/25 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-300">
+                  EM PREPARAÇÃO
+                </span>
+              </div>
+              <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-950/80 px-2 py-0.2 rounded border border-amber-500/30">
+                {preparingList.length}
+              </span>
+            </div>
+
+            <div className="max-h-36 sm:max-h-44 overflow-y-auto space-y-1.5 pr-1">
+              {preparingList.length === 0 ? (
+                <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
+                  Nenhum pedido em preparo
+                </div>
+              ) : (
+                preparingList.map((order) => {
+                  const style = getOrderCategoryStyle(order);
+                  const itemText = getItemSummary(order);
+                  return (
+                    <div 
+                      key={order.id}
+                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${style.border} ${style.bg} transition-all shadow-sm text-xs`}
+                    >
+                      <div className="flex items-center gap-1 shrink-0">
+                        {style.icon}
+                        <span className={`font-mono font-black text-[11px] px-1.5 py-0.2 rounded border ${style.badgeColor}`}>
+                          {order.orderNumber}
+                        </span>
+                      </div>
+
+                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+
+                      <span className="text-[11px] font-black text-white uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
+                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                      </span>
+
+                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+
+                      <span className={`text-[10px] font-bold ${style.textColor} truncate flex-1`} title={itemText}>
+                        {itemText} {order.quantity > 1 ? `(${order.quantity}x)` : ''}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
+
+          {/* COLUNA 2: PRONTAS */}
+          <div className="bg-slate-900/80 rounded-xl border border-emerald-500/40 p-2 flex flex-col shadow-inner">
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-emerald-500/25 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
+                  PRONTAS
+                </span>
+              </div>
+              <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-950/80 px-2 py-0.2 rounded border border-emerald-500/30">
+                {readyList.length}
+              </span>
+            </div>
+
+            <div className="max-h-36 sm:max-h-44 overflow-y-auto space-y-1.5 pr-1">
+              {readyList.length === 0 ? (
+                <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
+                  Nenhum pedido pronto
+                </div>
+              ) : (
+                readyList.map((order) => {
+                  const style = getOrderCategoryStyle(order);
+                  const itemText = getItemSummary(order);
+                  return (
+                    <div 
+                      key={order.id}
+                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${style.border} ${style.bg} transition-all shadow-sm text-xs`}
+                    >
+                      <div className="flex items-center gap-1 shrink-0">
+                        {style.icon}
+                        <span className={`font-mono font-black text-[11px] px-1.5 py-0.2 rounded border ${style.badgeColor}`}>
+                          {order.orderNumber}
+                        </span>
+                      </div>
+
+                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+
+                      <span className="text-[11px] font-black text-white uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
+                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                      </span>
+
+                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+
+                      <span className={`text-[10px] font-bold ${style.textColor} truncate flex-1`} title={itemText}>
+                        {itemText} {order.quantity > 1 ? `(${order.quantity}x)` : ''}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* COLUNA 3: RETIRADAS */}
+          <div className="bg-slate-900/80 rounded-xl border border-blue-500/40 p-2 flex flex-col shadow-inner">
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-blue-500/25 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-blue-300">
+                  RETIRADAS
+                </span>
+              </div>
+              <span className="text-[10px] font-mono font-black text-blue-400 bg-blue-950/80 px-2 py-0.2 rounded border border-blue-500/30">
+                {deliveredList.length}
+              </span>
+            </div>
+
+            <div className="max-h-36 sm:max-h-44 overflow-y-auto space-y-1.5 pr-1">
+              {deliveredList.length === 0 ? (
+                <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
+                  Nenhum pedido retirado ainda
+                </div>
+              ) : (
+                deliveredList.map((order) => {
+                  const style = getOrderCategoryStyle(order);
+                  const itemText = getItemSummary(order);
+                  return (
+                    <div 
+                      key={order.id}
+                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${style.border} ${style.bg} transition-all shadow-sm text-xs`}
+                    >
+                      <div className="flex items-center gap-1 shrink-0">
+                        {style.icon}
+                        <span className={`font-mono font-black text-[11px] px-1.5 py-0.2 rounded border ${style.badgeColor}`}>
+                          {order.orderNumber}
+                        </span>
+                      </div>
+
+                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+
+                      <span className="text-[11px] font-black text-white uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
+                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                      </span>
+
+                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+
+                      <span className={`text-[10px] font-bold ${style.textColor} truncate flex-1`} title={itemText}>
+                        {itemText} {order.quantity > 1 ? `(${order.quantity}x)` : ''}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
         </div>
+
       </footer>
 
     </div>
