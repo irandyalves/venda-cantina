@@ -36,7 +36,10 @@ import {
   ExternalLink,
   ChevronDown,
   Eye,
-  EyeOff
+  EyeOff,
+  Volume2,
+  Maximize2,
+  BellRing
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -2558,109 +2561,134 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
-              {/* SEÇÃO 2: CONFIGURAÇÃO DE EXIBIÇÃO E SOM DO PAINEL TV */}
-              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex items-center gap-2.5 border-b border-slate-700 pb-3">
-                  <Tv className="w-5 h-5 text-amber-400" />
-                  <div>
-                    <h3 className="font-extrabold text-white text-base">Configuração Geral de Exibição do Painel TV</h3>
-                    <p className="text-xs text-slate-400">Defina aqui o que a TV do público irá exibir e como irá se comportar</p>
+              {/* SEÇÃO 2: CONFIGURAÇÃO DE EXIBIÇÃO E SOM DO PAINEL TV (COMPACTO EM 2 LINHAS) */}
+              <div className="bg-slate-800/60 p-3 rounded-2xl border border-slate-700 space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Tv className="w-4 h-4 text-amber-400" />
+                    <h3 className="font-extrabold text-white text-xs sm:text-sm">Configuração Geral de Exibição do Painel TV</h3>
                   </div>
+                  <span className="text-[10px] text-slate-400 hidden sm:inline">Defina exibição, som e comportamento da TV e Cozinha</span>
                 </div>
 
-                <div className="space-y-3 pt-2">
+                {/* GRID COMPACTA AJUSTADA EM 2 LINHAS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   
-                  {/* TOGGLE 1: SOM NA TV */}
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-sm text-white">Alarme Sonoro de Chamada na TV</div>
-                      <div className="text-xs text-slate-400 mt-0.5">Toca o Ding-Dong sonoro na TV quando a cozinha marcar um pedido como pronto</div>
-                    </div>
-                    <button
-                      onClick={handleToggleTVSound}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                        tvSettings.soundEnabled
-                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      {tvSettings.soundEnabled ? '✓ Som Ativado' : '✕ Mudo / Desativado'}
-                    </button>
-                  </div>
-
-                  {/* TOGGLE 2: EXIBIR PEDIDOS ENTREGUES */}
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-sm text-white">Exibir Coluna de Pedidos Entregues</div>
-                      <div className="text-xs text-slate-400 mt-0.5">Mostra a lista com os últimos pedidos retirados. Se desmarcar, a TV fica 100% focada em EM PREPARAÇÃO</div>
-                    </div>
-                    <button
-                      onClick={handleToggleTVDelivered}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                        tvSettings.showDelivered
-                          ? 'bg-blue-600 text-white border-blue-400 shadow-lg'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      {tvSettings.showDelivered ? '✓ Exibir Entregues' : '✕ Apenas Em Preparação'}
-                    </button>
-                  </div>
-
-                  {/* TOGGLE 3: ABRIR EM TELA CHEIA AUTOMATICAMENTE */}
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-sm text-white">Abrir Automaticamente em Tela Cheia</div>
-                      <div className="text-xs text-slate-400 mt-0.5">Tenta colocar a TV em fullscreen automaticamente ao carregar a página</div>
-                    </div>
-                    <button
-                      onClick={handleToggleTVFullscreen}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                        tvSettings.autoFullscreen
-                          ? 'bg-purple-600 text-white border-purple-400 shadow-lg'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      {tvSettings.autoFullscreen ? '✓ Fullscreen Auto' : '✕ Desativado'}
-                    </button>
-                  </div>
-
-                  {/* TOGGLE 4: AVISOS SONOROS NA COZINHA */}
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-sm text-white">Avisos Sonoros da Cozinha</div>
-                      <div className="text-xs text-slate-400 mt-0.5">Toca o alarme sonoro na cozinha a cada novo pedido enviado pelo caixa</div>
-                    </div>
-                    <button
-                      onClick={handleToggleKitchenSound}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                        kitchenSettings.soundEnabled
-                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      {kitchenSettings.soundEnabled ? '✓ Som Ativado' : '✕ Mudo / Desativado'}
-                    </button>
-                  </div>
-
-                  {/* SEÇÃO LIMPEZA DE FILA E CACHE DA COZINHA E PAINEL */}
-                  <div className="bg-slate-900 p-4 rounded-xl border border-rose-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
-                    <div>
-                      <div className="font-bold text-sm text-rose-300 flex items-center gap-1.5">
-                        <Trash2 className="w-4 h-4 text-rose-400" />
-                        <span>Limpar Fila / Cache da Cozinha e Painel TV</span>
+                  {/* CARD 1: ALARME SOM TV */}
+                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700/80 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors">
+                    <div className="min-w-0 pr-1">
+                      <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
+                        <Volume2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="truncate">Alarme Som TV</span>
                       </div>
-                      <div className="text-xs text-slate-400 mt-0.5">
-                        Apaga todos os pedidos da fila ativa da Cozinha e do Painel TV, limpando o cache local.
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5" title="Ding-dong na TV quando o pedido estiver pronto">
+                        Ding-dong quando pronto
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleTVSound}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border shrink-0 cursor-pointer ${
+                        tvSettings.soundEnabled
+                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-sm'
+                          : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                      }`}
+                    >
+                      {tvSettings.soundEnabled ? '✓ Ativado' : '✕ Desativado'}
+                    </button>
+                  </div>
+
+                  {/* CARD 2: EXIBIR PEDIDOS ENTREGUES */}
+                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700/80 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors">
+                    <div className="min-w-0 pr-1">
+                      <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <span className="truncate">Coluna Entregues</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5" title="Mostra os últimos pedidos entregues na TV">
+                        Exibe lista de entregues
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleTVDelivered}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border shrink-0 cursor-pointer ${
+                        tvSettings.showDelivered
+                          ? 'bg-blue-600 text-white border-blue-400 shadow-sm'
+                          : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                      }`}
+                    >
+                      {tvSettings.showDelivered ? '✓ Exibir' : '✕ Ocultar'}
+                    </button>
+                  </div>
+
+                  {/* CARD 3: TELA CHEIA AUTOMÁTICA */}
+                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700/80 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors">
+                    <div className="min-w-0 pr-1">
+                      <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
+                        <Maximize2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                        <span className="truncate">Tela Cheia Auto</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5" title="Abre a TV automaticamente em fullscreen">
+                        Fullscreen ao carregar
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleTVFullscreen}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border shrink-0 cursor-pointer ${
+                        tvSettings.autoFullscreen
+                          ? 'bg-purple-600 text-white border-purple-400 shadow-sm'
+                          : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                      }`}
+                    >
+                      {tvSettings.autoFullscreen ? '✓ Ativado' : '✕ Desativado'}
+                    </button>
+                  </div>
+
+                  {/* CARD 4: AVISOS SONOROS NA COZINHA */}
+                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700/80 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors">
+                    <div className="min-w-0 pr-1">
+                      <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
+                        <BellRing className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="truncate">Alarme Cozinha</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5" title="Toca o alarme sonoro na cozinha a cada novo pedido">
+                        Toca a cada novo pedido
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleKitchenSound}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border shrink-0 cursor-pointer ${
+                        kitchenSettings.soundEnabled
+                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-sm'
+                          : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                      }`}
+                    >
+                      {kitchenSettings.soundEnabled ? '✓ Ativado' : '✕ Desativado'}
+                    </button>
+                  </div>
+
+                  {/* CARD 5: LIMPEZA DE FILA E CACHE (OCUPA 2 COLUNAS NA SEGUNDA LINHA) */}
+                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-rose-500/40 flex items-center justify-between gap-2 lg:col-span-2 hover:border-rose-500/70 transition-colors">
+                    <div className="min-w-0 pr-1">
+                      <div className="font-bold text-xs text-rose-300 flex items-center gap-1.5 truncate">
+                        <Trash2 className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                        <span className="truncate">Limpar Fila / Cache da Cozinha e TV</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                        Apaga pedidos da fila ativa e limpa o cache local
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowClearQueueModal(true)}
-                      className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer shrink-0 border border-rose-400/50"
+                      className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] rounded-lg flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0 border border-rose-400/50"
                       title="Apaga os pedidos da fila ativa e limpa o cache"
                     >
-                      <Trash2 className="w-4 h-4" />
-                      <span>Limpar Fila / Cache</span>
+                      <Trash2 className="w-3 h-3" />
+                      <span>Limpar Fila</span>
                     </button>
                   </div>
 
