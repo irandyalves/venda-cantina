@@ -20,7 +20,9 @@ const LOCAL_COUNTERS_KEY = 'cantina_local_counters';
 const TV_SETTINGS_KEY = 'cantina_tv_settings';
 const LOCAL_CURRENT_EVENT_KEY = 'cantina_current_event';
 const LOCAL_EVENTS_LIST_KEY = 'cantina_events_list';
+const LOCAL_TURNO_HISTORY_KEY = 'cantina_turno_history';
 const COLLECTION_ORDERS = 'cantina_pedidos';
+const COLLECTION_HISTORY = 'cantina_historico_turnos';
 
 // Configuração padrão com o banco Cloud Firestore ATIVO na conta do usuário
 export const DEFAULT_FIREBASE_CONFIG = {
@@ -659,6 +661,82 @@ class StorageService {
     } catch (e) {
       console.warn('Erro ao purgar pedidos legados:', e);
     }
+  }
+
+  // --- HISTÓRICO DE TURNOS (ARQUIVAMENTO E BACKUP) ---
+  getTurnoHistory() {
+    try {
+      const raw = localStorage.getItem(LOCAL_TURNO_HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  saveTurnoHistory(history) {
+    localStorage.setItem(LOCAL_TURNO_HISTORY_KEY, JSON.stringify(history));
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'TURNO_HISTORY_UPDATED', payload: history });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_turno_history_changed', { detail: history }));
+  }
+
+  // Cria cópia completa de segurança de todas as vendas e comandas no histórico
+  async archiveCurrentTurno() {
+    const localOrders = this.getLocalOrders();
+    const currentEvent = this.getCurrentEvent();
+    const timestamp = Date.now();
+    const turnoId = 'turno_' + timestamp;
+
+    const activeOrders = localOrders.filter(o => o.status !== 'cancelado');
+    const totalRevenue = activeOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+
+    const snapshot = {
+      id: turnoId,
+      archivedAt: timestamp,
+      archivedAtFormatted: new Date(timestamp).toLocaleString('pt-BR'),
+      event: currentEvent,
+      totalOrders: localOrders.length,
+      activeOrdersCount: activeOrders.length,
+      cancelledOrdersCount: localOrders.length - activeOrders.length,
+      totalRevenue: totalRevenue,
+      paymentBreakdown: {
+        pix: activeOrders.filter(o => o.paymentMethod === 'PIX').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0),
+        dinheiro: activeOrders.filter(o => o.paymentMethod === 'DINHEIRO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0),
+        debito: activeOrders.filter(o => o.paymentMethod === 'DEBITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0),
+        credito: activeOrders.filter(o => o.paymentMethod === 'CREDITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0),
+      },
+      orders: localOrders
+    };
+
+    // 1. Salva no histórico local
+    const history = this.getTurnoHistory();
+    history.unshift(snapshot);
+    this.saveTurnoHistory(history);
+    console.log(`📦 [Histórico Local] Turno "${currentEvent.name}" arquivado com ${localOrders.length} vendas (R$ ${totalRevenue.toFixed(2)})`);
+
+    // 2. Salva no Cloud Firestore na nuvem
+    if (this.isFirebaseReady && this.db) {
+      try {
+        const turnoRef = doc(this.db, COLLECTION_HISTORY, turnoId);
+        await setDoc(turnoRef, {
+          ...snapshot,
+          firebaseArchivedAt: serverTimestamp()
+        });
+        console.log('☁️ [Cloud Firestore] Cópia do turno arquivada na nuvem com sucesso:', turnoId);
+      } catch (err) {
+        console.error('⚠️ Falha ao arquivar histórico no Firestore:', err);
+      }
+    }
+
+    return snapshot;
+  }
+
+  // Arquiva cópia no histórico e ZERA as filas ativas (Caixa, Cozinha, TV)
+  async archiveAndClearOrders() {
+    const snapshot = await this.archiveCurrentTurno();
+    await this.clearAllOrders();
+    return snapshot;
   }
 
   // Limpar TODOS os pedidos (Local + Cloud Firestore)

@@ -26,7 +26,9 @@ import {
   Check,
   Calendar,
   CalendarPlus,
-  Sparkles
+  Sparkles,
+  Archive,
+  AlertTriangle
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -175,6 +177,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [newEventName, setNewEventName] = useState('');
   const [newEventDate, setNewEventDate] = useState(new Date().toISOString().split('T')[0]);
 
+  // Estado Modal de Zerar Turno e Histórico Arquivado
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [turnoHistory, setTurnoHistory] = useState(() => storageService.getTurnoHistory());
+  const [showHistoryList, setShowHistoryList] = useState(false);
+
   // Preços de pizza (Pedaço e Inteira com máscara 0,00)
   const [pedacoPrice, setPedacoPrice] = useState('9,00');
   const [inteiraPrice, setInteiraPrice] = useState('48,00');
@@ -227,6 +235,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setKitchenSettings(storageService.getKitchenSettings());
     setCurrentEvent(storageService.getCurrentEvent());
     setEventsList(storageService.getEventsList());
+    setTurnoHistory(storageService.getTurnoHistory());
     setOrders(storageService.getLocalOrders());
   };
 
@@ -572,11 +581,27 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const totalDebito = activeOrders.filter(o => o.paymentMethod === 'DEBITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
   const totalCredito = activeOrders.filter(o => o.paymentMethod === 'CREDITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
 
-  const handleClearDay = async () => {
-    if (window.confirm('ATENÇÃO: Deseja zerar todas as comandas e limpar o cache da Cozinha e do Painel TV? Isso removerá todos os pedidos antigos do sistema.')) {
-      await storageService.clearAllOrders();
+  const handleOpenResetModal = () => {
+    setShowResetModal(true);
+  };
+
+  const handleConfirmResetTurno = async () => {
+    setIsResetting(true);
+    try {
+      const snapshot = await storageService.archiveAndClearOrders();
       setOrders([]);
-      showToast('Cache e pedidos limpos com sucesso na Cozinha e TV!', 'Limpeza Concluída');
+      setTurnoHistory(storageService.getTurnoHistory());
+      setShowResetModal(false);
+      showToast(
+        `Turno encerrado! Cópia de ${snapshot.totalOrders} vendas arquivada com sucesso.`,
+        'Turno Encerrado e Salvo',
+        'success'
+      );
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao encerrar turno: ' + (err.message || 'Tente novamente'), 'Erro', 'error');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -1712,20 +1737,84 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
               {/* SEÇÃO 2: RESUMO DE VENDAS DE HOJE */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
                   <div>
                     <h3 className="font-extrabold text-white text-base">Resumo de Vendas de Hoje</h3>
                     <p className="text-xs text-slate-400">
                       {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
                     </p>
                   </div>
-                  <button
-                    onClick={handleClearDay}
-                    className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-xs rounded-xl border border-rose-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" /> Zerar / Fechar Turno
-                  </button>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {turnoHistory.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowHistoryList(!showHistoryList)}
+                        className={`px-3 py-1.5 font-bold text-xs rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
+                          showHistoryList 
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' 
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                        }`}
+                        title="Ver turnos encerrados arquivados anteriormente"
+                      >
+                        <Archive className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Histórico ({turnoHistory.length})</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleOpenResetModal}
+                      className="px-3.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-xs rounded-xl border border-rose-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      title="Zerar comandas e guardar cópia completa no histórico"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Zerar / Fechar Turno
+                    </button>
+                  </div>
                 </div>
+
+                {/* PAINEL SANFONA COM OS TURNOS ARQUIVADOS NO HISTÓRICO */}
+                {showHistoryList && (
+                  <div className="bg-slate-950/90 border border-amber-500/40 rounded-2xl p-4 space-y-3 animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Archive className="w-4 h-4 text-amber-400" />
+                        <h4 className="text-xs font-black uppercase text-amber-300 tracking-wider">
+                          Cópias Salvas no Histórico de Turnos
+                        </h4>
+                      </div>
+                      <span className="text-[10px] text-slate-400">
+                        {turnoHistory.length} turno(s) arquivado(s)
+                      </span>
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                      {turnoHistory.map((hist) => (
+                        <div key={hist.id} className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-black text-amber-300">
+                                {hist.event?.name || 'Cantina Geral'}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                                📅 {hist.archivedAtFormatted || new Date(hist.archivedAt).toLocaleString('pt-BR')}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              {hist.totalOrders} pedidos arquivados • PIX: R$ {(hist.paymentBreakdown?.pix || 0).toFixed(2)} • Dinheiro: R$ {(hist.paymentBreakdown?.dinheiro || 0).toFixed(2)}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-[10px] font-bold text-slate-500 uppercase">Total Arquivado</div>
+                            <div className="text-sm font-black text-emerald-400 font-mono">
+                              R$ {(hist.totalRevenue || 0).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* CARDS COM TOTALIZADORES */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
@@ -1946,6 +2035,89 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         </div>
 
       </div>
+
+      {/* MODAL PERSONALIZADO DE CONFIRMAÇÃO: ZERAR / FECHAR TURNO */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-slate-900 border-2 border-rose-500/50 w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-5 text-slate-100 relative overflow-hidden">
+            
+            {/* GLOW DECORATIVO DE FUNDO */}
+            <div className="absolute -top-16 -right-16 w-36 h-36 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* ÍCONE DE CABEÇALHO */}
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-500/20 to-amber-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center shadow-lg shadow-rose-950/50">
+                <RotateCcw className="w-7 h-7" />
+              </div>
+              <h3 className="text-lg font-black text-white tracking-wide">
+                Zerar e Fechar Turno
+              </h3>
+              <p className="text-xs text-slate-400">
+                Deseja encerrar o turno e zerar as telas da cantina?
+              </p>
+            </div>
+
+            {/* CARDS EXPLICATIVOS SOBRE CÓPIA EM HISTÓRICO */}
+            <div className="space-y-2.5">
+              
+              <div className="bg-emerald-950/60 border border-emerald-500/40 rounded-2xl p-3.5 flex items-start gap-3 text-left">
+                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="text-xs font-black text-emerald-300 uppercase tracking-wide block">
+                    Cópia Salva no Histórico
+                  </span>
+                  <p className="text-[11px] text-emerald-200/90 leading-relaxed">
+                    O sistema guardará uma <strong>cópia completa de segurança</strong> de todas as <strong>{todayOrders.length} vendas</strong> (R$ {totalGeral.toFixed(2)}) e do evento ativo <strong>"{currentEvent?.name || 'Cantina Geral'}"</strong> no histórico permanente.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 flex items-start gap-3 text-left">
+                <RotateCcw className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="text-xs font-black text-amber-300 uppercase tracking-wide block">
+                    Reinício das Filas de Pedidos
+                  </span>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    As filas de pedidos do <strong>Caixa</strong>, <strong>Cozinha KDS</strong> e <strong>Painel TV</strong> serão zeradas para que você inicie o próximo turno com tela limpa.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+            {/* BOTÕES DE AÇÃO */}
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowResetModal(false)}
+                disabled={isResetting}
+                className="flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmResetTurno}
+                disabled={isResetting}
+                className="flex-1 py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs rounded-xl transition-all shadow-lg shadow-rose-950/60 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                {isResetting ? (
+                  <span>Arquivando...</span>
+                ) : (
+                  <>
+                    <Archive className="w-4 h-4" />
+                    <span>Zerar e Arquivar</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* MODAL BONITO DE 2 SEGUNDOS */}
       <AutoToast toast={toast} onClose={() => setToast(null)} duration={2000} />
