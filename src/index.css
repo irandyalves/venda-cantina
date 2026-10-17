@@ -16,6 +16,49 @@
   }
 }
 
+/* Animação de tremor quando tenta enviar sem nome */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Borda pulsante vermelha vibrante para Nome Obrigatório */
+@keyframes pulse-red-border {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.9), 0 0 20px rgba(244, 63, 94, 0.6);
+    border-color: #f43f5e;
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.4), 0 0 5px rgba(244, 63, 94, 0.2);
+    border-color: #fda4af;
+  }
+}
+
+.glow-required-name {
+  animation: pulse-red-border 1.2s infinite ease-in-out;
+}
+
+/* Borda pulsante vibrante para Quantidade */
+@keyframes pulse-qty-border {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.9), 0 0 20px rgba(245, 158, 11, 0.6);
+    border-color: #f59e0b;
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.4), 0 0 5px rgba(245, 158, 11, 0.2);
+    border-color: #fde68a;
+  }
+}
+
+.glow-active-qty {
+  animation: pulse-qty-border 1.2s infinite ease-in-out;
+}
+
 /* Animações e pulsos para TV e Cozinha */
 @keyframes pulse-subtle {
   0%, 100% { transform: scale(1); }

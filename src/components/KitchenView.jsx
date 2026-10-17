@@ -23,6 +23,7 @@ export default function KitchenView({ onNavigate }) {
   const [activeFilter, setActiveFilter] = useState('active'); // 'active' (em_preparo + pronto), 'entregue', 'all'
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [isFirebaseOnline, setIsFirebaseOnline] = useState(storageService.isFirebaseReady);
   
   // Guardar IDs já tocados para não repetir som
   const knownOrderIdsRef = useRef(new Set());
@@ -55,7 +56,14 @@ export default function KitchenView({ onNavigate }) {
       setOrders(allOrders);
     });
 
-    return () => unsubscribe();
+    const unsubscribeStatus = storageService.onConnectionStatusChange((status) => {
+      setIsFirebaseOnline(status);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeStatus();
+    };
   }, [soundEnabled]);
 
   // Ações de status
@@ -128,7 +136,17 @@ export default function KitchenView({ onNavigate }) {
         </div>
 
         {/* CONTROLES E SONS */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* BADGE DE REALTIME CLOUD */}
+          <div className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border ${
+            isFirebaseOnline 
+              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/50' 
+              : 'bg-amber-950/60 text-amber-300 border-amber-600/50'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isFirebaseOnline ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+            <span>{isFirebaseOnline ? 'Nuvem Conectada' : 'Modo Local'}</span>
+          </div>
+
           {/* TESTE DE SONS */}
           <div className="hidden sm:flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700 text-xs">
             <span className="text-slate-400 text-[11px] font-semibold">Testar Som:</span>

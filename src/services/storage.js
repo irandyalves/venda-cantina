@@ -1,4 +1,4 @@
-// Camada de armazenamento e sincronização (Firebase Firestore + Sincronizador Local de Alta Performance)
+// Camada de armazenamento e sincronização (Firebase Firestore na Nuvem + Sincronizador Local de Alta Performance)
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
@@ -19,8 +19,19 @@ const FIREBASE_CONFIG_KEY = 'cantina_firebase_config';
 const LOCAL_ORDERS_KEY = 'cantina_local_orders';
 const LOCAL_PRODUCTS_KEY = 'cantina_local_products';
 const LOCAL_COUNTERS_KEY = 'cantina_local_counters';
+const COLLECTION_ORDERS = 'cantina_pedidos';
 
-// BroadcastChannel para sincronização instantânea entre abas no mesmo navegador (Zero latência)
+// Configuração padrão com o banco Cloud Firestore ATIVO na conta do usuário
+export const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAujmh1TuWRCS53zz1BZXIQvgHbXVibKwo",
+  authDomain: "carga-patrimonio.firebaseapp.com",
+  projectId: "carga-patrimonio",
+  storageBucket: "carga-patrimonio.firebasestorage.app",
+  messagingSenderId: "478068393511",
+  appId: "1:478068393511:web:d61f883ee1c1506887b002"
+};
+
+// BroadcastChannel para sincronização instantânea entre abas no mesmo navegador
 const syncChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window 
   ? new BroadcastChannel('cantina_sync_channel')
   : null;
@@ -30,21 +41,35 @@ class StorageService {
     this.app = null;
     this.db = null;
     this.isFirebaseReady = false;
+    this.connectionStatusListeners = [];
     this.initFirebase();
   }
 
-  // Carrega configuração salva ou de variáveis de ambiente
+  onConnectionStatusChange(callback) {
+    this.connectionStatusListeners.push(callback);
+    callback(this.isFirebaseReady);
+    return () => {
+      this.connectionStatusListeners = this.connectionStatusListeners.filter(cb => cb !== callback);
+    };
+  }
+
+  notifyConnectionStatus() {
+    this.connectionStatusListeners.forEach(cb => cb(this.isFirebaseReady));
+  }
+
+  // Carrega configuração salva no localStorage ou padrão ativo
   getFirebaseConfig() {
     const saved = localStorage.getItem(FIREBASE_CONFIG_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.apiKey) return parsed;
       } catch (e) {
         console.error('Erro ao ler configuração salva do Firebase', e);
       }
     }
 
-    if (import.meta.env.VITE_FIREBASE_API_KEY) {
+    if (import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_API_KEY.length > 10) {
       return {
         apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
         authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -55,14 +80,7 @@ class StorageService {
       };
     }
 
-    return {
-      apiKey: "AIzaSyC3Kaas0J2aoVjE-8CLUP7bFDd1xYCNtEk",
-      authDomain: "cantina-express-32161.firebaseapp.com",
-      projectId: "cantina-express-32161",
-      storageBucket: "cantina-express-32161.firebasestorage.app",
-      messagingSenderId: "863820186259",
-      appId: "1:863820186259:web:03fab2dcfc369e386b8366"
-    };
+    return DEFAULT_FIREBASE_CONFIG;
   }
 
   saveFirebaseConfig(config) {
@@ -77,6 +95,7 @@ class StorageService {
     const config = this.getFirebaseConfig();
     if (!config || !config.apiKey) {
       this.isFirebaseReady = false;
+      this.notifyConnectionStatus();
       return false;
     }
 
@@ -84,11 +103,13 @@ class StorageService {
       this.app = getApps().length > 0 ? getApp() : initializeApp(config);
       this.db = getFirestore(this.app);
       this.isFirebaseReady = true;
-      console.log('Firebase conectado com sucesso ao projeto:', config.projectId);
+      this.notifyConnectionStatus();
+      console.log('✅ Firebase Firestore conectado com sucesso ao projeto:', config.projectId);
       return true;
     } catch (e) {
-      console.error('Falha ao inicializar Firebase:', e);
+      console.error('❌ Falha ao inicializar Firebase:', e);
       this.isFirebaseReady = false;
+      this.notifyConnectionStatus();
       return false;
     }
   }
@@ -137,7 +158,7 @@ class StorageService {
     }
   }
 
-  // --- PEDIDOS (EM TEMPO REAL) ---
+  // --- PEDIDOS (EM TEMPO REAL CLOUD FIRESTORE) ---
 
   async createOrder(orderData) {
     const timestamp = Date.now();
@@ -145,26 +166,32 @@ class StorageService {
       ...orderData,
       id: 'ord_' + timestamp + '_' + Math.random().toString(36).substr(2, 5),
       createdAt: timestamp,
-      status: 'em_preparo', // Chegou na cozinha já entra Em Preparação direto conforme pedido!
+      status: 'em_preparo', // Chegou na cozinha já entra Em Preparação direto!
     };
 
+    // 1. Grava no Cloud Firestore na nuvem
     if (this.isFirebaseReady && this.db) {
       try {
-        const docRef = await addDoc(collection(this.db, 'pedidos'), {
+        const docRef = await addDoc(collection(this.db, COLLECTION_ORDERS), {
           ...order,
           firebaseCreatedAt: serverTimestamp()
         });
         order.id = docRef.id;
+        console.log('✅ Pedido salvo no Firestore em tempo real:', order.id);
       } catch (err) {
-        console.warn('Erro ao salvar no Firestore, usando fallback local:', err);
+        console.error('⚠️ Falha ao salvar no Firestore, usando fallback local:', err);
       }
     }
 
-    // Salva localmente e emite pelo canal para todas as abas
+    // 2. Salva localmente para resposta instantânea
     const localOrders = this.getLocalOrders();
-    localOrders.unshift(order);
-    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(localOrders));
+    const exists = localOrders.some(o => o.id === order.id);
+    if (!exists) {
+      localOrders.unshift(order);
+      localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(localOrders));
+    }
 
+    // 3. Notifica abas locais
     if (syncChannel) {
       syncChannel.postMessage({ type: 'ORDER_CREATED', payload: order });
     }
@@ -176,13 +203,14 @@ class StorageService {
     // newStatus pode ser: 'em_preparo', 'pronto', 'entregue', 'cancelado'
     if (this.isFirebaseReady && this.db) {
       try {
-        const orderRef = doc(this.db, 'pedidos', orderId);
+        const orderRef = doc(this.db, COLLECTION_ORDERS, orderId);
         await updateDoc(orderRef, {
           status: newStatus,
           updatedAt: serverTimestamp()
         });
+        console.log('✅ Status do pedido atualizado no Firestore:', orderId, '->', newStatus);
       } catch (err) {
-        console.warn('Erro ao atualizar no Firestore, fallback local:', err);
+        console.error('⚠️ Erro ao atualizar status no Firestore:', err);
       }
     }
 
@@ -214,29 +242,32 @@ class StorageService {
 
   // Inscrição em tempo real para as telas (Caixa, Cozinha e TV)
   subscribeOrders(callback) {
-    // Se o Firebase estiver ativo, escuta via onSnapshot
     let unsubscribeFirestore = null;
 
     if (this.isFirebaseReady && this.db) {
       try {
-        const q = query(collection(this.db, 'pedidos'), orderBy('createdAt', 'desc'));
+        const q = query(collection(this.db, COLLECTION_ORDERS), orderBy('createdAt', 'desc'));
         unsubscribeFirestore = onSnapshot(q, (snapshot) => {
           const list = [];
-          snapshot.forEach((doc) => {
-            list.push({ id: doc.id, ...doc.data() });
+          snapshot.forEach((docSnap) => {
+            list.push({ id: docSnap.id, ...docSnap.data() });
           });
+          console.log(`📡 Firestore Realtime: ${list.length} pedidos recebidos`);
+          // Atualiza o cache local
+          localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(list));
           callback(list);
         }, (error) => {
-          console.warn('Erro no onSnapshot do Firestore:', error);
+          console.error('❌ Erro no onSnapshot do Firestore:', error);
           callback(this.getLocalOrders());
         });
       } catch (e) {
-        console.warn('Não foi possível assinar Firestore:', e);
+        console.error('❌ Erro ao assinar Firestore:', e);
+        callback(this.getLocalOrders());
       }
+    } else {
+      // Se não conectou no Firestore, emite estado local
+      callback(this.getLocalOrders());
     }
-
-    // Dispara estado inicial
-    callback(this.getLocalOrders());
 
     // Escuta sincronizações locais entre abas
     const onMessage = (event) => {
