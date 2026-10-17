@@ -29,6 +29,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [isFirebaseOnline, setIsFirebaseOnline] = useState(storageService.isFirebaseReady);
+  const [currentEvent, setCurrentEvent] = useState(() => storageService.getCurrentEvent());
 
   // SELEÇÃO ATIVA DO PRODUTO (1º PASSO)
   const [selectedPizzaFlavor, setSelectedPizzaFlavor] = useState(null);
@@ -112,9 +113,13 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
       setIsFirebaseOnline(status);
     });
 
+    const handleEvt = (e) => setCurrentEvent(e.detail || storageService.getCurrentEvent());
+    window.addEventListener('cantina_event_changed', handleEvt);
+
     return () => {
       unsubscribeOrders();
       unsubscribeStatus();
+      window.removeEventListener('cantina_event_changed', handleEvt);
     };
   }, []);
 
@@ -149,7 +154,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
   const countEmPreparo = preparingList.length;
   const countProntas = readyList.length;
   const countEntregues = deliveredList.length;
-  const totalFaturado = todayOrders.reduce((acc, curr) => acc + (Number(curr.totalPrice) || 0), 0);
+  const totalFaturado = todayOrders.filter(o => o.status !== 'cancelado').reduce((acc, curr) => acc + (Number(curr.totalPrice) || 0), 0);
 
   // Cores distintas para Pizza, Açaí e Batata nos Cards do Rodapé
   const getOrderCategoryStyle = (order) => {
@@ -498,10 +503,15 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           <div className="bg-gradient-to-tr from-amber-500 to-red-600 p-1.5 rounded-lg shadow">
             <Pizza className="w-4 h-4 text-white" />
           </div>
-          <div>
+          <div className="flex items-center gap-2">
             <h1 className="text-base font-black tracking-widest text-white uppercase leading-none">
               CAIXA
             </h1>
+            {currentEvent?.name && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-950/70 border border-amber-600/40 px-2 py-0.5 rounded-md">
+                🎉 {currentEvent.name}
+              </span>
+            )}
           </div>
         </div>
 

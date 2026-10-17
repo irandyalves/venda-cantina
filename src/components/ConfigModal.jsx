@@ -23,7 +23,10 @@ import {
   Tag,
   Hash,
   Pencil,
-  Check
+  Check,
+  Calendar,
+  CalendarPlus,
+  Sparkles
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -165,6 +168,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
   const [kitchenSettings, setKitchenSettings] = useState(() => storageService.getKitchenSettings());
 
+  // Estado Evento da Cantina
+  const [currentEvent, setCurrentEvent] = useState(() => storageService.getCurrentEvent());
+  const [eventsList, setEventsList] = useState(() => storageService.getEventsList());
+  const [showNewEventForm, setShowNewEventForm] = useState(false);
+  const [newEventName, setNewEventName] = useState('');
+  const [newEventDate, setNewEventDate] = useState(new Date().toISOString().split('T')[0]);
+
   // Preços de pizza (Pedaço e Inteira com máscara 0,00)
   const [pedacoPrice, setPedacoPrice] = useState('9,00');
   const [inteiraPrice, setInteiraPrice] = useState('48,00');
@@ -215,6 +225,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setEmailRules(authService.getEmailRules());
     setTvSettings(storageService.getTVSettings());
     setKitchenSettings(storageService.getKitchenSettings());
+    setCurrentEvent(storageService.getCurrentEvent());
+    setEventsList(storageService.getEventsList());
     setOrders(storageService.getLocalOrders());
   };
 
@@ -510,15 +522,55 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
   };
 
-  // --- AÇÕES DO FECHAMENTO DE CAIXA ---
+  // --- AÇÕES DO FECHAMENTO DE CAIXA E EVENTOS ---
+  const handleCreateEvent = (e) => {
+    e.preventDefault();
+    const cleanName = newEventName.trim();
+    if (!cleanName) {
+      showToast('Digite o nome do evento!', 'Atenção', 'error');
+      return;
+    }
+    const created = storageService.createEvent(cleanName, newEventDate);
+    setCurrentEvent(created);
+    setEventsList(storageService.getEventsList());
+    setNewEventName('');
+    setShowNewEventForm(false);
+    showToast(`Evento "${cleanName}" criado e ativado com sucesso!`, 'Evento Ativo');
+  };
+
+  const handleSelectEvent = (eventId) => {
+    const selected = eventsList.find(e => e.id === eventId);
+    if (selected) {
+      storageService.saveCurrentEvent(selected);
+      setCurrentEvent(selected);
+      showToast(`Evento ativo alterado para "${selected.name}"!`, 'Evento Ativo');
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (window.confirm('Tem certeza que deseja excluir esta venda do caixa? Ela permanecerá no histórico de hoje em esmaecido como [EXCLUÍDO], mas seu valor será deduzido do faturamento.')) {
+      await storageService.updateOrderStatus(orderId, 'cancelado');
+      setOrders(storageService.getLocalOrders());
+      showToast('Venda excluída do faturamento!', 'Venda Excluída', 'info');
+    }
+  };
+
+  const handleRestoreOrder = async (orderId) => {
+    await storageService.updateOrderStatus(orderId, 'entregue');
+    setOrders(storageService.getLocalOrders());
+    showToast('Venda restaurada com sucesso ao faturamento!', 'Venda Restaurada');
+  };
+
   const today = new Date().toDateString();
   const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === today);
 
-  const totalGeral = todayOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
-  const totalPix = todayOrders.filter(o => o.paymentMethod === 'PIX').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
-  const totalDinheiro = todayOrders.filter(o => o.paymentMethod === 'DINHEIRO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
-  const totalDebito = todayOrders.filter(o => o.paymentMethod === 'DEBITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
-  const totalCredito = todayOrders.filter(o => o.paymentMethod === 'CREDITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+  // Vendas ativas (exclui vendas canceladas/excluídas do cálculo financeiro)
+  const activeOrders = todayOrders.filter(o => o.status !== 'cancelado');
+  const totalGeral = activeOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+  const totalPix = activeOrders.filter(o => o.paymentMethod === 'PIX').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+  const totalDinheiro = activeOrders.filter(o => o.paymentMethod === 'DINHEIRO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+  const totalDebito = activeOrders.filter(o => o.paymentMethod === 'DEBITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+  const totalCredito = activeOrders.filter(o => o.paymentMethod === 'CREDITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
 
   const handleClearDay = async () => {
     if (window.confirm('ATENÇÃO: Deseja zerar todas as comandas e limpar o cache da Cozinha e do Painel TV? Isso removerá todos os pedidos antigos do sistema.')) {
@@ -1559,15 +1611,117 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           {activeTab === 'reports' && (
             <div className="space-y-6">
               
+              {/* SEÇÃO 1: GESTÃO DO EVENTO ATIVO */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-4 sm:p-5 rounded-2xl border-2 border-amber-500/50 shadow-xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/80 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                      <Calendar className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
+                          EVENTO ATIVO:
+                        </h3>
+                        <span className="text-xs font-black bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full shadow">
+                          {currentEvent?.name || 'Cantina Geral'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Data: <span className="text-slate-200 font-medium">{currentEvent?.date || new Date().toISOString().split('T')[0]}</span> • Vendas do caixa são vinculadas ao evento ativo.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {eventsList.length > 1 && (
+                      <select
+                        value={currentEvent?.id || ''}
+                        onChange={(e) => handleSelectEvent(e.target.value)}
+                        className="bg-slate-800 border border-slate-600 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-bold outline-none focus:border-amber-400 cursor-pointer"
+                        title="Alternar entre eventos já cadastrados"
+                      >
+                        {eventsList.map(evt => (
+                          <option key={evt.id} value={evt.id}>
+                            {evt.name} ({evt.date || 'Hoje'})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setShowNewEventForm(!showNewEventForm)}
+                      className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow flex items-center gap-1.5 shrink-0 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>{showNewEventForm ? 'Fechar' : 'Criar Novo Evento'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* FORMULÁRIO PARA CRIAR NOVO EVENTO */}
+                {showNewEventForm && (
+                  <form onSubmit={handleCreateEvent} className="bg-slate-950/90 p-4 rounded-xl border border-amber-500/40 space-y-3 animate-fadeIn">
+                    <div className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                      <CalendarPlus className="w-4 h-4" />
+                      <span>Cadastrar Novo Evento da Cantina</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                      <div className="sm:col-span-7">
+                        <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                          Nome do Evento:
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ex: Festa Junina 2026, Festival da Pizza, Encontro Especial..."
+                          value={newEventName}
+                          onChange={(e) => setNewEventName(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-3">
+                        <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                          Data do Evento:
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={newEventDate}
+                          onChange={(e) => setNewEventDate(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2 flex items-center gap-2">
+                        <button
+                          type="submit"
+                          className="w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1 transition-all shadow cursor-pointer"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>Salvar</span>
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
+
+              {/* SEÇÃO 2: RESUMO DE VENDAS DE HOJE */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                   <div>
                     <h3 className="font-extrabold text-white text-base">Resumo de Vendas de Hoje</h3>
-                    <p className="text-xs text-slate-400">{new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}</p>
+                    <p className="text-xs text-slate-400">
+                      {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
+                    </p>
                   </div>
                   <button
                     onClick={handleClearDay}
-                    className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-xs rounded-xl border border-rose-500/40 transition-all flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-xs rounded-xl border border-rose-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" /> Zerar / Fechar Turno
                   </button>
@@ -1578,7 +1732,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <div className="bg-slate-900 p-3 rounded-xl border border-slate-700">
                     <div className="text-[11px] font-bold text-slate-400 uppercase">Total Geral</div>
                     <div className="text-xl font-black text-emerald-400 mt-1">R$ {totalGeral.toFixed(2)}</div>
-                    <div className="text-[10px] text-slate-500">{todayOrders.length} vendas</div>
+                    <div className="text-[10px] text-slate-400">
+                      {activeOrders.length} vendas ativas
+                      {todayOrders.length - activeOrders.length > 0 && (
+                        <span className="text-rose-400 font-bold ml-1">
+                          ({todayOrders.length - activeOrders.length} excluídas)
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="bg-slate-900 p-3 rounded-xl border border-slate-700">
@@ -1602,11 +1763,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
-                {/* TABELA DE PEDIDOS DE HOJE */}
+                {/* TABELA DE PEDIDOS DE HOJE COM HISTÓRICO ESMAECIDO E EXCLUSÃO DE VENDAS */}
                 <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-4">
-                  <div className="max-h-60 overflow-y-auto">
+                  <div className="max-h-72 overflow-y-auto">
                     <table className="w-full text-left text-xs text-slate-300">
-                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider">
+                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider z-10">
                         <tr>
                           <th className="p-2.5">Comanda</th>
                           <th className="p-2.5">Cliente</th>
@@ -1614,19 +1775,69 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           <th className="p-2.5">Qtde</th>
                           <th className="p-2.5">Pagamento</th>
                           <th className="p-2.5 text-right">Valor</th>
+                          <th className="p-2.5 text-center">Ações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800">
-                        {todayOrders.map((ord) => (
-                          <tr key={ord.id} className="hover:bg-slate-800/40">
-                            <td className="p-2.5 font-mono font-bold text-orange-400">{ord.orderNumber}</td>
-                            <td className="p-2.5 font-bold text-white">{ord.customerName}</td>
-                            <td className="p-2.5">{ord.fullDescription || ord.itemName}</td>
-                            <td className="p-2.5">{ord.quantity}x</td>
-                            <td className="p-2.5">{ord.paymentMethod}</td>
-                            <td className="p-2.5 text-right font-bold text-emerald-400">R$ {Number(ord.totalPrice).toFixed(2)}</td>
+                        {todayOrders.map((ord) => {
+                          const isCancelled = ord.status === 'cancelado';
+                          return (
+                            <tr 
+                              key={ord.id} 
+                              className={`transition-colors ${
+                                isCancelled 
+                                  ? 'opacity-40 bg-slate-950/80 text-slate-500 line-through select-none' 
+                                  : 'hover:bg-slate-800/40'
+                              }`}
+                            >
+                              <td className="p-2.5 font-mono font-bold text-orange-400">{ord.orderNumber}</td>
+                              <td className="p-2.5 font-bold text-white">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className={isCancelled ? 'line-through text-slate-400' : ''}>
+                                    {ord.customerName}
+                                  </span>
+                                  {isCancelled && (
+                                    <span className="no-underline text-[9px] font-black uppercase tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1.5 py-0.5 rounded shadow-sm inline-block">
+                                      EXCLUÍDO
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-2.5">{ord.fullDescription || ord.itemName}</td>
+                              <td className="p-2.5">{ord.quantity}x</td>
+                              <td className="p-2.5">{ord.paymentMethod}</td>
+                              <td className={`p-2.5 text-right font-bold ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
+                                R$ {Number(ord.totalPrice).toFixed(2)}
+                              </td>
+                              <td className="p-2.5 text-center no-underline">
+                                {isCancelled ? (
+                                  <button
+                                    onClick={() => handleRestoreOrder(ord.id)}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[11px] rounded-lg border border-slate-700 inline-flex items-center gap-1 shadow-sm no-underline cursor-pointer"
+                                    title="Restaurar venda de volta ao faturamento do caixa"
+                                  >
+                                    <RotateCcw className="w-3 h-3" /> Restaurar
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleCancelOrder(ord.id)}
+                                    className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                    title="Excluir venda do faturamento (permanece no histórico esmaecida)"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {todayOrders.length === 0 && (
+                          <tr>
+                            <td colSpan="7" className="p-6 text-center text-slate-500 text-xs italic">
+                              Nenhuma venda registrada hoje.
+                            </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>

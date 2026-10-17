@@ -18,6 +18,8 @@ const LOCAL_ORDERS_KEY = 'cantina_local_orders';
 const LOCAL_PRODUCTS_KEY = 'cantina_local_products';
 const LOCAL_COUNTERS_KEY = 'cantina_local_counters';
 const TV_SETTINGS_KEY = 'cantina_tv_settings';
+const LOCAL_CURRENT_EVENT_KEY = 'cantina_current_event';
+const LOCAL_EVENTS_LIST_KEY = 'cantina_events_list';
 const COLLECTION_ORDERS = 'cantina_pedidos';
 
 // Configuração padrão com o banco Cloud Firestore ATIVO na conta do usuário
@@ -229,6 +231,9 @@ class StorageService {
             try { cb(local); } catch (_) {}
           });
         }
+        if (event.data?.type === 'EVENT_CHANGED') {
+          window.dispatchEvent(new CustomEvent('cantina_event_changed', { detail: event.data.payload }));
+        }
       };
     }
 
@@ -240,6 +245,12 @@ class StorageService {
           this.orderSubscribers.forEach(cb => {
             try { cb(local); } catch (_) {}
           });
+        }
+        if (e.key === LOCAL_CURRENT_EVENT_KEY) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            window.dispatchEvent(new CustomEvent('cantina_event_changed', { detail: parsed }));
+          } catch (_) {}
         }
       });
     }
@@ -407,16 +418,99 @@ class StorageService {
     window.dispatchEvent(new CustomEvent('cantina_kitchen_settings_changed', { detail: settings }));
   }
 
+  // --- GESTÃO DE EVENTOS (FESTAS, FESTIVAIS E TURNOS) ---
+  getCurrentEvent() {
+    try {
+      const raw = localStorage.getItem(LOCAL_CURRENT_EVENT_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {
+      console.error('Erro ao ler evento atual:', e);
+    }
+    return {
+      id: 'evt_geral',
+      name: 'Cantina Geral',
+      date: new Date().toISOString().split('T')[0],
+      createdAt: Date.now()
+    };
+  }
+
+  saveCurrentEvent(eventObj) {
+    if (!eventObj || !eventObj.name) return;
+    localStorage.setItem(LOCAL_CURRENT_EVENT_KEY, JSON.stringify(eventObj));
+    
+    // Atualiza também na lista de eventos
+    const events = this.getEventsList();
+    const exists = events.some(e => e.id === eventObj.id);
+    if (!exists) {
+      events.unshift(eventObj);
+      this.saveEventsList(events);
+    } else {
+      const updated = events.map(e => e.id === eventObj.id ? eventObj : e);
+      this.saveEventsList(updated);
+    }
+
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'EVENT_CHANGED', payload: eventObj });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_event_changed', { detail: eventObj }));
+    return eventObj;
+  }
+
+  getEventsList() {
+    try {
+      const raw = localStorage.getItem(LOCAL_EVENTS_LIST_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Erro ao ler lista de eventos:', e);
+    }
+    return [
+      {
+        id: 'evt_geral',
+        name: 'Cantina Geral',
+        date: new Date().toISOString().split('T')[0],
+        createdAt: Date.now()
+      }
+    ];
+  }
+
+  saveEventsList(events) {
+    localStorage.setItem(LOCAL_EVENTS_LIST_KEY, JSON.stringify(events));
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'EVENTS_LIST_CHANGED', payload: events });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_events_list_changed', { detail: events }));
+  }
+
+  createEvent(name, date) {
+    const cleanName = (name || '').trim();
+    if (!cleanName) throw new Error('O nome do evento é obrigatório.');
+    const eventDate = date || new Date().toISOString().split('T')[0];
+    const newEvent = {
+      id: 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      name: cleanName,
+      date: eventDate,
+      createdAt: Date.now()
+    };
+    this.saveCurrentEvent(newEvent);
+    return newEvent;
+  }
+
   // --- PEDIDOS (EM TEMPO REAL CLOUD FIRESTORE) ---
 
   async createOrder(orderData) {
     const timestamp = Date.now();
     const orderId = 'ord_' + timestamp + '_' + Math.random().toString(36).substr(2, 6);
+    const activeEvt = this.getCurrentEvent();
     const order = {
       ...orderData,
       id: orderId,
       createdAt: timestamp,
       status: 'em_preparo', // Chegou na cozinha já entra Em Preparação direto!
+      eventId: orderData.eventId || activeEvt.id,
+      eventName: orderData.eventName || activeEvt.name,
     };
 
     // 1. Atualiza e notifica localmente de imediato (0ms de latência no caixa)
