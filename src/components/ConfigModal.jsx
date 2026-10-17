@@ -194,6 +194,28 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
   }, [isOpen, initialTab]);
 
+  // Fechar com tecla ESC
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        if (showResetModal) {
+          setShowResetModal(false);
+          return;
+        }
+        if (editingItemId) {
+          handleCancelEditItem();
+          return;
+        }
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, showResetModal, editingItemId, onClose]);
+
   const loadData = () => {
     const cats = storageService.getProducts();
     setCategories(cats);
@@ -610,9 +632,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const batataCat = categories.find(c => c.id === 'batata');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
+    >
       
-      <div className="bg-slate-900 border-2 border-slate-700 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 font-sans">
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-slate-900 border-2 border-slate-700 w-full max-w-6xl max-h-[92vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 font-sans cursor-default"
+      >
         
         {/* CABEÇALHO DO MODAL */}
         <div className="bg-slate-800/90 px-6 py-4 border-b border-slate-700 flex items-center justify-between shrink-0">
@@ -2038,8 +2068,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
       {/* MODAL PERSONALIZADO DE CONFIRMAÇÃO: ZERAR / FECHAR TURNO */}
       {showResetModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border-2 border-rose-500/50 w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-5 text-slate-100 relative overflow-hidden">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowResetModal(false);
+          }}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-rose-500/50 w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-5 text-slate-100 relative overflow-hidden cursor-default"
+          >
             
             {/* GLOW DECORATIVO DE FUNDO */}
             <div className="absolute -top-16 -right-16 w-36 h-36 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
