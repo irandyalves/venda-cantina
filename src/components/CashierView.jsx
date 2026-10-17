@@ -292,18 +292,46 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
     const orderNumber = storageService.getNextOrderNumber(prefix);
     const totalPrice = unitPrice * qty;
 
+    // Determina o destino de produção a partir das configurações
+    const routing = storageService.getProductionRouting();
+    const targetId = variation ? variation.id : item.id;
+    const catId = category.id;
+
+    let sendToKitchen = true;
+    if (routing.sendToKitchen?.[targetId] !== undefined) {
+      sendToKitchen = routing.sendToKitchen[targetId];
+    } else if (routing.sendToKitchen?.[catId] !== undefined) {
+      sendToKitchen = routing.sendToKitchen[catId];
+    } else {
+      sendToKitchen = catId === 'pizza';
+    }
+
+    let showOnTV = true;
+    if (routing.showOnTV?.[targetId] !== undefined) {
+      showOnTV = routing.showOnTV[targetId];
+    } else if (routing.showOnTV?.[catId] !== undefined) {
+      showOnTV = routing.showOnTV[catId];
+    } else {
+      showOnTV = catId === 'pizza';
+    }
+
     const newOrder = {
       orderNumber,
       customerName: cleanName,
       category: category.id,
       categoryName: category.name,
+      itemId: item.id,
       itemName: item.name,
+      variationId: variation ? variation.id : null,
       variationName: variation ? variation.name : null,
       fullDescription: description,
       quantity: qty,
       unitPrice,
       totalPrice,
       paymentMethod,
+      sendToKitchen,
+      showOnTV,
+      status: sendToKitchen ? 'em_preparo' : 'entregue'
     };
 
     try {
@@ -312,8 +340,8 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
       // Feedback visual em Modal Bonito de 2 Segundos
       setToast({
         type: 'success',
-        title: 'Pedido Enviado para a Cozinha!',
-        message: `Comanda ${created.orderNumber} gerada com sucesso!`,
+        title: sendToKitchen ? 'Pedido Enviado para a Cozinha!' : 'Venda Concluída (Tenda / Balcão)!',
+        message: `Comanda ${created.orderNumber} confirmada!`,
         subtext: `Cliente: ${cleanName.toUpperCase()} • ${description} (${qty}x)`
       });
 

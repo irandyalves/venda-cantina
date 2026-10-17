@@ -28,7 +28,9 @@ import {
   CalendarPlus,
   Sparkles,
   Archive,
-  AlertTriangle
+  AlertTriangle,
+  ChefHat,
+  Store
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -166,9 +168,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [newBatataPrice, setNewBatataPrice] = useState('0,00');
   const [newBatataPrefix, setNewBatataPrefix] = useState('B-');
 
-  // Estado Configurações da TV
+  // Estado Configurações da TV e Cozinha
   const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
   const [kitchenSettings, setKitchenSettings] = useState(() => storageService.getKitchenSettings());
+  const [productionRouting, setProductionRouting] = useState(() => storageService.getProductionRouting());
 
   // Estado Evento da Cantina
   const [currentEvent, setCurrentEvent] = useState(() => storageService.getCurrentEvent());
@@ -324,6 +327,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setEmailRules(authService.getEmailRules());
     setTvSettings(storageService.getTVSettings());
     setKitchenSettings(storageService.getKitchenSettings());
+    setProductionRouting(storageService.getProductionRouting());
     setCurrentEvent(storageService.getCurrentEvent());
     setEventsList(storageService.getEventsList());
     setTurnoHistory(storageService.getTurnoHistory());
@@ -358,6 +362,67 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     showToast(updated.soundEnabled ? 'Som da Cozinha ativado!' : 'Som da Cozinha em silêncio/mudo.');
   };
 
+  // --- AÇÕES DE DESTINO DE PRODUÇÃO (COZINHA VS TENDA / TV) ---
+  const handleToggleItemKitchen = (targetId, newValue) => {
+    const current = storageService.getProductionRouting();
+    const updated = {
+      ...current,
+      sendToKitchen: {
+        ...current.sendToKitchen,
+        [targetId]: newValue
+      }
+    };
+    setProductionRouting(updated);
+    storageService.saveProductionRouting(updated);
+    showToast(
+      newValue ? 'Item será ENVIADO PARA A COZINHA!' : 'Item será PREPARADO NA TENDA (Não vai p/ cozinha).',
+      'Destino de Produção',
+      'info'
+    );
+  };
+
+  const handleToggleItemTV = (targetId, newValue) => {
+    const current = storageService.getProductionRouting();
+    const updated = {
+      ...current,
+      showOnTV: {
+        ...current.showOnTV,
+        [targetId]: newValue
+      }
+    };
+    setProductionRouting(updated);
+    storageService.saveProductionRouting(updated);
+    showToast(
+      newValue ? 'Item será EXIBIDO NO PAINEL TV!' : 'Item OCULTADO do Painel TV.',
+      'Exibição na TV',
+      'info'
+    );
+  };
+
+  const handleResetProductionRouting = () => {
+    const defaultRouting = {
+      sendToKitchen: {
+        'pizza': true,
+        'pedaco': true,
+        'inteira': true,
+        'acai': false,
+        'batata': false,
+        'outros': false
+      },
+      showOnTV: {
+        'pizza': true,
+        'pedaco': true,
+        'inteira': true,
+        'acai': false,
+        'batata': false,
+        'outros': false
+      }
+    };
+    setProductionRouting(defaultRouting);
+    storageService.saveProductionRouting(defaultRouting);
+    showToast('Padrão restaurado: Pizza na Cozinha, Açaí e Batata na Tenda!', 'Destino Restaurado');
+  };
+
   // --- AÇÕES DE E-MAILS DOS PERFIS ---
   const handleAddEmail = (e) => {
     e.preventDefault();
@@ -374,23 +439,35 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setEmailRules(authService.getEmailRules());
   };
 
-  // Abrir Modal de Configurações Completas do Item (Engrenagem ⚙️)
+  // Abrir Modal de Configurações Completas do Item (Engrenagem ⚙️ / Lápis ✏️)
   const handleOpenGearModal = (item) => {
     setConfirmDeleteGear(false);
+    const targetId = item.isVariation ? item.variationId : item.id;
+    const catId = item.categoryId || 'acai';
+    const routing = storageService.getProductionRouting();
+    const isToKitchen = routing.sendToKitchen?.[targetId] !== undefined
+      ? routing.sendToKitchen[targetId]
+      : (routing.sendToKitchen?.[catId] !== undefined ? routing.sendToKitchen[catId] : (catId === 'pizza'));
+    const isToTV = routing.showOnTV?.[targetId] !== undefined
+      ? routing.showOnTV[targetId]
+      : (routing.showOnTV?.[catId] !== undefined ? routing.showOnTV[catId] : (catId === 'pizza'));
+
     setGearItemData({
       id: item.id,
       name: item.name || '',
       price: formatCurrencyMask(item.price || 0),
       prefix: item.prefix || '',
       description: item.description || '',
-      categoryId: item.categoryId || 'acai',
+      categoryId: catId,
       isVariation: Boolean(item.isVariation),
-      variationId: item.variationId || null
+      variationId: item.variationId || null,
+      sendToKitchen: isToKitchen,
+      showOnTV: isToTV
     });
     setShowGearModal(true);
   };
 
-  // Salvar alterações da Engrenagem ⚙️
+  // Salvar alterações da Engrenagem ⚙️ / Lápis ✏️
   const handleSaveGearModal = (e) => {
     if (e) e.preventDefault();
     const cleanName = gearItemData.name.trim();
@@ -451,6 +528,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         setInteiraPrefix(cleanPrefix);
       }
     }
+
+    // Salva roteamento de produção (Cozinha vs Tenda / TV)
+    const targetId = gearItemData.isVariation ? gearItemData.variationId : gearItemData.id;
+    const currentRouting = storageService.getProductionRouting();
+    const updatedRouting = {
+      sendToKitchen: {
+        ...currentRouting.sendToKitchen,
+        [targetId]: Boolean(gearItemData.sendToKitchen)
+      },
+      showOnTV: {
+        ...currentRouting.showOnTV,
+        [targetId]: Boolean(gearItemData.showOnTV)
+      }
+    };
+    storageService.saveProductionRouting(updatedRouting);
+    setProductionRouting(updatedRouting);
 
     storageService.saveProducts(updated);
     setCategories(updated);
@@ -1990,16 +2083,139 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           )}
 
           {/* =========================================================
-              ABA 4: CONFIGURAÇÃO DO PAINEL TV
+              ABA 4: TELAS & SOM (TV/COZINHA) - DESTINO DE PRODUÇÃO
              ========================================================= */}
           {activeTab === 'tv' && (
             <div className="space-y-6">
-              
+
+              {/* SEÇÃO 1: DESTINO DE PRODUÇÃO (COZINHA VS TENDA / BALCÃO) */}
+              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-orange-500/20 text-orange-400 rounded-xl border border-orange-500/30">
+                      <UtensilsCrossed className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-extrabold text-white text-base flex items-center gap-2 flex-wrap">
+                        Destino de Produção (Cozinha vs Tenda / Balcão)
+                        <span className="text-[10px] bg-orange-400/20 text-orange-300 font-bold px-2 py-0.5 rounded-full border border-orange-400/30">
+                          {allSaleItems.length} itens configuráveis
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Defina quais itens vão para a fila da <strong>Cozinha</strong> e quais são exibidos no <strong>Painel TV</strong>.
+                        Itens preparados na tenda/balcão externo (ex: Açaí, Batata) <strong>nunca poluem a fila da cozinha</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleResetProductionRouting}
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-auto"
+                    title="Restaura o padrão: Pizza na Cozinha e TV; Açaí e Batata somente na Tenda"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Restaurar Padrão</span>
+                  </button>
+                </div>
+
+                {/* LISTAGEM DOS ITENS DE VENDA COM TOGGLES DE COZINHA E TV */}
+                <div className="space-y-2.5 pt-1">
+                  {allSaleItems.map((item) => {
+                    const targetId = item.isVariation ? item.variationId : item.id;
+                    const catId = item.categoryId;
+
+                    const isToKitchen = productionRouting.sendToKitchen?.[targetId] !== undefined
+                      ? productionRouting.sendToKitchen[targetId]
+                      : (productionRouting.sendToKitchen?.[catId] !== undefined ? productionRouting.sendToKitchen[catId] : (catId === 'pizza'));
+
+                    const isToTV = productionRouting.showOnTV?.[targetId] !== undefined
+                      ? productionRouting.showOnTV[targetId]
+                      : (productionRouting.showOnTV?.[catId] !== undefined ? productionRouting.showOnTV[catId] : (catId === 'pizza'));
+
+                    return (
+                      <div 
+                        key={`routing_${catId}_${targetId}`}
+                        className="bg-slate-900 p-3 sm:px-4 sm:py-3 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-slate-700 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className={`p-2 rounded-xl border text-xs shrink-0 ${
+                            catId === 'pizza' 
+                              ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                              : catId === 'acai'
+                                ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                                : catId === 'batata'
+                                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                          }`}>
+                            {catId === 'pizza' ? <Pizza className="w-4 h-4" /> : catId === 'acai' ? <IceCream className="w-4 h-4" /> : <UtensilsCrossed className="w-4 h-4" />}
+                          </span>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-extrabold text-sm text-white truncate">{item.name}</span>
+                              <span className="text-[10px] font-mono text-amber-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                                Senha: {item.prefix || 'Sem prefixo'}
+                              </span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                isToKitchen 
+                                  ? 'bg-orange-500/15 text-orange-300 border-orange-500/30' 
+                                  : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                              }`}>
+                                {isToKitchen ? '🍳 Cozinha (Interno)' : '🎪 Tenda / Balcão'}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-slate-400 mt-0.5 block">
+                              {isToKitchen 
+                                ? 'Enviado para a fila da Cozinha e emite aviso sonoro de preparo.' 
+                                : 'Venda direta na tenda externa — não aparece nem toca na cozinha.'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* BOTÕES DE TOGGLE: COZINHA E TV */}
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap self-end md:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleItemKitchen(targetId, !isToKitchen)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                              isToKitchen
+                                ? 'bg-orange-600/25 text-orange-300 border-orange-500/50 shadow-sm'
+                                : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
+                            }`}
+                            title="Alternar se o item deve ir para a Cozinha ou se é feito na Tenda"
+                          >
+                            <UtensilsCrossed className="w-3.5 h-3.5" />
+                            <span>{isToKitchen ? '✓ Enviar p/ Cozinha' : '✕ Tenda (Sem Cozinha)'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleItemTV(targetId, !isToTV)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                              isToTV
+                                ? 'bg-blue-600/25 text-blue-300 border-blue-500/50 shadow-sm'
+                                : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
+                            }`}
+                            title="Alternar se a comanda deste item deve aparecer na tela da TV"
+                          >
+                            <Tv className="w-3.5 h-3.5" />
+                            <span>{isToTV ? '✓ Exibir na TV' : '✕ Ocultar da TV'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* SEÇÃO 2: CONFIGURAÇÃO DE EXIBIÇÃO E SOM DO PAINEL TV */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
                 <div className="flex items-center gap-2.5 border-b border-slate-700 pb-3">
                   <Tv className="w-5 h-5 text-amber-400" />
                   <div>
-                    <h3 className="font-extrabold text-white text-base">Configuração de Exibição do Painel TV</h3>
+                    <h3 className="font-extrabold text-white text-base">Configuração Geral de Exibição do Painel TV</h3>
                     <p className="text-xs text-slate-400">Defina aqui o que a TV do público irá exibir e como irá se comportar</p>
                   </div>
                 </div>
@@ -2500,6 +2716,48 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   onChange={(e) => setGearItemData(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
                 />
+              </div>
+
+              {/* DESTINO DE PRODUÇÃO (COZINHA E TV) */}
+              <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-2">
+                <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                  <span>Destino de Produção:</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    gearItemData.sendToKitchen 
+                      ? 'bg-orange-500/15 text-orange-300 border-orange-500/30' 
+                      : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                  }`}>
+                    {gearItemData.sendToKitchen ? '🍳 Fila da Cozinha' : '🎪 Tenda / Balcão'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGearItemData(prev => ({ ...prev, sendToKitchen: !prev.sendToKitchen }))}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                      gearItemData.sendToKitchen
+                        ? 'bg-orange-600/25 text-orange-300 border-orange-500/50 shadow-sm'
+                        : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
+                    }`}
+                  >
+                    <UtensilsCrossed className="w-3.5 h-3.5" />
+                    <span>{gearItemData.sendToKitchen ? '✓ Enviar Cozinha' : '✕ Tenda (Sem Cozinha)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGearItemData(prev => ({ ...prev, showOnTV: !prev.showOnTV }))}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                      gearItemData.showOnTV
+                        ? 'bg-blue-600/25 text-blue-300 border-blue-500/50 shadow-sm'
+                        : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
+                    }`}
+                  >
+                    <Tv className="w-3.5 h-3.5" />
+                    <span>{gearItemData.showOnTV ? '✓ Exibir na TV' : '✕ Ocultar TV'}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-between gap-2.5 pt-3 border-t border-slate-800">

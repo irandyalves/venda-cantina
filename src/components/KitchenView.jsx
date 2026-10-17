@@ -26,14 +26,23 @@ export default function KitchenView({ onNavigate }) {
   const [isFirebaseOnline, setIsFirebaseOnline] = useState(storageService.isFirebaseReady);
 
   // Escuta alterações na configuração de som da cozinha (vindas do modal de configurações)
+  const [productionRouting, setProductionRouting] = useState(() => storageService.getProductionRouting());
+
   useEffect(() => {
     const handleKitchenSettings = (e) => {
       if (e.detail?.soundEnabled !== undefined) {
         setSoundEnabled(e.detail.soundEnabled);
       }
     };
+    const handleRoutingChange = (e) => {
+      setProductionRouting(e.detail || storageService.getProductionRouting());
+    };
     window.addEventListener('cantina_kitchen_settings_changed', handleKitchenSettings);
-    return () => window.removeEventListener('cantina_kitchen_settings_changed', handleKitchenSettings);
+    window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
+    return () => {
+      window.removeEventListener('cantina_kitchen_settings_changed', handleKitchenSettings);
+      window.removeEventListener('cantina_production_routing_changed', handleRoutingChange);
+    };
   }, []);
 
   // Controle do efeito de 10 segundos no novo pedido
@@ -43,6 +52,22 @@ export default function KitchenView({ onNavigate }) {
   // Guardar IDs já tocados para não repetir som
   const knownOrderIdsRef = useRef(new Set());
   const isFirstLoadRef = useRef(true);
+
+  // Helper para verificar se o pedido é destinado para preparo na cozinha
+  const isOrderForKitchen = (order) => {
+    if (order.sendToKitchen === false) return false;
+    if (order.sendToKitchen === true) return true;
+
+    const targetId = order.variationId || order.itemId;
+    if (targetId && productionRouting.sendToKitchen?.[targetId] !== undefined) {
+      return productionRouting.sendToKitchen[targetId];
+    }
+    const cat = (order.category || order.categoryName || '').toLowerCase();
+    if (productionRouting.sendToKitchen?.[cat] !== undefined) {
+      return productionRouting.sendToKitchen[cat];
+    }
+    return cat.includes('pizza');
+  };
 
   // Relógio para atualizar cronômetros dos pedidos a cada segundo
   useEffect(() => {
@@ -56,6 +81,9 @@ export default function KitchenView({ onNavigate }) {
       // Identificar novos pedidos para tocar o som e ativar o efeito de 10 segundos
       if (!isFirstLoadRef.current) {
         allOrders.forEach((order) => {
+          // Itens de tenda/balcão (ex: Açaí, Batata) não tocam som e não entram na fila da cozinha
+          if (!isOrderForKitchen(order)) return;
+
           if (!knownOrderIdsRef.current.has(order.id) && order.status === 'em_preparo') {
             knownOrderIdsRef.current.add(order.id);
 
@@ -92,7 +120,7 @@ export default function KitchenView({ onNavigate }) {
       unsubscribeStatus();
       if (newestTimerRef.current) clearTimeout(newestTimerRef.current);
     };
-  }, [soundEnabled]);
+  }, [soundEnabled, productionRouting]);
 
   // AÇÃO DE ENTREGAR (GARANTINDO CONCLUSÃO IMEDIATA)
   const handleDeliver = async (orderId) => {
@@ -125,15 +153,16 @@ export default function KitchenView({ onNavigate }) {
     await storageService.updateOrderStatus(orderId, 'em_preparo');
   };
 
-  // Filtragem dos pedidos
-  const activeOrders = orders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
-  const deliveredOrders = orders.filter(o => o.status === 'entregue');
+  // Filtragem dos pedidos da COZINHA (ignora itens feitos na tenda)
+  const kitchenOrders = orders.filter(isOrderForKitchen);
+  const activeOrders = kitchenOrders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
+  const deliveredOrders = kitchenOrders.filter(o => o.status === 'entregue');
 
   const displayedOrders = activeFilter === 'active'
     ? activeOrders
     : activeFilter === 'entregue'
       ? deliveredOrders
-      : orders;
+      : kitchenOrders;
 
   // Formatação de tempo decorrido
   const getElapsedTime = (timestamp) => {

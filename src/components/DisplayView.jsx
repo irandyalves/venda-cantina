@@ -119,6 +119,31 @@ export default function DisplayView({ onNavigate }) {
     return () => unsubscribe();
   }, [tvSettings.soundEnabled]);
 
+  const [productionRouting, setProductionRouting] = useState(() => storageService.getProductionRouting());
+
+  useEffect(() => {
+    const handleRoutingChange = (e) => {
+      setProductionRouting(e.detail || storageService.getProductionRouting());
+    };
+    window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
+    return () => window.removeEventListener('cantina_production_routing_changed', handleRoutingChange);
+  }, []);
+
+  const isOrderForTV = (order) => {
+    if (order.showOnTV === false) return false;
+    if (order.showOnTV === true) return true;
+
+    const targetId = order.variationId || order.itemId;
+    if (targetId && productionRouting.showOnTV?.[targetId] !== undefined) {
+      return productionRouting.showOnTV[targetId];
+    }
+    const cat = (order.category || order.categoryName || '').toLowerCase();
+    if (productionRouting.showOnTV?.[cat] !== undefined) {
+      return productionRouting.showOnTV[cat];
+    }
+    return cat.includes('pizza');
+  };
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -131,9 +156,10 @@ export default function DisplayView({ onNavigate }) {
     }
   };
 
-  // Pedidos em preparação continuam na tela até que sejam realmente entregues
-  const preparingOrders = orders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
-  const deliveredOrders = orders.filter(o => o.status === 'entregue').slice(0, 8);
+  // Pedidos destinados ao Painel TV
+  const tvOrders = orders.filter(isOrderForTV);
+  const preparingOrders = tvOrders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
+  const deliveredOrders = tvOrders.filter(o => o.status === 'entregue').slice(0, 8);
 
   // Helper para formatar o texto do item conforme o padrão solicitado:
   // Ex: PIZZA [PEDAÇO (verde bold)] : MARGUERITTA (lilás brilho bold)

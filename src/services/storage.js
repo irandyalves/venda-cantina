@@ -420,6 +420,49 @@ class StorageService {
     window.dispatchEvent(new CustomEvent('cantina_kitchen_settings_changed', { detail: settings }));
   }
 
+  // --- ROTEAMENTO DE PRODUÇÃO: ENVIAR PARA COZINHA E EXIBIR NA TV ---
+  getProductionRouting() {
+    try {
+      const raw = localStorage.getItem('cantina_production_routing');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          sendToKitchen: parsed.sendToKitchen || {},
+          showOnTV: parsed.showOnTV || {}
+        };
+      }
+    } catch (e) {
+      console.error('Erro ao ler roteamento de produção:', e);
+    }
+    // Padrão: Apenas Pizza vai para a cozinha e TV. Açaí, Batata e outros ficam na tenda/balcão
+    return {
+      sendToKitchen: {
+        'pizza': true,
+        'pedaco': true,
+        'inteira': true,
+        'acai': false,
+        'batata': false,
+        'outros': false
+      },
+      showOnTV: {
+        'pizza': true,
+        'pedaco': true,
+        'inteira': true,
+        'acai': false,
+        'batata': false,
+        'outros': false
+      }
+    };
+  }
+
+  saveProductionRouting(routing) {
+    localStorage.setItem('cantina_production_routing', JSON.stringify(routing));
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'PRODUCTION_ROUTING_UPDATED', payload: routing });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_production_routing_changed', { detail: routing }));
+  }
+
   // --- GESTÃO DE EVENTOS (FESTAS, FESTIVAIS E TURNOS) ---
   getCurrentEvent() {
     try {
