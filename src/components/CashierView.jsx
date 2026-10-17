@@ -18,7 +18,8 @@ import {
   X,
   ArrowRight,
   ShoppingCart,
-  GripHorizontal
+  GripHorizontal,
+  Disc
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import ProfileSelector from './ProfileSelector';
@@ -203,12 +204,32 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
   };
 
   // 1º PASSO: Selecionar o produto
-  const handleSelectPizzaVariation = (flavor, variation) => {
+  const handleSelectPizzaFlavor = (flavor) => {
+    setSelectedPizzaFlavor(flavor);
+    const pizzaCat = categories.find(c => c.id === 'pizza');
+    const currentVarId = (selectedProduct?.category?.id === 'pizza' && selectedProduct?.variation?.id) 
+      ? selectedProduct.variation.id 
+      : 'pedaco';
+    const chosenVar = pizzaCat?.variations?.find(v => v.id === currentVarId) 
+      || pizzaCat?.variations?.find(v => v.id === 'pedaco') 
+      || pizzaCat?.variations?.[0];
+
     setSelectedProduct({
-      category: categories.find(c => c.id === 'pizza'),
+      category: pizzaCat,
       item: flavor,
+      variation: chosenVar
+    });
+  };
+
+  const handleSelectPizzaVariation = (variation) => {
+    if (!selectedPizzaFlavor) return;
+    const pizzaCat = categories.find(c => c.id === 'pizza');
+    setSelectedProduct({
+      category: pizzaCat,
+      item: selectedPizzaFlavor,
       variation: variation
     });
+    setTimeout(() => nameInputRef.current?.focus(), 60);
   };
 
   const handleSelectDirectItem = (category, item) => {
@@ -348,24 +369,24 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           </div>
         </div>
 
-        {/* FORMULÁRIO COM NOME, QUANTIDADE, PAGAMENTO E O BOTÃO ENVIAR */}
-        <form onSubmit={handleConfirmAndSend} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+        {/* FORMULÁRIO COM NOME (L1), QUANTIDADE E PAGAMENTO (L2), E O BOTÃO ENVIAR (L3) */}
+        <form onSubmit={handleConfirmAndSend} className="space-y-2">
           
-          {/* CAMPO DO NOME */}
-          <div className="sm:col-span-12 xl:col-span-5 flex flex-col gap-1">
+          {/* LINHA 1: NOME DE QUEM COMPROU */}
+          <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-between">
-              <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
+              <label className={`text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
                 isNameFilled ? 'text-emerald-400' : 'text-rose-400'
               }`}>
-                <User className="w-4 h-4" />
+                <User className="w-3.5 h-3.5" />
                 <span>Nome de quem comprou *</span>
               </label>
               {!isNameFilled ? (
-                <span className="text-[10px] text-rose-300 font-extrabold bg-rose-950/80 px-2 py-0.5 rounded border border-rose-500/60 animate-pulse">
+                <span className="text-[9px] text-rose-300 font-extrabold bg-rose-950/80 px-1.5 py-0.2 rounded border border-rose-500/60 animate-pulse">
                   ⚠️ Obrigatório
                 </span>
               ) : (
-                <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/40">
+                <span className="text-[9px] text-emerald-300 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/40">
                   ✓ Preenchido
                 </span>
               )}
@@ -395,7 +416,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                     }
                   }
                 }}
-                className={`w-full h-12 sm:h-14 bg-slate-950 text-white text-base font-bold px-3.5 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-sm border-2 ${
+                className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
                   !isNameFilled 
                     ? 'border-rose-500 glow-required-name' 
                     : 'border-emerald-500 ring-2 ring-emerald-500/30'
@@ -404,80 +425,84 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
             </div>
           </div>
 
-          {/* CAMPO DE QUANTIDADE */}
-          <div className="sm:col-span-6 xl:col-span-2 flex flex-col gap-1">
-            <label className="text-xs font-black uppercase tracking-wider text-slate-300">
-              Quantidade
-            </label>
-            <div className="h-12 sm:h-14 flex items-center gap-1.5 bg-slate-950 px-2 rounded-xl border border-slate-700">
-              <button 
-                type="button"
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-10 h-10 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-lg rounded-lg flex items-center justify-center transition-colors"
-              >
-                -
-              </button>
-              <input 
-                ref={qtyInputRef}
-                type="number"
-                min="1"
-                max="99"
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+          {/* LINHA 2: QUANTIDADE E PAGAMENTO (LADO A LADO) */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                Quantidade
+              </label>
+              <div className="h-9 sm:h-10 flex items-center gap-1 bg-slate-950 px-1.5 rounded-xl border border-slate-700">
+                <button 
+                  type="button"
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  -
+                </button>
+                <input 
+                  ref={qtyInputRef}
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      paymentSelectRef.current?.focus();
+                    }
+                  }}
+                  className="w-full text-center bg-transparent text-sm font-black text-amber-300 outline-none"
+                />
+                <button 
+                  type="button"
+                  onClick={() => setQuantity(q => q + 1)}
+                  className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                Pagamento
+              </label>
+              <select
+                ref={paymentSelectRef}
+                value={paymentMethod}
+                onChange={(e) => {
+                  setPaymentMethod(e.target.value);
+                  setTimeout(() => submitButtonRef.current?.focus(), 50);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    paymentSelectRef.current?.focus();
+                    submitButtonRef.current?.focus();
                   }
                 }}
-                className="w-full text-center bg-transparent text-lg font-black text-amber-300 outline-none"
-              />
-              <button 
-                type="button"
-                onClick={() => setQuantity(q => q + 1)}
-                className="w-10 h-10 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-lg rounded-lg flex items-center justify-center transition-colors"
+                className="w-full h-9 sm:h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2.5 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/40 transition-all cursor-pointer"
               >
-                +
-              </button>
+                <option value="PIX">PIX</option>
+                <option value="DINHEIRO">Dinheiro</option>
+                <option value="DEBITO">Débito</option>
+                <option value="CREDITO">Crédito</option>
+              </select>
             </div>
           </div>
 
-          {/* FORMA DE PAGAMENTO */}
-          <div className="sm:col-span-6 xl:col-span-2 flex flex-col gap-1">
-            <label className="text-xs font-black uppercase tracking-wider text-slate-300">
-              Pagamento
-            </label>
-            <select
-              ref={paymentSelectRef}
-              value={paymentMethod}
-              onChange={(e) => {
-                setPaymentMethod(e.target.value);
-                setTimeout(() => submitButtonRef.current?.focus(), 50);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  submitButtonRef.current?.focus();
-                }
-              }}
-              className="w-full h-12 sm:h-14 bg-slate-950 border border-slate-700 text-white font-black text-sm px-3 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/40 transition-all cursor-pointer"
-            >
-              <option value="PIX">PIX</option>
-              <option value="DINHEIRO">Dinheiro</option>
-              <option value="DEBITO">Débito</option>
-              <option value="CREDITO">Crédito</option>
-            </select>
-          </div>
-
-          {/* BOTÃO VERDE ENVIAR COM ALTURA DOBRADA E FOCO BRILHANTE */}
-          <div className="sm:col-span-12 xl:col-span-3">
+          {/* LINHA 3: BOTÃO ENVIAR PARA A COZINHA */}
+          <div>
             <button
               ref={submitButtonRef}
               type="submit"
-              className="w-full h-14 sm:h-16 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm sm:text-base uppercase tracking-wider rounded-xl transition-all shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused focus:scale-[1.02]"
+              className="w-full h-10 sm:h-11 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
             >
-              <Send className="w-5 h-5 fill-current" />
+              <Send className="w-4 h-4 fill-current" />
               <span>ENVIAR PARA COZINHA</span>
+              <span className="ml-1 bg-slate-950/20 px-2 py-0.5 rounded font-mono text-xs font-black">
+                Total: R$ {totalPrice.toFixed(2)}
+              </span>
             </button>
           </div>
 
@@ -606,8 +631,8 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                 return (
                   <button
                     key={flavor.id}
-                    onClick={() => setSelectedPizzaFlavor(flavor)}
-                    className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border ${
+                    onClick={() => handleSelectPizzaFlavor(flavor)}
+                    className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer ${
                       isSelected
                         ? 'bg-amber-500 text-slate-950 border-amber-300 shadow ring-2 ring-amber-400 scale-[1.01]'
                         : 'bg-slate-900/90 hover:bg-slate-750 text-slate-200 border-slate-700 hover:border-slate-500'
@@ -629,72 +654,246 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
               })}
             </div>
 
-            {/* AO CLICAR NO SABOR: ABRE OS BOTÕES PEDAÇO E INTEIRA */}
+            {/* AO CLICAR NO SABOR: ABRE DUAS SEÇÕES (ESQ: PEDAÇO/INTEIRA EMPILHADOS, DIR: 3 LINHAS) */}
             {selectedPizzaFlavor ? (
-              <div className="mt-2.5 p-2 bg-gradient-to-r from-amber-950/50 via-slate-900 to-red-950/50 rounded-xl border border-amber-500/70 shadow-lg">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
-                    <span className="text-[11px] uppercase tracking-wider text-amber-300 font-bold">
-                      Sabor Selecionado: <strong className="text-white text-xs underline">{selectedPizzaFlavor.name}</strong>
+              <div 
+                ref={drawerRef}
+                className="mt-2.5 p-3 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-emerald-500/80 shadow-2xl animate-curtain-down space-y-2.5"
+              >
+                {/* CABEÇALHO DO SABOR */}
+                <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg">
+                      <Sparkles className="w-3.5 h-3.5 animate-spin-slow" />
+                    </span>
+                    <span className="text-xs uppercase font-extrabold text-slate-300">
+                      Sabor Selecionado:{' '}
+                      <strong className="text-amber-300 font-black text-sm">
+                        {selectedPizzaFlavor.name}
+                      </strong>
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-300">
-                    Escolha <strong>PEDAÇO</strong> ou <strong>INTEIRA</strong> para abrir o nome e enviar:
-                  </span>
+
+                  <button
+                    type="button"
+                    onClick={cancelSelection}
+                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Fechar e cancelar escolha"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Fechar</span>
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {pizzaCategory.variations.map((variation) => {
-                    const isPedaco = variation.id === 'pedaco';
-                    const isCurrentChoice = selectedProduct?.item?.id === selectedPizzaFlavor.id && selectedProduct?.variation?.id === variation.id;
+                {/* DUAS SEÇÕES: ESQ (PEDAÇO / INTEIRA) E DIR (3 LINHAS) */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
+                  
+                  {/* SEÇÃO DA ESQUERDA: DOIS BOTÕES UM EM CIMA E OUTRO EM BAIXO DO TAMANHO DE MARGUERITA */}
+                  <div className="md:col-span-4 xl:col-span-3 flex flex-col justify-between gap-2">
+                    {pizzaCategory.variations.map((variation) => {
+                      const isPedaco = variation.id === 'pedaco';
+                      const isCurrentChoice = selectedProduct?.variation?.id === variation.id;
 
-                    return (
-                      <button
-                        key={variation.id}
-                        onClick={() => handleSelectPizzaVariation(selectedPizzaFlavor, variation)}
-                        className={`group p-2.5 rounded-lg font-black text-left flex items-center justify-between transition-all shadow active:scale-98 border-2 ${
-                          isCurrentChoice
-                            ? 'ring-2 ring-white border-white scale-[1.01]'
-                            : ''
-                        } ${
-                          isPedaco
-                            ? 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 border-amber-300'
-                            : 'bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white border-red-400'
-                        }`}
-                      >
-                        <div>
-                          <div className="text-sm font-black tracking-wide flex items-center gap-1.5">
-                            <span>{variation.name}</span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-black/20 text-current">
-                              {variation.prefix}XX
+                      return (
+                        <button
+                          key={variation.id}
+                          type="button"
+                          onClick={() => handleSelectPizzaVariation(variation)}
+                          className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border min-h-[62px] cursor-pointer ${
+                            isCurrentChoice
+                              ? isPedaco
+                                ? 'bg-amber-500 text-slate-950 border-amber-300 shadow ring-2 ring-amber-400 font-black scale-[1.01]'
+                                : 'bg-red-600 text-white border-red-300 shadow ring-2 ring-red-400 font-black scale-[1.01]'
+                              : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700 hover:border-slate-500'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-1.5 font-extrabold text-xs">
+                              {isPedaco ? (
+                                <Pizza className={`w-3.5 h-3.5 ${isCurrentChoice ? 'text-slate-950' : 'text-amber-400'}`} />
+                              ) : (
+                                <Disc className={`w-3.5 h-3.5 ${isCurrentChoice ? 'text-white' : 'text-red-400'}`} />
+                              )}
+                              <span>{variation.name}</span>
+                            </div>
+                            <span className="font-mono font-black text-xs">
+                              R$ {variation.price.toFixed(2)}
                             </span>
                           </div>
-                          <div className="text-[10px] opacity-90 font-medium">
-                            {isPedaco ? 'Fatia servida na hora' : 'Pizza redonda inteira'}
-                          </div>
-                        </div>
 
-                        <div className="text-right">
-                          <div className="text-base font-black">
-                            R$ {variation.price.toFixed(2)}
+                          <div className="mt-1 flex items-center justify-between w-full">
+                            <span className={`text-[9px] font-bold px-1 py-0.2 rounded font-mono ${
+                              isCurrentChoice 
+                                ? (isPedaco ? 'bg-slate-950/20 text-slate-950' : 'bg-black/30 text-white')
+                                : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              {variation.prefix || (isPedaco ? 'Pp-' : 'Pi-')}XX
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                              isCurrentChoice
+                                ? (isPedaco ? 'bg-slate-950 text-amber-300' : 'bg-black/40 text-rose-200')
+                                : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              {isCurrentChoice ? '✓ Selecionado' : 'Escolher'}
+                            </span>
                           </div>
-                          <div className="text-[9px] mt-0.5 bg-black/30 text-white px-1.5 py-0.2 rounded font-bold uppercase tracking-wider flex items-center gap-1 justify-end">
-                            <span>SELECIONAR</span>
-                            <ChevronRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
-                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* SEÇÃO DA DIREITA: CAMPOS EM 3 LINHAS */}
+                  <form onSubmit={handleConfirmAndSend} className="md:col-span-8 xl:col-span-9 flex flex-col justify-between gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    
+                    {/* LINHA 1: NOME DE QUEM COMPROU (OCUPA UMA LINHA INTEIRA) */}
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center justify-between">
+                        <label className={`text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                          isNameFilled ? 'text-emerald-400' : 'text-rose-400'
+                        }`}>
+                          <User className="w-3.5 h-3.5" />
+                          <span>Nome de quem comprou *</span>
+                        </label>
+                        {!isNameFilled ? (
+                          <span className="text-[9px] text-rose-300 font-extrabold bg-rose-950/80 px-1.5 py-0.2 rounded border border-rose-500/60 animate-pulse">
+                            ⚠️ Obrigatório
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-emerald-300 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/40">
+                            ✓ Preenchido
+                          </span>
+                        )}
+                      </div>
+
+                      <div className={`relative ${nameShake ? 'animate-shake' : ''}`}>
+                        <input
+                          ref={nameInputRef}
+                          type="text"
+                          required
+                          placeholder="Digite o nome de quem comprou..."
+                          value={customerName}
+                          onChange={(e) => {
+                            setCustomerName(e.target.value);
+                            if (showNameError && e.target.value.trim()) setShowNameError(false);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (!customerName.trim()) {
+                                setNameShake(true);
+                                setShowNameError(true);
+                                setTimeout(() => setNameShake(false), 500);
+                              } else {
+                                qtyInputRef.current?.focus();
+                                qtyInputRef.current?.select();
+                              }
+                            }
+                          }}
+                          className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
+                            !isNameFilled 
+                              ? 'border-rose-500 glow-required-name' 
+                              : 'border-emerald-500 ring-2 ring-emerald-500/30'
+                          }`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* LINHA 2: QUANTIDADE E TIPO PAGAMENTO (LADO A LADO) */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* QUANTIDADE */}
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                          Quantidade
+                        </label>
+                        <div className="h-9 sm:h-10 flex items-center gap-1 bg-slate-950 px-1.5 rounded-xl border border-slate-700">
+                          <button 
+                            type="button"
+                            onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                            className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <input 
+                            ref={qtyInputRef}
+                            type="number"
+                            min="1"
+                            max="99"
+                            value={quantity}
+                            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                paymentSelectRef.current?.focus();
+                              }
+                            }}
+                            className="w-full text-center bg-transparent text-sm font-black text-amber-300 outline-none"
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => setQuantity(q => q + 1)}
+                            className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            +
+                          </button>
                         </div>
+                      </div>
+
+                      {/* FORMA DE PAGAMENTO */}
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                          Pagamento
+                        </label>
+                        <select
+                          ref={paymentSelectRef}
+                          value={paymentMethod}
+                          onChange={(e) => {
+                            setPaymentMethod(e.target.value);
+                            setTimeout(() => submitButtonRef.current?.focus(), 50);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              submitButtonRef.current?.focus();
+                            }
+                          }}
+                          className="w-full h-9 sm:h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2.5 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/40 transition-all cursor-pointer"
+                        >
+                          <option value="PIX">PIX</option>
+                          <option value="DINHEIRO">Dinheiro</option>
+                          <option value="DEBITO">Débito</option>
+                          <option value="CREDITO">Crédito</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* LINHA 3: BOTÃO ENVIAR PARA A COZINHA (OCUPA A LINHA INTEIRA) */}
+                    <div>
+                      <button
+                        ref={submitButtonRef}
+                        type="submit"
+                        className="w-full h-10 sm:h-11 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
+                      >
+                        <Send className="w-4 h-4 fill-current" />
+                        <span>ENVIAR PARA COZINHA</span>
+                        <span className="ml-1 bg-slate-950/20 px-2 py-0.5 rounded font-mono text-xs font-black">
+                          Total: R$ {((selectedProduct?.variation?.price || 0) * quantity).toFixed(2)}
+                        </span>
                       </button>
-                    );
-                  })}
+                    </div>
+
+                  </form>
                 </div>
 
-                {/* MODAL / DRAWER COM EFEITO CORTINA REVELANDO EMBAIXO DA PIZZA */}
-                {renderCheckoutDrawer('pizza')}
+                {showNameError && (
+                  <div className="text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>Por favor, digite o nome de quem comprou para enviar para a cozinha!</span>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="mt-2 text-center py-1 bg-slate-900/50 rounded-lg border border-dashed border-slate-700 text-[10px] text-slate-400">
-                👆 Clique no sabor da pizza para ver as opções <strong>PEDAÇO</strong> e <strong>INTEIRA</strong>.
+              <div className="mt-2 text-center py-1.5 bg-slate-900/50 rounded-lg border border-dashed border-slate-700 text-[10px] text-slate-400">
+                👆 Clique no sabor da pizza para abrir as opções e enviar para a cozinha.
               </div>
             )}
           </div>
