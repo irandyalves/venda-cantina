@@ -311,28 +311,30 @@ export default function DisplayView({ onNavigate }) {
               preparingOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="w-full bg-slate-950/90 px-4 sm:px-6 py-2 sm:py-2.5 border-y border-amber-500/60 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all space-y-1 relative"
+                  className="w-full bg-slate-950/90 px-4 sm:px-6 py-1.5 border-y border-amber-500/60 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all relative"
                 >
-                  {/* LINHA 1: CÓDIGO DA COMANDA COM FONTE AJUSTADA + NOME DE QUEM PEDIU EM MAIÚSCULO */}
-                  <div className="flex flex-wrap items-center gap-2 border-b border-slate-800/80 pb-1">
+                  {/* EM 1 LINHA: CÓDIGO DA COMANDA — NOME DO CLIENTE — ITEM ESCOLHIDO NA FRENTE */}
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
                     
                     {/* CÓDIGO DA COMANDA */}
-                    <span className="text-xl sm:text-2xl md:text-3xl font-black text-amber-400 font-mono tracking-tight">
+                    <span className="text-lg sm:text-xl md:text-2xl font-black text-amber-400 font-mono tracking-tight shrink-0">
                       {order.orderNumber}
                     </span>
 
-                    <span className="text-base font-black text-slate-600 hidden sm:inline">—</span>
+                    <span className="text-xs font-black text-slate-600 hidden sm:inline">—</span>
 
                     {/* NOME DE QUEM PEDIU EM MAIÚSCULO */}
-                    <span className="text-sm sm:text-base md:text-lg font-black text-white uppercase tracking-wide">
+                    <span className="text-xs sm:text-sm md:text-base font-black text-white uppercase tracking-wide shrink-0">
                       {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
                     </span>
-                  </div>
 
-                  {/* LINHA 2: CATEGORIA + [VARIAÇÃO EM VERDE BOLD] : SABOR (LILÁS BRILHO BOLD) */}
-                  <div className="pt-0.5">
-                    {renderItemDetails(order)}
+                    <span className="text-xs font-black text-slate-600 hidden sm:inline">—</span>
+
+                    {/* ITEM ESCOLHIDO MOVIDO PARA A FRENTE DO NOME */}
+                    <div className="inline-flex items-center">
+                      {renderItemDetails(order)}
+                    </div>
                   </div>
                 </div>
               ))

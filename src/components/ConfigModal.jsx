@@ -1314,49 +1314,32 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           {activeTab === 'history' && (
             <div className="space-y-6">
               
-              {/* CABEÇALHO DO HISTÓRICO COM ZERAR / FECHAR TURNO */}
-              <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-4 sm:p-5 rounded-2xl border-2 border-amber-500/50 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
-                    <Archive className="w-5 h-5" />
-                  </span>
-                  <div>
-                    <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
-                      CENTRAL DE HISTÓRICO & AUDITORIA
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Cópias completas de turnos arquivados, comandas de hoje e auditoria de vendas excluídas.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleOpenResetModal}
-                  className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-black text-xs rounded-xl border border-rose-500/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shrink-0"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Zerar / Fechar Turno</span>
-                </button>
-              </div>
-
-              {/* SEÇÃO 1: TURNOS ARQUIVADOS NO HISTÓRICO (CÓPIAS SALVAS) */}
-              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+              {/* HISTÓRICO DE TURNOS ARQUIVADOS (SEÇÃO COMPACTA EM MÁXIMO 2 LINHAS) */}
+              <div className="bg-slate-800/60 p-3.5 sm:p-4 rounded-2xl border border-slate-700 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/80 pb-2.5">
                   <div className="flex items-center gap-2">
-                    <Archive className="w-5 h-5 text-amber-400" />
-                    <div>
-                      <h4 className="font-extrabold text-white text-base">
+                    <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30">
+                      <Archive className="w-4 h-4" />
+                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-black text-white text-sm sm:text-base tracking-wide">
                         Cópias Salvas de Turnos Arquivados
                       </h4>
-                      <p className="text-xs text-slate-400">
-                        Cada vez que o caixa é zerado, uma cópia completa com todos os pedidos é preservada aqui.
-                      </p>
+                      <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-500/40">
+                        {turnoHistory.length} turno(s) arquivado(s)
+                      </span>
                     </div>
                   </div>
-                  <span className="text-xs font-mono font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-500/40">
-                    {turnoHistory.length} turno(s) arquivado(s)
-                  </span>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenResetModal}
+                    className="px-3.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-xs rounded-xl border border-rose-500/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shrink-0"
+                    title="Zerar comandas e guardar cópia completa no histórico"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Zerar / Fechar Turno</span>
+                  </button>
                 </div>
 
                 {turnoHistory.length === 0 ? (
