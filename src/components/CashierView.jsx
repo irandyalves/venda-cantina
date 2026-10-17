@@ -162,11 +162,11 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
     const cat = (order.category || order.categoryName || '').toLowerCase();
     if (cat.includes('pizza') || cat.includes('ped') || cat.includes('int')) {
       return {
-        icon: <Pizza className="w-3.5 h-3.5 text-amber-400 shrink-0" />,
-        border: 'border-amber-500/50 hover:border-amber-400',
-        bg: 'bg-amber-950/40 hover:bg-amber-950/60',
-        badgeColor: 'text-amber-300 bg-amber-950/90 border-amber-500/50',
-        textColor: 'text-amber-200'
+        icon: <Pizza className="w-3.5 h-3.5 text-orange-400 shrink-0" />,
+        border: 'border-orange-500/50 hover:border-orange-400',
+        bg: 'bg-orange-950/40 hover:bg-orange-950/60',
+        badgeColor: 'text-orange-300 bg-orange-950/90 border-orange-500/50',
+        textColor: 'text-orange-200'
       };
     }
     if (cat.includes('acai') || cat.includes('açaí')) {
@@ -233,11 +233,13 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
   };
 
   const handleSelectDirectItem = (category, item) => {
+    setSelectedPizzaFlavor(null);
     setSelectedProduct({
       category,
       item,
       variation: null
     });
+    setTimeout(() => nameInputRef.current?.focus(), 60);
   };
 
   // 2º PASSO: Enviar direto para a cozinha com o botão verde
@@ -335,189 +337,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
 
   const isNameFilled = customerName.trim().length > 0;
 
-  // Renderiza o drawer/modal de finalização diretamente embaixo do item escolhido
-  const renderCheckoutDrawer = (categoryId) => {
-    if (!selectedProduct || selectedProduct.category?.id !== categoryId) return null;
 
-    const unitPrice = selectedProduct.variation?.price || selectedProduct.item?.price || 0;
-    const totalPrice = unitPrice * quantity;
-
-    return (
-      <div 
-        ref={drawerRef}
-        className="mt-3 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl p-3 sm:p-4 border-2 border-emerald-500 shadow-2xl animate-curtain-down space-y-3"
-      >
-        {/* LINHA DE RESUMO DO PRODUTO ESCOLHIDO (SEM O BOTÃO TROCAR ITEM) */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/80 pb-2.5">
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
-              <CheckCircle2 className="w-5 h-5" />
-            </span>
-            <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
-              <span className="text-[11px] uppercase font-extrabold text-slate-400">Item Selecionado:</span>
-              <span className="text-sm sm:text-base font-black text-amber-300">
-                {selectedProduct.category.id === 'pizza'
-                  ? `Pizza ${selectedProduct.variation?.name}: ${selectedProduct.item.name}`
-                  : `${selectedProduct.category.name} — ${selectedProduct.item.name}`}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-black bg-slate-850 text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/40 font-mono shadow-sm">
-              Total: R$ {totalPrice.toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        {/* FORMULÁRIO COM NOME (L1), QUANTIDADE E PAGAMENTO (L2), E O BOTÃO ENVIAR (L3) */}
-        <form onSubmit={handleConfirmAndSend} className="space-y-2">
-          
-          {/* LINHA 1: NOME DE QUEM COMPROU */}
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center justify-between">
-              <label className={`text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
-                isNameFilled ? 'text-emerald-400' : 'text-rose-400'
-              }`}>
-                <User className="w-3.5 h-3.5" />
-                <span>Nome de quem comprou *</span>
-              </label>
-              {!isNameFilled ? (
-                <span className="text-[9px] text-rose-300 font-extrabold bg-rose-950/80 px-1.5 py-0.2 rounded border border-rose-500/60 animate-pulse">
-                  ⚠️ Obrigatório
-                </span>
-              ) : (
-                <span className="text-[9px] text-emerald-300 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/40">
-                  ✓ Preenchido
-                </span>
-              )}
-            </div>
-
-            <div className={`relative ${nameShake ? 'animate-shake' : ''}`}>
-              <input
-                ref={nameInputRef}
-                type="text"
-                required
-                placeholder="Digite o nome de quem comprou..."
-                value={customerName}
-                onChange={(e) => {
-                  setCustomerName(e.target.value);
-                  if (showNameError && e.target.value.trim()) setShowNameError(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (!customerName.trim()) {
-                      setNameShake(true);
-                      setShowNameError(true);
-                      setTimeout(() => setNameShake(false), 500);
-                    } else {
-                      qtyInputRef.current?.focus();
-                      qtyInputRef.current?.select();
-                    }
-                  }
-                }}
-                className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
-                  !isNameFilled 
-                    ? 'border-rose-500 glow-required-name' 
-                    : 'border-emerald-500 ring-2 ring-emerald-500/30'
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* LINHA 2: QUANTIDADE E PAGAMENTO (LADO A LADO) */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
-                Quantidade
-              </label>
-              <div className="h-9 sm:h-10 flex items-center gap-1 bg-slate-950 px-1.5 rounded-xl border border-slate-700">
-                <button 
-                  type="button"
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  -
-                </button>
-                <input 
-                  ref={qtyInputRef}
-                  type="number"
-                  min="1"
-                  max="99"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      paymentSelectRef.current?.focus();
-                    }
-                  }}
-                  className="w-full text-center bg-transparent text-sm font-black text-amber-300 outline-none"
-                />
-                <button 
-                  type="button"
-                  onClick={() => setQuantity(q => q + 1)}
-                  className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
-                Pagamento
-              </label>
-              <select
-                ref={paymentSelectRef}
-                value={paymentMethod}
-                onChange={(e) => {
-                  setPaymentMethod(e.target.value);
-                  setTimeout(() => submitButtonRef.current?.focus(), 50);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    submitButtonRef.current?.focus();
-                  }
-                }}
-                className="w-full h-9 sm:h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2.5 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/40 transition-all cursor-pointer"
-              >
-                <option value="PIX">PIX</option>
-                <option value="DINHEIRO">Dinheiro</option>
-                <option value="DEBITO">Débito</option>
-                <option value="CREDITO">Crédito</option>
-              </select>
-            </div>
-          </div>
-
-          {/* LINHA 3: BOTÃO ENVIAR PARA A COZINHA */}
-          <div>
-            <button
-              ref={submitButtonRef}
-              type="submit"
-              className="w-full h-10 sm:h-11 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
-            >
-              <Send className="w-4 h-4 fill-current" />
-              <span>ENVIAR PARA COZINHA</span>
-              <span className="ml-1 bg-slate-950/20 px-2 py-0.5 rounded font-mono text-xs font-black">
-                Total: R$ {totalPrice.toFixed(2)}
-              </span>
-            </button>
-          </div>
-
-        </form>
-
-        {showNameError && (
-          <div className="text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>Por favor, digite o nome de quem comprou para enviar para a cozinha!</span>
-          </div>
-        )}
-
-      </div>
-    );
-  };
 
   return (
     <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden text-xs">
@@ -612,14 +432,14 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
             <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
               <div className="flex items-center gap-1.5">
-                <span className="p-1 bg-red-500/20 text-red-400 rounded-md">
+                <span className="p-1 bg-orange-500/20 text-orange-400 rounded-md border border-orange-500/30">
                   <Pizza className="w-3.5 h-3.5" />
                 </span>
                 <h2 className="text-xs font-black text-white tracking-wide uppercase">
-                  SEÇÃO PIZZA <span className="text-[10px] font-normal text-slate-400 normal-case">— Escolha o sabor para abrir Pedaço ou Inteira</span>
+                  PIZZA <span className="text-[10px] font-normal text-slate-400 normal-case">— Escolha o sabor</span>
                 </h2>
               </div>
-              <span className="text-[10px] font-semibold text-amber-400/90 bg-amber-400/10 px-1.5 py-0.2 rounded-full border border-amber-400/20 font-mono">
+              <span className="text-[10px] font-semibold text-orange-300 bg-orange-950/80 px-1.5 py-0.2 rounded-full border border-orange-500/30 font-mono">
                 Pp-XX / Pi-XX
               </span>
             </div>
@@ -900,111 +720,447 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
         )}
 
         {/* ========================================================
-            SEÇÃO 2: AÇAÍ E BATATA FRITA
+            SEÇÃO 2: AÇAÍ E BATATA FRITA (2 COLUNAS: ESQ OPÇÕES / DIR FORMULÁRIO)
            ======================================================== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
           
           {/* SEÇÃO AÇAÍ */}
           {acaiCategory && (
-            <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-              <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="p-1 bg-purple-500/20 text-purple-400 rounded-md">
-                    <IceCream className="w-3.5 h-3.5" />
+            <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="p-1 bg-purple-500/20 text-purple-400 rounded-md border border-purple-500/30">
+                      <IceCream className="w-3.5 h-3.5" />
+                    </span>
+                    <h2 className="text-xs font-black text-white tracking-wide uppercase">
+                      AÇAÍ <span className="text-[10px] font-normal text-slate-400 normal-case">— Tamanhos de copo</span>
+                    </h2>
+                  </div>
+                  <span className="text-[10px] font-semibold text-purple-300 bg-purple-950/80 px-1.5 py-0.2 rounded-full border border-purple-500/30 font-mono">
+                    A-XX
                   </span>
-                  <h2 className="text-xs font-black text-white tracking-wide uppercase">
-                    SEÇÃO AÇAÍ
-                  </h2>
                 </div>
-                <span className="text-[10px] font-semibold text-purple-300 bg-purple-900/40 px-1.5 py-0.2 rounded-full border border-purple-500/30 font-mono">
-                  A-XX
-                </span>
+
+                {/* 2 COLUNAS: ESQ (TAMANHOS DE COPO) E DIR (MESMAS OPÇÕES DE PIZZA) */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-stretch">
+                  
+                  {/* COLUNA ESQUERDA: TAMANHOS DE COPO VERTICAIS (DO TAMANHO DE MARGUERITA) */}
+                  <div className="sm:col-span-5 flex flex-col gap-1.5 justify-between">
+                    {acaiCategory.items.map((item) => {
+                      const isCurrent = selectedProduct?.category?.id === 'acai' && selectedProduct?.item?.id === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelectDirectItem(acaiCategory, item)}
+                          className={`p-2 rounded-lg text-left transition-all flex items-center justify-between border min-h-[46px] cursor-pointer ${
+                            isCurrent
+                              ? 'bg-purple-800 text-white border-purple-400 shadow ring-2 ring-purple-400 font-black scale-[1.01]'
+                              : 'bg-slate-900/90 hover:bg-purple-950/70 text-slate-200 border-slate-700 hover:border-purple-500/70'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <IceCream className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-purple-200' : 'text-purple-400'}`} />
+                            <div className="truncate">
+                              <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
+                              <div className="text-[10px] text-purple-300 font-mono font-bold">R$ {item.price.toFixed(2)}</div>
+                            </div>
+                          </div>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ml-1 ${
+                            isCurrent ? 'bg-purple-950 text-purple-200 border border-purple-400/40' : 'bg-slate-800 text-slate-400'
+                          }`}>
+                            {isCurrent ? '✓ Selecionado' : 'Escolher'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* COLUNA DIREITA: MESMAS OPÇÕES DE PIZZA (3 LINHAS) OU PLACEHOLDER */}
+                  <div className="sm:col-span-7 flex flex-col justify-between">
+                    {selectedProduct?.category?.id === 'acai' ? (
+                      <form onSubmit={handleConfirmAndSend} className="h-full flex flex-col justify-between gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                        
+                        {/* LINHA 1: NOME DE QUEM COMPROU (OCUPA UMA LINHA INTEIRA) */}
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center justify-between">
+                            <label className={`text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                              isNameFilled ? 'text-emerald-400' : 'text-rose-400'
+                            }`}>
+                              <User className="w-3.5 h-3.5" />
+                              <span>Nome de quem comprou *</span>
+                            </label>
+                            {!isNameFilled ? (
+                              <span className="text-[9px] text-rose-300 font-extrabold bg-rose-950/80 px-1.5 py-0.2 rounded border border-rose-500/60 animate-pulse">
+                                ⚠️ Obrigatório
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-emerald-300 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/40">
+                                ✓ Preenchido
+                              </span>
+                            )}
+                          </div>
+
+                          <div className={`relative ${nameShake ? 'animate-shake' : ''}`}>
+                            <input
+                              ref={nameInputRef}
+                              type="text"
+                              required
+                              placeholder="Digite o nome de quem comprou..."
+                              value={customerName}
+                              onChange={(e) => {
+                                setCustomerName(e.target.value);
+                                if (showNameError && e.target.value.trim()) setShowNameError(false);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (!customerName.trim()) {
+                                    setNameShake(true);
+                                    setShowNameError(true);
+                                    setTimeout(() => setNameShake(false), 500);
+                                  } else {
+                                    qtyInputRef.current?.focus();
+                                    qtyInputRef.current?.select();
+                                  }
+                                }
+                              }}
+                              className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
+                                !isNameFilled 
+                                  ? 'border-rose-500 glow-required-name' 
+                                  : 'border-emerald-500 ring-2 ring-emerald-500/30'
+                              }`}
+                            />
+                          </div>
+                        </div>
+
+                        {/* LINHA 2: QUANTIDADE E TIPO PAGAMENTO (LADO A LADO) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* QUANTIDADE */}
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                              Quantidade
+                            </label>
+                            <div className="h-9 sm:h-10 flex items-center gap-1 bg-slate-950 px-1.5 rounded-xl border border-slate-700">
+                              <button 
+                                type="button"
+                                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                                className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                              >
+                                -
+                              </button>
+                              <input 
+                                ref={qtyInputRef}
+                                type="number"
+                                min="1"
+                                max="99"
+                                value={quantity}
+                                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    paymentSelectRef.current?.focus();
+                                  }
+                                }}
+                                className="w-full text-center bg-transparent text-sm font-black text-purple-300 outline-none"
+                              />
+                              <button 
+                                type="button"
+                                onClick={() => setQuantity(q => q + 1)}
+                                className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* FORMA DE PAGAMENTO */}
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                              Pagamento
+                            </label>
+                            <select
+                              ref={paymentSelectRef}
+                              value={paymentMethod}
+                              onChange={(e) => {
+                                setPaymentMethod(e.target.value);
+                                setTimeout(() => submitButtonRef.current?.focus(), 50);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  submitButtonRef.current?.focus();
+                                }
+                              }}
+                              className="w-full h-9 sm:h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2.5 rounded-xl outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/40 transition-all cursor-pointer"
+                            >
+                              <option value="PIX">PIX</option>
+                              <option value="DINHEIRO">Dinheiro</option>
+                              <option value="DEBITO">Débito</option>
+                              <option value="CREDITO">Crédito</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* LINHA 3: BOTÃO ENVIAR PARA A COZINHA */}
+                        <div>
+                          <button
+                            ref={submitButtonRef}
+                            type="submit"
+                            className="w-full h-10 sm:h-11 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
+                          >
+                            <Send className="w-4 h-4 fill-current" />
+                            <span>ENVIAR PARA COZINHA</span>
+                            <span className="ml-1 bg-slate-950/20 px-2 py-0.5 rounded font-mono text-xs font-black">
+                              Total: R$ {((selectedProduct?.item?.price || 0) * quantity).toFixed(2)}
+                            </span>
+                          </button>
+                        </div>
+
+                      </form>
+                    ) : (
+                      <div className="h-full min-h-[170px] flex flex-col items-center justify-center p-3 text-center bg-slate-950/40 rounded-xl border border-dashed border-slate-700/80 text-slate-400">
+                        <div className="p-2 rounded-full bg-purple-500/10 border border-purple-500/20 mb-2">
+                          <IceCream className="w-5 h-5 text-purple-400" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-200">Escolha o tamanho do copo</span>
+                        <span className="text-[10px] text-slate-400 mt-1 max-w-[200px]">
+                          Clique ao lado para preencher o nome e enviar para a cozinha
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5">
-                {acaiCategory.items.map((item) => {
-                  const isCurrent = selectedProduct?.item?.id === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleSelectDirectItem(acaiCategory, item)}
-                      className={`group p-2 rounded-lg text-left transition-all border shadow active:scale-98 flex flex-col justify-between min-h-[66px] ${
-                        isCurrent 
-                          ? 'bg-purple-900/90 border-purple-400 ring-2 ring-purple-400' 
-                          : 'bg-slate-900/90 hover:bg-purple-950/80 border-slate-700 hover:border-purple-500'
-                      }`}
-                    >
-                      <div>
-                        <div className="font-extrabold text-xs text-white group-hover:text-purple-200 leading-tight">
-                          {item.name}
-                        </div>
-                        <div className="text-[11px] text-purple-400 font-bold mt-0.5">
-                          R$ {item.price.toFixed(2)}
-                        </div>
-                      </div>
-                      <div className="text-[9px] text-slate-400 group-hover:text-purple-300 flex items-center justify-between font-semibold mt-1 pt-1 border-t border-slate-800">
-                        <span>{isCurrent ? '✓ Selecionado' : 'Selecionar'}</span>
-                        <ChevronRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* MODAL / DRAWER COM EFEITO CORTINA REVELANDO EMBAIXO DO AÇAÍ */}
-              {renderCheckoutDrawer('acai')}
+              {showNameError && selectedProduct?.category?.id === 'acai' && (
+                <div className="mt-2 text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>Por favor, digite o nome de quem comprou para enviar para a cozinha!</span>
+                </div>
+              )}
             </div>
           )}
 
           {/* SEÇÃO BATATA FRITA */}
           {batataCategory && (
-            <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-              <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="p-1 bg-yellow-500/20 text-yellow-400 rounded-md">
-                    <UtensilsCrossed className="w-3.5 h-3.5" />
+            <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="p-1 bg-yellow-500/20 text-yellow-400 rounded-md border border-yellow-500/30">
+                      <UtensilsCrossed className="w-3.5 h-3.5" />
+                    </span>
+                    <h2 className="text-xs font-black text-white tracking-wide uppercase">
+                      BATATA <span className="text-[10px] font-normal text-slate-400 normal-case">— Opções de porção</span>
+                    </h2>
+                  </div>
+                  <span className="text-[10px] font-semibold text-yellow-300 bg-yellow-950/80 px-1.5 py-0.2 rounded-full border border-yellow-500/30 font-mono">
+                    B-XX
                   </span>
-                  <h2 className="text-xs font-black text-white tracking-wide uppercase">
-                    SEÇÃO BATATA FRITA
-                  </h2>
                 </div>
-                <span className="text-[10px] font-semibold text-yellow-300 bg-yellow-900/40 px-1.5 py-0.2 rounded-full border border-yellow-500/30 font-mono">
-                  B-XX
-                </span>
+
+                {/* 2 COLUNAS: ESQ (ITENS DE BATATA) E DIR (MESMAS OPÇÕES DE PIZZA) */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-stretch">
+                  
+                  {/* COLUNA ESQUERDA: ITENS DE BATATA VERTICAIS (DO TAMANHO DE MARGUERITA) */}
+                  <div className="sm:col-span-5 flex flex-col gap-1.5 justify-between">
+                    {batataCategory.items.map((item) => {
+                      const isCurrent = selectedProduct?.category?.id === 'batata' && selectedProduct?.item?.id === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelectDirectItem(batataCategory, item)}
+                          className={`p-2 rounded-lg text-left transition-all flex items-center justify-between border min-h-[46px] cursor-pointer ${
+                            isCurrent
+                              ? 'bg-yellow-500 text-slate-950 border-yellow-300 shadow ring-2 ring-yellow-400 font-black scale-[1.01]'
+                              : 'bg-slate-900/90 hover:bg-yellow-950/70 text-slate-200 border-slate-700 hover:border-yellow-500/70'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <UtensilsCrossed className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-slate-950' : 'text-yellow-400'}`} />
+                            <div className="truncate">
+                              <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
+                              <div className="text-[10px] text-yellow-300 font-mono font-bold">R$ {item.price.toFixed(2)}</div>
+                            </div>
+                          </div>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ml-1 ${
+                            isCurrent ? 'bg-slate-950 text-yellow-300 border border-yellow-400/40' : 'bg-slate-800 text-slate-400'
+                          }`}>
+                            {isCurrent ? '✓ Selecionado' : 'Escolher'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* COLUNA DIREITA: MESMAS OPÇÕES DE PIZZA (3 LINHAS) OU PLACEHOLDER */}
+                  <div className="sm:col-span-7 flex flex-col justify-between">
+                    {selectedProduct?.category?.id === 'batata' ? (
+                      <form onSubmit={handleConfirmAndSend} className="h-full flex flex-col justify-between gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                        
+                        {/* LINHA 1: NOME DE QUEM COMPROU (OCUPA UMA LINHA INTEIRA) */}
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center justify-between">
+                            <label className={`text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                              isNameFilled ? 'text-emerald-400' : 'text-rose-400'
+                            }`}>
+                              <User className="w-3.5 h-3.5" />
+                              <span>Nome de quem comprou *</span>
+                            </label>
+                            {!isNameFilled ? (
+                              <span className="text-[9px] text-rose-300 font-extrabold bg-rose-950/80 px-1.5 py-0.2 rounded border border-rose-500/60 animate-pulse">
+                                ⚠️ Obrigatório
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-emerald-300 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/40">
+                                ✓ Preenchido
+                              </span>
+                            )}
+                          </div>
+
+                          <div className={`relative ${nameShake ? 'animate-shake' : ''}`}>
+                            <input
+                              ref={nameInputRef}
+                              type="text"
+                              required
+                              placeholder="Digite o nome de quem comprou..."
+                              value={customerName}
+                              onChange={(e) => {
+                                setCustomerName(e.target.value);
+                                if (showNameError && e.target.value.trim()) setShowNameError(false);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (!customerName.trim()) {
+                                    setNameShake(true);
+                                    setShowNameError(true);
+                                    setTimeout(() => setNameShake(false), 500);
+                                  } else {
+                                    qtyInputRef.current?.focus();
+                                    qtyInputRef.current?.select();
+                                  }
+                                }
+                              }}
+                              className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
+                                !isNameFilled 
+                                  ? 'border-rose-500 glow-required-name' 
+                                  : 'border-emerald-500 ring-2 ring-emerald-500/30'
+                              }`}
+                            />
+                          </div>
+                        </div>
+
+                        {/* LINHA 2: QUANTIDADE E TIPO PAGAMENTO (LADO A LADO) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* QUANTIDADE */}
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                              Quantidade
+                            </label>
+                            <div className="h-9 sm:h-10 flex items-center gap-1 bg-slate-950 px-1.5 rounded-xl border border-slate-700">
+                              <button 
+                                type="button"
+                                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                                className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                              >
+                                -
+                              </button>
+                              <input 
+                                ref={qtyInputRef}
+                                type="number"
+                                min="1"
+                                max="99"
+                                value={quantity}
+                                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    paymentSelectRef.current?.focus();
+                                  }
+                                }}
+                                className="w-full text-center bg-transparent text-sm font-black text-yellow-300 outline-none"
+                              />
+                              <button 
+                                type="button"
+                                onClick={() => setQuantity(q => q + 1)}
+                                className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* FORMA DE PAGAMENTO */}
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                              Pagamento
+                            </label>
+                            <select
+                              ref={paymentSelectRef}
+                              value={paymentMethod}
+                              onChange={(e) => {
+                                setPaymentMethod(e.target.value);
+                                setTimeout(() => submitButtonRef.current?.focus(), 50);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  submitButtonRef.current?.focus();
+                                }
+                              }}
+                              className="w-full h-9 sm:h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2.5 rounded-xl outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all cursor-pointer"
+                            >
+                              <option value="PIX">PIX</option>
+                              <option value="DINHEIRO">Dinheiro</option>
+                              <option value="DEBITO">Débito</option>
+                              <option value="CREDITO">Crédito</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* LINHA 3: BOTÃO ENVIAR PARA A COZINHA */}
+                        <div>
+                          <button
+                            ref={submitButtonRef}
+                            type="submit"
+                            className="w-full h-10 sm:h-11 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
+                          >
+                            <Send className="w-4 h-4 fill-current" />
+                            <span>ENVIAR PARA COZINHA</span>
+                            <span className="ml-1 bg-slate-950/20 px-2 py-0.5 rounded font-mono text-xs font-black">
+                              Total: R$ {((selectedProduct?.item?.price || 0) * quantity).toFixed(2)}
+                            </span>
+                          </button>
+                        </div>
+
+                      </form>
+                    ) : (
+                      <div className="h-full min-h-[170px] flex flex-col items-center justify-center p-3 text-center bg-slate-950/40 rounded-xl border border-dashed border-slate-700/80 text-slate-400">
+                        <div className="p-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 mb-2">
+                          <UtensilsCrossed className="w-5 h-5 text-yellow-400" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-200">Escolha a opção de batata</span>
+                        <span className="text-[10px] text-slate-400 mt-1 max-w-[200px]">
+                          Clique ao lado para preencher o nome e enviar para a cozinha
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5">
-                {batataCategory.items.map((item) => {
-                  const isCurrent = selectedProduct?.item?.id === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleSelectDirectItem(batataCategory, item)}
-                      className={`group p-2 rounded-lg text-left transition-all border shadow active:scale-98 flex flex-col justify-between min-h-[66px] ${
-                        isCurrent 
-                          ? 'bg-amber-900/90 border-amber-400 ring-2 ring-amber-400' 
-                          : 'bg-slate-900/90 hover:bg-amber-950/80 border-slate-700 hover:border-amber-500'
-                      }`}
-                    >
-                      <div>
-                        <div className="font-extrabold text-xs text-white group-hover:text-amber-200 leading-tight">
-                          {item.name}
-                        </div>
-                        <div className="text-[11px] text-amber-400 font-bold mt-0.5">
-                          R$ {item.price.toFixed(2)}
-                        </div>
-                      </div>
-                      <div className="text-[9px] text-slate-400 group-hover:text-amber-300 flex items-center justify-between font-semibold mt-1 pt-1 border-t border-slate-800">
-                        <span>{isCurrent ? '✓ Selecionado' : 'Selecionar'}</span>
-                        <ChevronRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* MODAL / DRAWER COM EFEITO CORTINA REVELANDO EMBAIXO DA BATATA */}
-              {renderCheckoutDrawer('batata')}
+              {showNameError && selectedProduct?.category?.id === 'batata' && (
+                <div className="mt-2 text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>Por favor, digite o nome de quem comprou para enviar para a cozinha!</span>
+                </div>
+              )}
             </div>
           )}
 
