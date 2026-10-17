@@ -182,7 +182,6 @@ export default function DisplayView({ onNavigate }) {
             <h1 className="text-2xl font-black tracking-widest text-white uppercase flex items-center gap-2">
               PEDIDOS
             </h1>
-            <p className="text-xs text-slate-400 font-medium">Acompanhe seu pedido na tela</p>
           </div>
         </div>
 
@@ -278,7 +277,7 @@ export default function DisplayView({ onNavigate }) {
         
         {/* COLUNA CENTRAL: EM PREPARAÇÃO */}
         <section className={`flex flex-col bg-slate-900/85 rounded-3xl border-2 border-amber-500/50 shadow-2xl overflow-hidden ${
-          tvSettings.showDelivered ? 'lg:col-span-8' : 'w-full max-w-5xl h-full'
+          tvSettings.showDelivered ? 'lg:col-span-7' : 'w-full max-w-5xl h-full'
         }`}>
           
           {/* CABEÇALHO DA SEÇÃO EM PREPARAÇÃO */}
@@ -341,9 +340,9 @@ export default function DisplayView({ onNavigate }) {
           </div>
         </section>
 
-        {/* COLUNA LATERAL: PEDIDOS ENTREGUES (SE HABILITADO) */}
+        {/* COLUNA LATERAL: ENTREGUES (SE HABILITADO) */}
         {tvSettings.showDelivered && (
-          <section className="lg:col-span-4 flex flex-col bg-slate-900/85 rounded-3xl border-2 border-blue-500/40 shadow-2xl overflow-hidden">
+          <section className="lg:col-span-5 flex flex-col bg-slate-900/85 rounded-3xl border-2 border-blue-500/40 shadow-2xl overflow-hidden">
             
             <div className="flex items-center justify-between border-b-2 border-blue-500/30 p-5 pb-4 shrink-0 bg-slate-900/90">
               <div className="flex items-center gap-2.5">
@@ -352,9 +351,8 @@ export default function DisplayView({ onNavigate }) {
                 </span>
                 <div>
                   <h2 className="text-lg font-black text-blue-300 uppercase tracking-wider">
-                    PEDIDOS ENTREGUES
+                    ENTREGUES
                   </h2>
-                  <p className="text-[11px] text-slate-400">Clientes que já retiraram</p>
                 </div>
               </div>
               <span className="text-lg font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 px-3 py-0.5 rounded-xl font-mono">

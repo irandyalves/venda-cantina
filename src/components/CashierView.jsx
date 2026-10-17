@@ -17,7 +17,8 @@ import {
   WifiOff,
   X,
   ArrowRight,
-  ShoppingCart
+  ShoppingCart,
+  GripHorizontal
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import ProfileSelector from './ProfileSelector';
@@ -48,6 +49,56 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
   const paymentSelectRef = useRef(null);
   const submitButtonRef = useRef(null);
   const drawerRef = useRef(null);
+
+  // Altura customizável do rodapé arrastando a borda superior (clique e arraste para cima/baixo)
+  const [footerHeight, setFooterHeight] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cantina_cashier_footer_h');
+      return saved ? Math.max(150, Math.min(650, parseInt(saved, 10))) : 240;
+    } catch {
+      return 240;
+    }
+  });
+  const isDraggingFooterRef = useRef(false);
+  const startDragYRef = useRef(0);
+  const startHeightRef = useRef(240);
+
+  const handleStartResize = (e) => {
+    e.preventDefault();
+    isDraggingFooterRef.current = true;
+    startDragYRef.current = e.clientY || (e.touches && e.touches[0]?.clientY) || 0;
+    startHeightRef.current = footerHeight;
+
+    const onMove = (moveEvent) => {
+      if (!isDraggingFooterRef.current) return;
+      const clientY = moveEvent.clientY || (moveEvent.touches && moveEvent.touches[0]?.clientY) || 0;
+      const deltaY = startDragYRef.current - clientY; // Puxar para CIMA aumenta a altura
+      const maxHeight = Math.max(300, Math.round(window.innerHeight * 0.75));
+      const newHeight = Math.max(140, Math.min(maxHeight, startHeightRef.current + deltaY));
+      setFooterHeight(newHeight);
+    };
+
+    const onEnd = () => {
+      if (isDraggingFooterRef.current) {
+        isDraggingFooterRef.current = false;
+        setFooterHeight((current) => {
+          try {
+            localStorage.setItem('cantina_cashier_footer_h', String(Math.round(current)));
+          } catch (_) {}
+          return current;
+        });
+      }
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onMove);
+    window.addEventListener('touchend', onEnd);
+  };
 
   // Carregar produtos e escutar pedidos em tempo real
   useEffect(() => {
@@ -780,16 +831,38 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           - CARDS: ÍCONE NR PEDIDO | NOME | ITEM
           - CORES DIFERENTES: PIZZA (AMBER), AÇAÍ (ROXO), BATATA (AMARELO)
          ======================================================== */}
-      <footer className="bg-slate-950 border-t-2 border-slate-700/80 px-2.5 sm:px-3 py-2 shrink-0 shadow-2xl space-y-1.5">
+      {/* ========================================================
+          RODAPÉ DO CAIXA: 3 COLUNAS REDIMENSIONÁVEIS (ARRASTAR LINHA SUPERIOR)
+          - EM PREPARAÇÃO, PRONTAS, RETIRADAS
+          - CLIQUE, SEGURE E ARRASTE A LINHA SUPERIOR PARA CIMA/BAIXO
+          - CARDS: ÍCONE NR PEDIDO | NOME | ITEM
+          - CORES DIFERENTES: PIZZA (AMBER), AÇAÍ (ROXO), BATATA (AMARELO)
+         ======================================================== */}
+      <footer 
+        style={{ height: `${footerHeight}px` }}
+        className="bg-slate-950 border-t-2 border-slate-700/80 px-2.5 sm:px-3 pb-2 shrink-0 shadow-2xl flex flex-col relative select-none"
+      >
+        {/* LINHA SUPERIOR REDIMENSIONÁVEL / BARRA DE PUXAR COM MOUSE E TOUCH */}
+        <div 
+          onMouseDown={handleStartResize}
+          onTouchStart={handleStartResize}
+          className="absolute -top-3 left-0 right-0 h-6 flex items-center justify-center cursor-ns-resize group z-30 touch-none"
+          title="Clique, segure e arraste para cima ou para baixo para ajustar a altura da seção"
+        >
+          {/* BARRA VISUAL DE AGARRE */}
+          <div className="h-1.5 w-24 sm:w-32 bg-slate-600 group-hover:bg-amber-400 group-active:bg-amber-400 rounded-full transition-all shadow-md flex items-center justify-center">
+            <GripHorizontal className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-950" />
+          </div>
+        </div>
         
         {/* LINHA DE RESUMO SUPERIOR DO RODAPÉ */}
-        <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-1 text-[11px]">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pt-1.5 pb-1 text-[11px] shrink-0">
           <div className="flex items-center gap-2">
             <span className="font-black text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-amber-400" />
               <span>FLUXO DE PEDIDOS:</span>
             </span>
-            <span className="text-[10px] text-slate-500 hidden sm:inline">(Mais recentes no topo • Rolagem até 10+ pedidos)</span>
+            <span className="text-[10px] text-slate-500 hidden sm:inline">(Arraste a linha superior para redimensionar • Rolagem até 10+ pedidos)</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -802,11 +875,11 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           </div>
         </div>
 
-        {/* 3 COLUNAS: EM PREPARAÇÃO, PRONTAS, RETIRADAS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5">
+        {/* 3 COLUNAS: EM PREPARAÇÃO, PRONTAS, RETIRADAS (FLEX-1 PARA PREENCHER A ALTURA ARRASTADA) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5 flex-1 min-h-0 pt-1">
           
           {/* COLUNA 1: EM PREPARAÇÃO */}
-          <div className="bg-slate-900/80 rounded-xl border border-amber-500/40 p-2 flex flex-col shadow-inner">
+          <div className="bg-slate-900/80 rounded-xl border border-amber-500/40 p-2 flex flex-col shadow-inner min-h-0">
             <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-amber-500/25 shrink-0">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
@@ -819,7 +892,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className="max-h-36 sm:max-h-44 overflow-y-auto space-y-1.5 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0">
               {preparingList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
                   Nenhum pedido em preparo
@@ -859,7 +932,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           </div>
 
           {/* COLUNA 2: PRONTAS */}
-          <div className="bg-slate-900/80 rounded-xl border border-emerald-500/40 p-2 flex flex-col shadow-inner">
+          <div className="bg-slate-900/80 rounded-xl border border-emerald-500/40 p-2 flex flex-col shadow-inner min-h-0">
             <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-emerald-500/25 shrink-0">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -872,7 +945,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className="max-h-36 sm:max-h-44 overflow-y-auto space-y-1.5 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0">
               {readyList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
                   Nenhum pedido pronto
@@ -912,7 +985,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           </div>
 
           {/* COLUNA 3: RETIRADAS */}
-          <div className="bg-slate-900/80 rounded-xl border border-blue-500/40 p-2 flex flex-col shadow-inner">
+          <div className="bg-slate-900/80 rounded-xl border border-blue-500/40 p-2 flex flex-col shadow-inner min-h-0">
             <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-blue-500/25 shrink-0">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
@@ -925,7 +998,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className="max-h-36 sm:max-h-44 overflow-y-auto space-y-1.5 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0">
               {deliveredList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
                   Nenhum pedido retirado ainda
