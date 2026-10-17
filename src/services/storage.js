@@ -6,6 +6,7 @@ import {
   collection,
   doc,
   setDoc,
+  deleteDoc,
   onSnapshot,
   getDocs,
   serverTimestamp
@@ -123,6 +124,7 @@ class StorageService {
       
       // Inicia o listener em tempo real imediatamente
       this.startFirestoreListener();
+      setTimeout(() => this.purgeLegacyOrders(), 1200);
       return true;
     } catch (e) {
       console.error('❌ Falha ao inicializar Firebase:', e);
@@ -148,7 +150,8 @@ class StorageService {
       this.unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
         const list = [];
         snapshot.forEach((docSnap) => {
-          list.push({ id: docSnap.id, ...docSnap.data() });
+          const data = docSnap.data();
+          list.push({ ...data, id: docSnap.id, firestoreDocId: docSnap.id });
         });
         
         // Ordena por data decrescente de forma segura em JavaScript
@@ -183,7 +186,8 @@ class StorageService {
           const snap = await getDocs(colRef);
           const list = [];
           snap.forEach(docSnap => {
-            list.push({ id: docSnap.id, ...docSnap.data() });
+            const data = docSnap.data();
+            list.push({ ...data, id: docSnap.id, firestoreDocId: docSnap.id });
           });
           list.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
 
@@ -428,8 +432,11 @@ class StorageService {
     
     // 1. Atualiza e notifica localmente de imediato (0ms de latência no clique)
     const localOrders = this.getLocalOrders();
+    const orderToUpdate = localOrders.find(ord => ord.id === orderId || ord.firestoreDocId === orderId);
+    const targetDocId = orderToUpdate?.firestoreDocId || orderToUpdate?.id || orderId;
+
     const updated = localOrders.map(ord => {
-      if (ord.id === orderId) {
+      if (ord.id === orderId || ord.id === targetDocId || ord.firestoreDocId === targetDocId) {
         return { ...ord, status: newStatus, updatedAt: Date.now() };
       }
       return ord;
@@ -438,18 +445,18 @@ class StorageService {
     this.notifyOrderSubscribers(updated);
 
     if (syncChannel) {
-      syncChannel.postMessage({ type: 'ORDER_STATUS_CHANGED', payload: { orderId, newStatus } });
+      syncChannel.postMessage({ type: 'ORDER_STATUS_CHANGED', payload: { orderId: targetDocId, newStatus } });
     }
 
-    // 2. Grava no Cloud Firestore na nuvem
+    // 2. Grava no Cloud Firestore na nuvem garantindo merge
     if (this.isFirebaseReady && this.db) {
       try {
-        const orderRef = doc(this.db, COLLECTION_ORDERS, orderId);
+        const orderRef = doc(this.db, COLLECTION_ORDERS, targetDocId);
         await setDoc(orderRef, {
           status: newStatus,
           updatedAt: serverTimestamp()
         }, { merge: true });
-        console.log('✅ Status atualizado no Firestore para:', newStatus, orderId);
+        console.log('✅ Status atualizado no Firestore para:', newStatus, targetDocId);
       } catch (err) {
         console.error('⚠️ Erro ao atualizar status no Firestore:', err);
       }
@@ -467,14 +474,64 @@ class StorageService {
     }
   }
 
-  // Limpar pedidos do dia
-  clearDayOrders() {
+  // Purgar pedidos antigos / legados com prefixo antigo que ficaram travados
+  async purgeLegacyOrders() {
+    try {
+      const local = this.getLocalOrders();
+      const cleanLocal = local.filter(o => !String(o.orderNumber || '').includes('P ped-'));
+      if (cleanLocal.length !== local.length) {
+        localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(cleanLocal));
+        this.notifyOrderSubscribers(cleanLocal);
+      }
+
+      if (this.isFirebaseReady && this.db) {
+        const colRef = collection(this.db, COLLECTION_ORDERS);
+        const snap = await getDocs(colRef);
+        const toDelete = [];
+        snap.forEach(docSnap => {
+          const d = docSnap.data();
+          if (String(d.orderNumber || '').includes('P ped-') || String(docSnap.id || '').includes('P ped-')) {
+            toDelete.push(deleteDoc(docSnap.ref));
+          }
+        });
+        if (toDelete.length > 0) {
+          await Promise.all(toDelete);
+          console.log(`🧹 ${toDelete.length} pedidos com prefixo legado 'P ped-' removidos do Firestore!`);
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao purgar pedidos legados:', e);
+    }
+  }
+
+  // Limpar TODOS os pedidos (Local + Cloud Firestore)
+  async clearAllOrders() {
     localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify([]));
     this.resetDailyCounters();
     this.notifyOrderSubscribers([]);
     if (syncChannel) {
       syncChannel.postMessage({ type: 'ORDERS_CLEARED' });
     }
+
+    if (this.isFirebaseReady && this.db) {
+      try {
+        const colRef = collection(this.db, COLLECTION_ORDERS);
+        const snap = await getDocs(colRef);
+        const deletePromises = [];
+        snap.forEach(docSnap => {
+          deletePromises.push(deleteDoc(docSnap.ref));
+        });
+        await Promise.all(deletePromises);
+        console.log(`🧹 ${deletePromises.length} pedidos apagados com sucesso no Cloud Firestore!`);
+      } catch (err) {
+        console.error('Erro ao limpar pedidos do Firestore:', err);
+      }
+    }
+  }
+
+  // Compatibilidade com chamadas anteriores
+  clearDayOrders() {
+    return this.clearAllOrders();
   }
 }
 

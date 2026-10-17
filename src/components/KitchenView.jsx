@@ -12,7 +12,8 @@ import {
   Flame, 
   Check, 
   Sparkles,
-  User
+  User,
+  Trash2
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
@@ -211,6 +212,19 @@ export default function KitchenView({ onNavigate }) {
             }`}
           >
             ✓ Entregues ({deliveredOrders.length})
+          </button>
+
+          <button
+            onClick={async () => {
+              if (window.confirm('Deseja limpar todos os pedidos e o cache da fila da Cozinha e do Painel? Todos os pedidos antigos serão removidos.')) {
+                await storageService.clearAllOrders();
+              }
+            }}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-slate-400 hover:text-rose-300 bg-slate-800/80 hover:bg-rose-950/50 rounded-lg border border-slate-700 transition-colors"
+            title="Limpar todos os pedidos da fila e do painel TV"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Limpar Fila / Cache</span>
           </button>
         </div>
 

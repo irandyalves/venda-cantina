@@ -21,7 +21,9 @@ import {
   ShieldCheck,
   Tv,
   Tag,
-  Hash
+  Hash,
+  Pencil,
+  Check
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -39,13 +41,87 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setToast({ message, title, type, subtext });
   };
 
-  // Helper para converter preço (suporta vírgula e ponto: 9,50 ou 9.50)
-  const parsePrice = (val) => {
-    if (typeof val === 'number') return val;
-    if (!val) return 0;
-    const normalized = String(val).replace(',', '.');
-    const num = parseFloat(normalized);
-    return isNaN(num) ? 0 : num;
+  // Máscara monetária em Reais 0,00
+  const formatCurrencyMask = (val) => {
+    if (val === undefined || val === null || val === '') return '0,00';
+    if (typeof val === 'number') {
+      return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const digits = String(val).replace(/\D/g, '');
+    if (!digits) return '0,00';
+    const num = parseInt(digits, 10) / 100;
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const parseCurrencyMask = (maskedVal) => {
+    if (!maskedVal) return 0;
+    if (typeof maskedVal === 'number') return maskedVal;
+    const digits = String(maskedVal).replace(/\D/g, '');
+    if (!digits) return 0;
+    return parseInt(digits, 10) / 100;
+  };
+
+  const parsePrice = (val) => parseCurrencyMask(val);
+
+  // Estado para Edição Completa de Itens (Nome, Preço com Máscara 0,00, Prefixo, Descrição)
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editItemName, setEditItemName] = useState('');
+  const [editItemPrice, setEditItemPrice] = useState('0,00');
+  const [editItemPrefix, setEditItemPrefix] = useState('');
+  const [editItemDesc, setEditItemDesc] = useState('');
+
+  const handleStartEditItem = (item) => {
+    setEditingItemId(item.id);
+    setEditItemName(item.name || '');
+    setEditItemPrice(formatCurrencyMask(item.price || 0));
+    setEditItemPrefix(item.prefix || '');
+    setEditItemDesc(item.description || '');
+  };
+
+  const handleCancelEditItem = () => {
+    setEditingItemId(null);
+    setEditItemName('');
+    setEditItemPrice('0,00');
+    setEditItemPrefix('');
+    setEditItemDesc('');
+  };
+
+  const handleSaveEditedItem = (categoryId, itemId) => {
+    const cleanName = editItemName.trim();
+    if (!cleanName) {
+      showToast('O nome do item é obrigatório!', 'Atenção', 'error');
+      return;
+    }
+
+    const priceNum = parseCurrencyMask(editItemPrice);
+    const cleanPrefix = editItemPrefix.trim();
+    const cleanDesc = editItemDesc.trim();
+
+    const updated = categories.map(cat => {
+      if (cat.id === categoryId) {
+        return {
+          ...cat,
+          items: (cat.items || []).map(it => {
+            if (it.id === itemId) {
+              return {
+                ...it,
+                name: cleanName,
+                price: priceNum || it.price,
+                prefix: cleanPrefix || null,
+                description: cleanDesc || it.description || null
+              };
+            }
+            return it;
+          })
+        };
+      }
+      return cat;
+    });
+
+    storageService.saveProducts(updated);
+    setCategories(updated);
+    handleCancelEditItem();
+    showToast(`Item "${cleanName}" atualizado com sucesso!`, 'Item Atualizado');
   };
 
   // Estado Firebase Config
@@ -75,22 +151,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [newPizzaDesc, setNewPizzaDesc] = useState('');
   const [newPizzaPrefix, setNewPizzaPrefix] = useState('');
 
-  // Estado Novo Item de Açaí
+  // Estado Novo Item de Açaí (Preço com máscara 0,00)
   const [newAcaiName, setNewAcaiName] = useState('');
-  const [newAcaiPrice, setNewAcaiPrice] = useState('');
+  const [newAcaiPrice, setNewAcaiPrice] = useState('0,00');
   const [newAcaiPrefix, setNewAcaiPrefix] = useState('A-');
 
-  // Estado Novo Item de Batata
+  // Estado Novo Item de Batata (Preço com máscara 0,00)
   const [newBatataName, setNewBatataName] = useState('');
-  const [newBatataPrice, setNewBatataPrice] = useState('');
+  const [newBatataPrice, setNewBatataPrice] = useState('0,00');
   const [newBatataPrefix, setNewBatataPrefix] = useState('B-');
 
   // Estado Configurações da TV
   const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
 
-  // Preços de pizza (Pedaço e Inteira)
-  const [pedacoPrice, setPedacoPrice] = useState(9);
-  const [inteiraPrice, setInteiraPrice] = useState(48);
+  // Preços de pizza (Pedaço e Inteira com máscara 0,00)
+  const [pedacoPrice, setPedacoPrice] = useState('9,00');
+  const [inteiraPrice, setInteiraPrice] = useState('48,00');
 
   useEffect(() => {
     if (isOpen) {
@@ -108,11 +184,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       const p = pizzaCat.variations.find(v => v.id === 'pedaco');
       const i = pizzaCat.variations.find(v => v.id === 'inteira');
       if (p) {
-        setPedacoPrice(p.price);
+        setPedacoPrice(formatCurrencyMask(p.price));
         setPedacoPrefix(p.prefix || 'Pp-');
       }
       if (i) {
-        setInteiraPrice(i.price);
+        setInteiraPrice(formatCurrencyMask(i.price));
         setInteiraPrefix(i.prefix || 'Pi-');
       }
     }
@@ -435,11 +511,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const totalDebito = todayOrders.filter(o => o.paymentMethod === 'DEBITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
   const totalCredito = todayOrders.filter(o => o.paymentMethod === 'CREDITO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
 
-  const handleClearDay = () => {
-    if (window.confirm('ATENÇÃO: Deseja zerar as comandas e fechar o turno de hoje?')) {
-      storageService.clearDayOrders();
+  const handleClearDay = async () => {
+    if (window.confirm('ATENÇÃO: Deseja zerar todas as comandas e limpar o cache da Cozinha e do Painel TV? Isso removerá todos os pedidos antigos do sistema.')) {
+      await storageService.clearAllOrders();
       setOrders([]);
-      showToast('Comandas zeradas para o novo turno!', 'Turno Fechado');
+      showToast('Cache e pedidos limpos com sucesso na Cozinha e TV!', 'Limpeza Concluída');
     }
   };
 
@@ -848,11 +924,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </span>
                         <input
                           type="text"
-                          inputMode="decimal"
+                          inputMode="numeric"
                           value={pedacoPrice}
-                          onChange={(e) => setPedacoPrice(e.target.value)}
+                          onChange={(e) => setPedacoPrice(formatCurrencyMask(e.target.value))}
                           placeholder="9,00"
-                          className="w-24 bg-transparent px-2.5 py-1.5 font-black text-white text-sm outline-none"
+                          className="w-24 bg-transparent px-2.5 py-1.5 font-black text-white text-sm outline-none font-mono"
                         />
                       </div>
                     </div>
@@ -868,11 +944,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </span>
                         <input
                           type="text"
-                          inputMode="decimal"
+                          inputMode="numeric"
                           value={inteiraPrice}
-                          onChange={(e) => setInteiraPrice(e.target.value)}
+                          onChange={(e) => setInteiraPrice(formatCurrencyMask(e.target.value))}
                           placeholder="48,00"
-                          className="w-24 bg-transparent px-2.5 py-1.5 font-black text-white text-sm outline-none"
+                          className="w-24 bg-transparent px-2.5 py-1.5 font-black text-white text-sm outline-none font-mono"
                         />
                       </div>
                     </div>
@@ -918,33 +994,105 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </form>
 
-                {/* LISTA DOS SABORES ATUAIS */}
+                {/* LISTA DOS SABORES ATUAIS COM MODO DE EDIÇÃO */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-2">
-                  {pizzaCat?.items.map((flavor) => (
-                    <div
-                      key={flavor.id}
-                      className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-sm text-white truncate">{flavor.name}</span>
-                          {flavor.prefix && (
-                            <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/30">
-                              {flavor.prefix}
-                            </span>
-                          )}
+                  {pizzaCat?.items.map((flavor) => {
+                    const isEditing = editingItemId === flavor.id;
+
+                    if (isEditing) {
+                      return (
+                        <div
+                          key={flavor.id}
+                          className="bg-slate-900 p-3 rounded-xl border-2 border-amber-500 shadow-xl space-y-2 col-span-1"
+                        >
+                          <div className="text-[10px] font-black uppercase text-amber-400">
+                            Editar Sabor de Pizza
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 font-bold block mb-0.5">Nome do Sabor:</label>
+                            <input
+                              type="text"
+                              value={editItemName}
+                              onChange={(e) => setEditItemName(e.target.value)}
+                              placeholder="Nome do sabor"
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold outline-none focus:border-amber-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 font-bold block mb-0.5">Descrição / Ingredientes:</label>
+                            <input
+                              type="text"
+                              value={editItemDesc}
+                              onChange={(e) => setEditItemDesc(e.target.value)}
+                              placeholder="Ingredientes"
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:border-amber-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 font-bold block mb-0.5">Prefixo da Senha (Opcional):</label>
+                            <input
+                              type="text"
+                              value={editItemPrefix}
+                              onChange={(e) => setEditItemPrefix(e.target.value)}
+                              placeholder="Pp-"
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-amber-300 outline-none uppercase focus:border-amber-400"
+                            />
+                          </div>
+                          <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-800">
+                            <button
+                              type="button"
+                              onClick={handleCancelEditItem}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors flex items-center gap-1"
+                            >
+                              <X className="w-3 h-3" /> Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEditedItem('pizza', flavor.id)}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-lg transition-colors flex items-center gap-1 shadow"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Salvar
+                            </button>
+                          </div>
                         </div>
-                        <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{flavor.description}</div>
-                      </div>
-                      <button
-                        onClick={() => handleRemovePizzaFlavor(flavor.id)}
-                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
-                        title="Remover sabor"
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={flavor.id}
+                        className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sm text-white truncate">{flavor.name}</span>
+                            {flavor.prefix && (
+                              <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/30">
+                                {flavor.prefix}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{flavor.description}</div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleStartEditItem(flavor)}
+                            className="text-slate-400 hover:text-amber-300 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                            title="Editar sabor"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleRemovePizzaFlavor(flavor.id)}
+                            className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
+                            title="Remover sabor"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -960,7 +1108,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </span>
                 </div>
 
-                {/* FORMULÁRIO DE ADICIONAR COM PREÇO EM REAIS E SENHA PERSONALIZADA */}
+                {/* FORMULÁRIO DE ADICIONAR COM PREÇO EM REAIS E MÁSCARA 0,00 */}
                 <form onSubmit={handleAddAcai} className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
@@ -971,19 +1119,19 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-purple-400"
                   />
                   
-                  {/* PREÇO EM REAIS */}
+                  {/* PREÇO EM REAIS COM MÁSCARA 0,00 */}
                   <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl overflow-hidden focus-within:border-purple-400">
                     <span className="bg-slate-800 text-purple-300 px-2.5 py-2 font-black text-xs border-r border-slate-700">
                       R$
                     </span>
                     <input
                       type="text"
-                      inputMode="decimal"
+                      inputMode="numeric"
                       required
-                      placeholder="Preço"
+                      placeholder="0,00"
                       value={newAcaiPrice}
-                      onChange={(e) => setNewAcaiPrice(e.target.value)}
-                      className="w-24 bg-transparent px-2.5 py-2 text-sm font-bold text-white outline-none"
+                      onChange={(e) => setNewAcaiPrice(formatCurrencyMask(e.target.value))}
+                      className="w-24 bg-transparent px-2.5 py-2 text-sm font-black text-white outline-none font-mono"
                     />
                   </div>
 
@@ -1009,53 +1157,119 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </form>
 
-                {/* LISTAGEM DOS ITENS DE AÇAÍ COM PREÇO EM REAIS E PREFIXO EDITÁVEL */}
+                {/* LISTAGEM DOS ITENS DE AÇAÍ COM MODO DE EDIÇÃO */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                  {acaiCat?.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-xs text-white truncate">{item.name}</div>
-                        
-                        <div className="flex items-center gap-2 mt-1.5">
-                          {/* PREÇO EM REAIS SEM SETINHAS */}
-                          <div className="flex items-center bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 focus-within:border-purple-400">
-                            <span className="text-[10px] text-purple-400 font-bold mr-1">R$</span>
+                  {acaiCat?.items.map((item) => {
+                    const isEditing = editingItemId === item.id;
+
+                    if (isEditing) {
+                      return (
+                        <div
+                          key={item.id}
+                          className="bg-slate-900 p-3 rounded-xl border-2 border-purple-500 shadow-xl space-y-2 col-span-1"
+                        >
+                          <div className="text-[10px] font-black uppercase text-purple-400">
+                            Editar Opção de Açaí
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 font-bold block mb-0.5">Nome da Opção:</label>
                             <input
                               type="text"
-                              inputMode="decimal"
-                              defaultValue={Number(item.price).toFixed(2)}
-                              onBlur={(e) => handleUpdateItemPrice('acai', item.id, e.target.value)}
-                              className="w-14 bg-transparent text-xs font-bold text-white outline-none"
-                              title="Altere o valor em reais e saia do campo para salvar"
+                              value={editItemName}
+                              onChange={(e) => setEditItemName(e.target.value)}
+                              placeholder="Nome do item"
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold outline-none focus:border-purple-400"
                             />
                           </div>
 
-                          {/* PREFIXO DA SENHA */}
-                          <div className="flex items-center bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 focus-within:border-purple-400">
-                            <span className="text-[9px] text-slate-400 font-mono mr-1">Senha:</span>
-                            <input
-                              type="text"
-                              defaultValue={item.prefix || acaiPrefix || 'A-'}
-                              onBlur={(e) => handleUpdateItemPrefix('acai', item.id, e.target.value)}
-                              className="w-10 bg-transparent text-xs font-mono font-bold text-purple-300 outline-none uppercase"
-                              title="Altere o prefixo da senha e saia do campo para salvar"
-                            />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-slate-400 font-bold block mb-0.5">Preço (R$):</label>
+                              <div className="flex items-center bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 focus-within:border-purple-400">
+                                <span className="text-[10px] text-purple-400 font-black mr-1">R$</span>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={editItemPrice}
+                                  onChange={(e) => setEditItemPrice(formatCurrencyMask(e.target.value))}
+                                  placeholder="0,00"
+                                  className="w-full bg-transparent text-xs font-mono font-bold text-white outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] text-slate-400 font-bold block mb-0.5">Senha (Prefixo):</label>
+                              <input
+                                type="text"
+                                value={editItemPrefix}
+                                onChange={(e) => setEditItemPrefix(e.target.value)}
+                                placeholder="A-"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-purple-300 outline-none uppercase focus:border-purple-400"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-800">
+                            <button
+                              type="button"
+                              onClick={handleCancelEditItem}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors flex items-center gap-1"
+                            >
+                              <X className="w-3 h-3" /> Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEditedItem('acai', item.id)}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-lg transition-colors flex items-center gap-1 shadow"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Salvar
+                            </button>
                           </div>
                         </div>
-                      </div>
+                      );
+                    }
 
-                      <button
-                        onClick={() => handleRemoveAcai(item.id)}
-                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
-                        title="Remover opção"
+                    return (
+                      <div
+                        key={item.id}
+                        className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-xs text-white truncate" title={item.name}>{item.name}</div>
+                          
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {/* PREÇO EM REAIS COM MÁSCARA 0,00 */}
+                            <span className="text-xs font-black text-purple-300 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-500/30 font-mono">
+                              R$ {Number(item.price).toFixed(2).replace('.', ',')}
+                            </span>
+
+                            {/* PREFIXO DA SENHA */}
+                            <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+                              Senha: {item.prefix || acaiPrefix || 'A-'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleStartEditItem(item)}
+                            className="text-slate-400 hover:text-amber-300 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                            title="Editar opção (Nome, Preço e Senha)"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveAcai(item.id)}
+                            className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
+                            title="Remover opção"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1071,7 +1285,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </span>
                 </div>
 
-                {/* FORMULÁRIO DE ADICIONAR COM PREÇO EM REAIS E SENHA PERSONALIZADA */}
+                {/* FORMULÁRIO DE ADICIONAR COM PREÇO EM REAIS E MÁSCARA 0,00 */}
                 <form onSubmit={handleAddBatata} className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
@@ -1082,19 +1296,19 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-yellow-400"
                   />
                   
-                  {/* PREÇO EM REAIS */}
+                  {/* PREÇO EM REAIS COM MÁSCARA 0,00 */}
                   <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl overflow-hidden focus-within:border-yellow-400">
                     <span className="bg-slate-800 text-yellow-300 px-2.5 py-2 font-black text-xs border-r border-slate-700">
                       R$
                     </span>
                     <input
                       type="text"
-                      inputMode="decimal"
+                      inputMode="numeric"
                       required
-                      placeholder="Preço"
+                      placeholder="0,00"
                       value={newBatataPrice}
-                      onChange={(e) => setNewBatataPrice(e.target.value)}
-                      className="w-24 bg-transparent px-2.5 py-2 text-sm font-bold text-white outline-none"
+                      onChange={(e) => setNewBatataPrice(formatCurrencyMask(e.target.value))}
+                      className="w-24 bg-transparent px-2.5 py-2 text-sm font-black text-white outline-none font-mono"
                     />
                   </div>
 
@@ -1120,53 +1334,119 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </form>
 
-                {/* LISTAGEM DOS ITENS DE BATATA COM PREÇO EM REAIS E PREFIXO EDITÁVEL */}
+                {/* LISTAGEM DOS ITENS DE BATATA COM MODO DE EDIÇÃO */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                  {batataCat?.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-xs text-white truncate">{item.name}</div>
-                        
-                        <div className="flex items-center gap-2 mt-1.5">
-                          {/* PREÇO EM REAIS SEM SETINHAS */}
-                          <div className="flex items-center bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 focus-within:border-yellow-400">
-                            <span className="text-[10px] text-amber-400 font-bold mr-1">R$</span>
+                  {batataCat?.items.map((item) => {
+                    const isEditing = editingItemId === item.id;
+
+                    if (isEditing) {
+                      return (
+                        <div
+                          key={item.id}
+                          className="bg-slate-900 p-3 rounded-xl border-2 border-yellow-500 shadow-xl space-y-2 col-span-1"
+                        >
+                          <div className="text-[10px] font-black uppercase text-yellow-400">
+                            Editar Opção de Batata
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 font-bold block mb-0.5">Nome da Opção:</label>
                             <input
                               type="text"
-                              inputMode="decimal"
-                              defaultValue={Number(item.price).toFixed(2)}
-                              onBlur={(e) => handleUpdateItemPrice('batata', item.id, e.target.value)}
-                              className="w-14 bg-transparent text-xs font-bold text-white outline-none"
-                              title="Altere o valor em reais e saia do campo para salvar"
+                              value={editItemName}
+                              onChange={(e) => setEditItemName(e.target.value)}
+                              placeholder="Nome do item"
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold outline-none focus:border-yellow-400"
                             />
                           </div>
 
-                          {/* PREFIXO DA SENHA */}
-                          <div className="flex items-center bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 focus-within:border-yellow-400">
-                            <span className="text-[9px] text-slate-400 font-mono mr-1">Senha:</span>
-                            <input
-                              type="text"
-                              defaultValue={item.prefix || batataPrefix || 'B-'}
-                              onBlur={(e) => handleUpdateItemPrefix('batata', item.id, e.target.value)}
-                              className="w-10 bg-transparent text-xs font-mono font-bold text-amber-300 outline-none uppercase"
-                              title="Altere o prefixo da senha e saia do campo para salvar"
-                            />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-slate-400 font-bold block mb-0.5">Preço (R$):</label>
+                              <div className="flex items-center bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 focus-within:border-yellow-400">
+                                <span className="text-[10px] text-amber-400 font-black mr-1">R$</span>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={editItemPrice}
+                                  onChange={(e) => setEditItemPrice(formatCurrencyMask(e.target.value))}
+                                  placeholder="0,00"
+                                  className="w-full bg-transparent text-xs font-mono font-bold text-white outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] text-slate-400 font-bold block mb-0.5">Senha (Prefixo):</label>
+                              <input
+                                type="text"
+                                value={editItemPrefix}
+                                onChange={(e) => setEditItemPrefix(e.target.value)}
+                                placeholder="B-"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-yellow-300 outline-none uppercase focus:border-yellow-400"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-800">
+                            <button
+                              type="button"
+                              onClick={handleCancelEditItem}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors flex items-center gap-1"
+                            >
+                              <X className="w-3 h-3" /> Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEditedItem('batata', item.id)}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-lg transition-colors flex items-center gap-1 shadow"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Salvar
+                            </button>
                           </div>
                         </div>
-                      </div>
+                      );
+                    }
 
-                      <button
-                        onClick={() => handleRemoveBatata(item.id)}
-                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
-                        title="Remover opção"
+                    return (
+                      <div
+                        key={item.id}
+                        className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-xs text-white truncate" title={item.name}>{item.name}</div>
+                          
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {/* PREÇO EM REAIS COM MÁSCARA 0,00 */}
+                            <span className="text-xs font-black text-yellow-300 bg-yellow-950/60 px-2 py-0.5 rounded border border-yellow-500/30 font-mono">
+                              R$ {Number(item.price).toFixed(2).replace('.', ',')}
+                            </span>
+
+                            {/* PREFIXO DA SENHA */}
+                            <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+                              Senha: {item.prefix || batataPrefix || 'B-'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleStartEditItem(item)}
+                            className="text-slate-400 hover:text-amber-300 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                            title="Editar opção (Nome, Preço e Senha)"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveBatata(item.id)}
+                            className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
+                            title="Remover opção"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
