@@ -209,24 +209,7 @@ class StorageService {
         }
       });
 
-      // 2. Listener de Ambientes em tempo real (garante sincronização para todos os dispositivos)
-      const envDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
-      this.unsubscribeEnvironments = onSnapshot(envDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (Array.isArray(data.environments) && data.environments.length > 0) {
-            console.log(`📡 [Firestore Realtime] ${data.environments.length} ambientes sincronizados da nuvem`);
-            this.handleCloudEnvironments(data.environments);
-          }
-        } else {
-          // Se ainda não existir documento na nuvem, semeia com os ambientes locais/padrão
-          this.seedCloudEnvironments();
-        }
-      }, (err) => {
-        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar ambientes:', err);
-      });
-
-      // 3. Listener de Roteamento de Produção em tempo real na nuvem
+      // 2. Listener de Roteamento de Produção em tempo real na nuvem
       const routingDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
       this.unsubscribeRouting = onSnapshot(routingDocRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -252,16 +235,7 @@ class StorageService {
       await setDoc(ordersDocRef, {
         environments: DEFAULT_ENVIRONMENTS,
         updatedAt: serverTimestamp()
-      }, { merge: true });
-
-      try {
-        const docRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
-        await setDoc(docRef, {
-          environments: DEFAULT_ENVIRONMENTS,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      } catch (_) {}
-
+      });
       console.log('🌱 Ambientes padrão semeados no Firestore');
     } catch (err) {
       console.warn('Falha ao semear ambientes:', err);
@@ -286,26 +260,21 @@ class StorageService {
     }
   }
 
+  broadcastEnvironments(environments) {
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'ENVIRONMENTS_UPDATED', payload: environments });
+    }
+  }
+
   // Salva ambientes no Firestore na nuvem para propagar a todos os aparelhos
   async saveEnvironmentsCloud(environments) {
     if (!this.isFirebaseReady || !this.db) return;
     try {
-      // 1. Grava no documento especial em cantina_pedidos para garantir acionamento do WebSocket e regras
       const ordersDocRef = doc(this.db, COLLECTION_ORDERS, '__config_ambientes__');
       await setDoc(ordersDocRef, {
         environments,
         updatedAt: serverTimestamp()
-      }, { merge: true });
-
-      // 2. Grava também na coleção de configurações como redundância
-      try {
-        const configDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
-        await setDoc(configDocRef, {
-          environments,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      } catch (_) {}
-
+      });
       console.log('☁️ Ambientes salvos no Firestore na nuvem com sucesso:', environments.length);
     } catch (err) {
       console.error('⚠️ Erro ao salvar ambientes no Firestore:', err);

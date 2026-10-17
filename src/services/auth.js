@@ -119,18 +119,30 @@ class AuthService {
             const rawDesc = env.description !== undefined ? env.description : (defaultMatch?.description || '');
             const cleanDesc = rawDesc.replace(/\bpainel\s+kds\b/gi, 'Painel').replace(/\bkds\b/gi, '').replace(/\s{2,}/g, ' ').trim();
 
-            if (defaultMatch) {
+            const actualType = env.type || (defaultMatch?.type || 'kitchen');
+            const isDisplay = actualType === 'display';
+            const isCashier = actualType === 'cashier';
+            const icon = isDisplay ? 'Tv' : isCashier ? 'ShieldCheck' : 'UtensilsCrossed';
+            const color = isDisplay ? 'emerald' : isCashier ? 'amber' : 'orange';
+
+            if (defaultMatch && defaultMatch.isSystem) {
               return {
                 ...defaultMatch,
                 ...env,
                 name: env.name || defaultMatch.name,
                 shortName: env.shortName || defaultMatch.shortName,
-                description: cleanDesc
+                description: cleanDesc,
+                type: actualType,
+                icon,
+                color
               };
             }
             return {
               ...env,
-              description: cleanDesc
+              description: cleanDesc,
+              type: actualType,
+              icon,
+              color
             };
           });
 
@@ -155,11 +167,12 @@ class AuthService {
   saveEnvironments(environments) {
     localStorage.setItem(ENVIRONMENTS_STORAGE_KEY, JSON.stringify(environments));
     window.dispatchEvent(new CustomEvent('cantina_environments_changed', { detail: environments }));
+    storageService.broadcastEnvironments(environments);
     // Sincroniza em tempo real com a nuvem no Cloud Firestore para que todos os outros dispositivos vejam imediatamente
     storageService.saveEnvironmentsCloud(environments);
   }
 
-  addEnvironment({ name, shortName, type = 'kitchen', icon = 'UtensilsCrossed', color = 'orange', description = '' }) {
+  addEnvironment({ name, shortName, type = 'kitchen', icon, color, description = '' }) {
     const cleanName = (name || '').trim();
     if (!cleanName) throw new Error('O nome do ambiente é obrigatório');
 
@@ -172,13 +185,18 @@ class AuthService {
       throw new Error(`Já existe um ambiente com identificador "${id}". Escolha outro nome.`);
     }
 
+    const isDisplay = type === 'display';
+    const isCashier = type === 'cashier';
+    const finalIcon = isDisplay ? 'Tv' : isCashier ? 'ShieldCheck' : (icon || 'UtensilsCrossed');
+    const finalColor = isDisplay ? 'emerald' : isCashier ? 'amber' : (color || 'orange');
+
     const newEnv = {
       id,
       name: cleanName,
       shortName: cleanShortName,
       type, // 'kitchen', 'cashier', 'display'
-      icon,
-      color,
+      icon: finalIcon,
+      color: finalColor,
       isSystem: false,
       description: description || `Ambiente ${cleanName}`
     };
@@ -200,13 +218,19 @@ class AuthService {
     const envs = this.getEnvironments();
     const updated = envs.map(e => {
       if (e.id === id) {
+        const nextType = updatedData.type || e.type;
+        const isDisplay = nextType === 'display';
+        const isCashier = nextType === 'cashier';
+        const nextIcon = isDisplay ? 'Tv' : isCashier ? 'ShieldCheck' : (updatedData.icon || 'UtensilsCrossed');
+        const nextColor = isDisplay ? 'emerald' : isCashier ? 'amber' : (updatedData.color || 'orange');
+
         return {
           ...e,
           name: updatedData.name ? updatedData.name.trim() : e.name,
           shortName: updatedData.shortName ? updatedData.shortName.trim().toUpperCase() : e.shortName,
-          type: updatedData.type || e.type,
-          icon: updatedData.icon || e.icon,
-          color: updatedData.color || e.color,
+          type: nextType,
+          icon: nextIcon,
+          color: nextColor,
           description: updatedData.description !== undefined ? updatedData.description : e.description
         };
       }

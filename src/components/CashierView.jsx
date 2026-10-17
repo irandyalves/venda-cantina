@@ -1316,18 +1316,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <button
                   type="button"
                   onClick={() => handleOpenQuickDelete(cat)}
-                  title={`Excluir opções de ${cat.name}`}
+                  title={`Excluir opções ou categoria ${cat.name}`}
                   className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteCategory(cat)}
-                  title={`Excluir toda a categoria ${cat.name}`}
-                  className="w-6 h-6 rounded-full bg-red-950/90 hover:bg-red-900 text-rose-400 hover:text-white border border-rose-700/60 hover:border-rose-500 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                >
-                  <Trash2 className="w-3 h-3" />
                 </button>
               </div>
             </div>
@@ -1842,7 +1834,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
       )}
 
-      {/* MODAL: ESCOLHA O ITEM QUE QUER EXCLUIR (- VERMELHO FOSCO) */}
+      {/* MODAL: EXCLUIR ITEM OU CATEGORIA (- VERMELHO FOSCO) */}
       {quickDeleteModal.isOpen && quickDeleteModal.category && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn">
           <div className="bg-slate-900 border border-rose-500/50 rounded-3xl p-5 max-w-md w-full shadow-2xl shadow-black space-y-4">
@@ -1853,10 +1845,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </span>
                 <div>
                   <h3 className="text-base font-black text-rose-400 tracking-wide uppercase">
-                    Escolha o item que quer excluir
+                    Excluir em {quickDeleteModal.category.name}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Categoria: <strong className="text-white uppercase">{quickDeleteModal.category.name}</strong>
+                    Escolha qual item quer excluir ou exclua a categoria inteira
                   </p>
                 </div>
               </div>
@@ -1895,87 +1887,88 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     className="py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span>SIM, EXCLUIR</span>
+                    <span>SIM, EXCLUIR ITEM</span>
                   </button>
                 </div>
               </div>
             ) : (
-              /* LISTAGEM DE ITENS DA CATEGORIA PARA ESCOLHER QUAL EXCLUIR */
-              <div className="space-y-3">
-                {(!quickDeleteModal.category.items || quickDeleteModal.category.items.length === 0) ? (
-                  <div className="py-6 px-4 text-center bg-slate-950/60 rounded-2xl border border-rose-500/30 space-y-3">
-                    <Trash2 className="w-8 h-8 text-rose-400 mx-auto" />
-                    <p className="text-sm font-bold text-slate-200">
-                      A categoria <strong className="text-rose-400 uppercase">"{quickDeleteModal.category.name}"</strong> está vazia (sem itens cadastrados).
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Deseja excluir esta categoria definitivamente do sistema?
-                    </p>
-                    <div className="pt-2 flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null })}
-                        className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                      {!['pizza', 'acai', 'batata'].includes(quickDeleteModal.category.id) && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteCategory(quickDeleteModal.category)}
-                          className="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer flex items-center gap-1.5"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>Excluir Categoria {quickDeleteModal.category.name}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                    {quickDeleteModal.category.items.map((it) => (
-                      <div
-                        key={it.id}
-                        className="bg-slate-950/90 hover:bg-slate-950 border border-slate-800 hover:border-rose-500/60 p-3 rounded-xl flex items-center justify-between gap-3 transition-all group"
-                      >
-                        <div className="min-w-0">
-                          <div className="text-xs font-black text-white uppercase truncate">
-                            {it.name}
-                          </div>
-                          <div className="text-[11px] font-mono text-emerald-400 font-bold mt-0.5">
-                            R$ {formatCurrencyMask(it.price)}
-                            {it.prefix && <span className="text-slate-500 font-normal ml-2">Prefixo: {it.prefix}</span>}
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => setQuickDeleteModal(prev => ({ ...prev, itemToDelete: it }))}
-                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-all shadow-md shadow-rose-950/50 cursor-pointer flex items-center gap-1.5 shrink-0"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Excluir</span>
-                        </button>
+              /* DUAS OPÇÕES: EXCLUIR CATEGORIA INTEIRA OU ESCOLHER QUAL ITEM EXCLUIR */
+              <div className="space-y-3.5">
+                
+                {/* OPÇÃO 1: EXCLUIR TODA A CATEGORIA (SE FOR CATEGORIA PERSONALIZADA) */}
+                {!['pizza', 'acai', 'batata'].includes(quickDeleteModal.category.id) && (
+                  <div className="bg-rose-950/40 border border-rose-500/50 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-md">
+                    <div className="min-w-0">
+                      <div className="font-black text-xs text-rose-300 uppercase flex items-center gap-1.5">
+                        <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span className="truncate">Excluir Categoria {quickDeleteModal.category.name}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
-                  {!['pizza', 'acai', 'batata'].includes(quickDeleteModal.category.id) && quickDeleteModal.category.items?.length > 0 && (
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        Apaga esta categoria inteira do cardápio e caixa
+                      </div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleDeleteCategory(quickDeleteModal.category)}
-                      className="py-1.5 px-3 bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-800/80 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                      className="py-2 px-3.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Excluir Categoria Inteira</span>
+                      <span>Excluir Categoria</span>
                     </button>
+                  </div>
+                )}
+
+                {/* OPÇÃO 2: LISTAGEM DE ITENS DA CATEGORIA PARA ESCOLHER QUAL EXCLUIR */}
+                <div className="space-y-2">
+                  <div className="text-xs font-black text-slate-300 uppercase tracking-wide flex items-center justify-between">
+                    <span>Escolha qual item quer excluir:</span>
+                    {quickDeleteModal.category.items?.length > 0 && (
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        ({quickDeleteModal.category.items.length} {quickDeleteModal.category.items.length === 1 ? 'item' : 'itens'})
+                      </span>
+                    )}
+                  </div>
+
+                  {(!quickDeleteModal.category.items || quickDeleteModal.category.items.length === 0) ? (
+                    <div className="py-4 text-center text-slate-400 text-xs italic bg-slate-950/40 rounded-xl border border-slate-800">
+                      Nenhum item individual cadastrado nesta categoria.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                      {quickDeleteModal.category.items.map((it) => (
+                        <div
+                          key={it.id}
+                          className="bg-slate-950/90 hover:bg-slate-950 border border-slate-800 hover:border-rose-500/60 p-2.5 rounded-xl flex items-center justify-between gap-3 transition-all group"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-xs font-black text-white uppercase truncate">
+                              {it.name}
+                            </div>
+                            <div className="text-[11px] font-mono text-emerald-400 font-bold mt-0.5">
+                              R$ {formatCurrencyMask(it.price)}
+                              {it.prefix && <span className="text-slate-500 font-normal ml-2">Prefixo: {it.prefix}</span>}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setQuickDeleteModal(prev => ({ ...prev, itemToDelete: it }))}
+                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-all shadow-md shadow-rose-950/50 cursor-pointer flex items-center gap-1.5 shrink-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Excluir</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 flex justify-end">
                   <button
                     type="button"
                     onClick={() => setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null })}
-                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer ml-auto"
+                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
                   >
                     Fechar
                   </button>
