@@ -499,48 +499,27 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
             <Pizza className="w-4 h-4 text-white" />
           </div>
           <div>
-            <div className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5 leading-none">
-              CANTINA EXPRESS <span className="text-[10px] bg-amber-500/20 text-amber-300 font-semibold px-1.5 py-0.2 rounded-full border border-amber-500/30">CAIXA PDV</span>
-            </div>
-            <div className="text-[10px] text-slate-400 leading-tight">Escolha o produto ➔ Preencha o nome ➔ Envie</div>
+            <h1 className="text-base font-black tracking-widest text-white uppercase leading-none">
+              CAIXA
+            </h1>
           </div>
         </div>
 
         {/* CONTROLES SUPERIORES */}
-        <div className="flex items-center gap-1.5">
-          <div className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold border ${
-            isFirebaseOnline 
-              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/50' 
-              : 'bg-amber-950/60 text-amber-300 border-amber-600/50'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${isFirebaseOnline ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
-            <span>{isFirebaseOnline ? 'Nuvem Realtime' : 'Modo Local'}</span>
+        <div className="flex items-center gap-2">
+          {/* APENAS A BOLINHA PISCANTE, SEM BORDA NEM TEXTO */}
+          <div className="flex items-center justify-center px-1" title={isFirebaseOnline ? 'Conexão Nuvem Online' : 'Modo Local'}>
+            <span className={`w-2.5 h-2.5 rounded-full ${isFirebaseOnline ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
           </div>
-
-          <button 
-            onClick={() => onNavigate('kitchen')}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors border border-slate-600 shadow-sm"
-          >
-            <UtensilsCrossed className="w-3.5 h-3.5 text-orange-400" />
-            <span className="hidden md:inline">Cozinha KDS</span>
-          </button>
-
-          <button 
-            onClick={() => onNavigate('display')}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors border border-slate-600 shadow-sm"
-          >
-            <BellRing className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden md:inline">Painel TV</span>
-          </button>
 
           {/* BOTÃO DA ENGRENAGEM (CONFIGURAÇÕES DO CAIXA) */}
           <button 
             onClick={() => onOpenConfig()}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-all shadow-sm active:scale-95 border border-amber-500"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-sm active:scale-95 border border-amber-500 cursor-pointer"
             title="Configurações, Cadastro de Produtos, Preços e Fechamento de Caixa"
           >
             <Settings className="w-3.5 h-3.5 animate-spin-slow" />
-            <span className="hidden lg:inline">CONFIGURAÇÕES ⚙️</span>
+            <span className="hidden sm:inline">CONFIGURAÇÕES ⚙️</span>
           </button>
 
           <ProfileSelector 
