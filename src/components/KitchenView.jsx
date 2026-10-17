@@ -148,6 +148,25 @@ export default function KitchenView({ onNavigate }) {
     return <UtensilsCrossed className="w-5 h-5 text-amber-400" />;
   };
 
+  const getItemCleanDescription = (order) => {
+    const isPizza = order.category === 'pizza' || order.categoryName?.toUpperCase() === 'PIZZA';
+    if (isPizza) {
+      const varName = (order.variationName || '').toUpperCase();
+      if (varName && order.itemName) {
+        return `${varName}: ${order.itemName}`;
+      }
+      if (order.fullDescription) {
+        return order.fullDescription.replace(/^pizza\s+/i, '');
+      }
+      return order.itemName;
+    }
+
+    if (order.fullDescription) {
+      return order.fullDescription.replace(/^(açaí|acai|batata)\s+/i, '');
+    }
+    return order.itemName;
+  };
+
   return (
     <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-100 font-sans overflow-hidden">
       
@@ -281,41 +300,42 @@ export default function KitchenView({ onNavigate }) {
                   )}
 
                   {/* BLOCO 1: NÚMERO DA COMANDA + NOME DO CLIENTE */}
-                  <div className="flex items-center gap-3 min-w-[220px]">
-                    <div className="p-2 bg-slate-950 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-2.5 shrink-0 sm:min-w-[130px]">
+                    <div className="p-2 bg-slate-950 rounded-xl border border-slate-800 shrink-0">
                       {getCategoryIcon(order.category)}
                     </div>
                     <div>
-                      {/* CÓDIGO DA COMANDA (P ped-01, P int-02, Bat 01, Açaí 01) */}
-                      <div className="text-xl font-black text-orange-400 font-mono tracking-tight flex items-center gap-2">
+                      {/* CÓDIGO DA COMANDA */}
+                      <div className="text-xl font-black text-orange-400 font-mono tracking-tight flex items-center gap-1.5">
                         <span>{order.orderNumber}</span>
                       </div>
                       {/* NOME DO CLIENTE */}
                       <div className="text-sm font-extrabold text-amber-300 flex items-center gap-1">
-                        <User className="w-3.5 h-3.5" />
-                        <span>{order.customerName}</span>
+                        <User className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate max-w-[110px]">{order.customerName}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* BLOCO 2: DETALHES DO PRODUTO (SABOR / OPÇÃO / QUANTIDADE) */}
-                  <div className="flex-1 bg-slate-950/60 px-3.5 py-2 rounded-xl border border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <div className="text-xs uppercase font-extrabold text-slate-400">
+                  {/* BLOCO 2: DETALHES DO PRODUTO (LARGURA EXPANDIDA PARA A ESQUERDA) */}
+                  <div className="flex-1 bg-slate-950/60 px-4 py-2 rounded-xl border border-slate-800/80 flex flex-col justify-center gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs uppercase font-extrabold text-slate-400 tracking-wider">
                         {order.categoryName}
-                      </div>
-                      <div className="text-base font-black text-white leading-tight">
-                        {order.fullDescription || order.itemName}
-                      </div>
+                      </span>
+                      {order.paymentMethod && (
+                        <span className="text-slate-400 font-mono text-xs">
+                          {order.paymentMethod}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className="bg-orange-500/20 text-orange-300 font-black px-2.5 py-1 rounded-lg border border-orange-500/40 text-xs">
-                        QTDE: {order.quantity}x
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="bg-orange-500/20 text-orange-300 font-black px-2 py-0.5 rounded-lg border border-orange-500/40 text-xs shrink-0">
+                        QTE: {String(order.quantity).padStart(2, '0')}
                       </span>
-
-                      <span className="text-slate-400 font-mono text-xs">
-                        {order.paymentMethod}
+                      <span className="text-base font-black text-white leading-tight">
+                        {getItemCleanDescription(order)}
                       </span>
                     </div>
                   </div>

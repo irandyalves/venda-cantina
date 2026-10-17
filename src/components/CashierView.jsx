@@ -191,13 +191,13 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
     if (category.id === 'pizza' && variation) {
       prefix = variation.prefix || (variation.id === 'inteira' ? 'Pi-' : 'Pp-');
       unitPrice = variation.price;
-      description = `Pizza ${variation.name}: ${item.name}`;
+      description = `${variation.name.toUpperCase()}: ${item.name}`;
     } else if (category.id === 'acai') {
       prefix = item.prefix || category.prefixDefault || 'A-';
-      description = `Açaí ${item.name}`;
+      description = item.name;
     } else if (category.id === 'batata') {
       prefix = item.prefix || category.prefixDefault || 'B-';
-      description = `Batata ${item.name}`;
+      description = item.name;
     } else {
       prefix = item.prefix || category.prefixDefault || 'Ped-';
     }
