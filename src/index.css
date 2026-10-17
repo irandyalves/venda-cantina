@@ -162,4 +162,31 @@ input[type="number"] {
   animation: glow-submit-focus 1s infinite ease-in-out !important;
 }
 
+/* Efeito de piscar com brilho para o Modal Central da TV (quando entregue) */
+@keyframes modal-flash-delivered {
+  0%, 100% {
+    box-shadow: 0 0 0 6px #f59e0b, 0 0 80px rgba(245, 158, 11, 0.8), inset 0 0 40px rgba(245, 158, 11, 0.2);
+    border-color: #fbbf24;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px #10b981, 0 0 120px rgba(16, 185, 129, 0.95), inset 0 0 60px rgba(16, 185, 129, 0.35);
+    border-color: #34d399;
+    transform: scale(1.015);
+  }
+}
+
+.animate-modal-delivered {
+  animation: modal-flash-delivered 0.85s infinite ease-in-out;
+}
+
+@keyframes progress-6s {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}
+
+.animate-progress-6s {
+  animation: progress-6s 6s linear forwards;
+}
+
 

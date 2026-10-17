@@ -148,6 +148,32 @@ class SoundService {
     }
   }
 
+  // Som especial para Pedido Entregue pela Cozinha (Trítono de chamada potente com eco)
+  playDeliveredAlertSound() {
+    try {
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      // 4 notas ascendentes potentes (Dó, Mi, Sol, Dó alto)
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + (idx * 0.16));
+        gain.gain.setValueAtTime(0.45, now + (idx * 0.16));
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (idx * 0.16) + 0.9);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + (idx * 0.16));
+        osc.stop(now + (idx * 0.16) + 0.9);
+      });
+    } catch (e) {
+      console.warn('Erro ao tocar som de chamada de entrega:', e);
+    }
+  }
+
   // Toca o som baseado na categoria do pedido
   playCategorySound(categoryKey) {
     const key = (categoryKey || '').toLowerCase();
