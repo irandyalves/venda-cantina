@@ -544,6 +544,33 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     });
   };
 
+  const handleDeleteCategory = (cat) => {
+    if (!cat) return;
+    if (['pizza', 'acai', 'batata'].includes(cat.id)) {
+      setToast({
+        title: 'Atenção',
+        message: 'Categorias padrão do sistema não podem ser excluídas.',
+        type: 'error'
+      });
+      return;
+    }
+
+    const updatedCategories = categories.filter((c) => c.id !== cat.id);
+    storageService.saveProducts(updatedCategories);
+    setCategories(updatedCategories);
+
+    if (selectedProduct?.category?.id === cat.id) {
+      cancelSelection();
+    }
+
+    setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null });
+    setToast({
+      title: 'Categoria Excluída!',
+      message: `A categoria "${cat.name}" foi excluída com sucesso!`,
+      type: 'success'
+    });
+  };
+
   const pizzaCategory = categories.find(c => c.id === 'pizza');
   const acaiCategory = categories.find(c => c.id === 'acai');
   const batataCategory = categories.find(c => c.id === 'batata');
@@ -1294,6 +1321,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 >
                   <Minus className="w-3.5 h-3.5 stroke-[3]" />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCategory(cat)}
+                  title={`Excluir toda a categoria ${cat.name}`}
+                  className="w-6 h-6 rounded-full bg-red-950/90 hover:bg-red-900 text-rose-400 hover:text-white border border-rose-700/60 hover:border-rose-500 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
               </div>
             </div>
 
@@ -1868,8 +1903,33 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               /* LISTAGEM DE ITENS DA CATEGORIA PARA ESCOLHER QUAL EXCLUIR */
               <div className="space-y-3">
                 {(!quickDeleteModal.category.items || quickDeleteModal.category.items.length === 0) ? (
-                  <div className="py-8 text-center text-slate-500 text-xs italic bg-slate-950/40 rounded-xl border border-slate-800">
-                    Nenhum item cadastrado nesta categoria para excluir.
+                  <div className="py-6 px-4 text-center bg-slate-950/60 rounded-2xl border border-rose-500/30 space-y-3">
+                    <Trash2 className="w-8 h-8 text-rose-400 mx-auto" />
+                    <p className="text-sm font-bold text-slate-200">
+                      A categoria <strong className="text-rose-400 uppercase">"{quickDeleteModal.category.name}"</strong> está vazia (sem itens cadastrados).
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Deseja excluir esta categoria definitivamente do sistema?
+                    </p>
+                    <div className="pt-2 flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null })}
+                        className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                      {!['pizza', 'acai', 'batata'].includes(quickDeleteModal.category.id) && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(quickDeleteModal.category)}
+                          className="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Excluir Categoria {quickDeleteModal.category.name}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -1901,11 +1961,21 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-slate-800 flex justify-end">
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+                  {!['pizza', 'acai', 'batata'].includes(quickDeleteModal.category.id) && quickDeleteModal.category.items?.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCategory(quickDeleteModal.category)}
+                      className="py-1.5 px-3 bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-800/80 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Excluir Categoria Inteira</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null })}
-                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer ml-auto"
                   >
                     Fechar
                   </button>

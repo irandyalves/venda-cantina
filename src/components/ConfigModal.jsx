@@ -171,6 +171,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [newCatNameInput, setNewCatNameInput] = useState('');
   const [newCatPrefixInput, setNewCatPrefixInput] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [deleteCatConfirmModal, setDeleteCatConfirmModal] = useState({ isOpen: false, category: null });
 
   // Prefixos das Senhas (Comandas)
   const [pedacoPrefix, setPedacoPrefix] = useState('Pp-');
@@ -654,6 +655,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setNewCatNameInput('');
     setNewCatPrefixInput('');
     showToast(`Categoria "${newCat.name}" criada com sucesso! Você já pode adicionar itens nela.`, 'Categoria Criada');
+  };
+
+  const handleDeleteCategory = (cat) => {
+    if (!cat) return;
+    if (['pizza', 'acai', 'batata'].includes(cat.id)) {
+      showToast('Categorias padrão do sistema não podem ser excluídas.', 'Atenção', 'error');
+      return;
+    }
+
+    const updated = categories.filter(c => c.id !== cat.id);
+    storageService.saveProducts(updated);
+    setCategories(updated);
+    setDeleteCatConfirmModal({ isOpen: false, category: null });
+    showToast(`Categoria "${cat.name}" excluída com sucesso!`, 'Categoria Excluída');
   };
 
   // Abrir Modal de Configurações Completas do Item (Engrenagem ⚙️ / Lápis ✏️)
@@ -1220,6 +1235,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       allSaleItems.push({
         id: v.id,
         name: `Pizza ${v.name}`,
+        categoryName: 'PIZZA',
         price: v.id === 'pedaco' ? parseCurrencyMask(pedacoPrice) : parseCurrencyMask(inteiraPrice),
         prefix: v.id === 'pedaco' ? pedacoPrefix : inteiraPrefix,
         categoryId: 'pizza',
@@ -1236,6 +1252,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       allSaleItems.push({
         id: it.id,
         name: it.name,
+        categoryName: 'AÇAÍ',
         price: it.price,
         prefix: it.prefix || acaiPrefix || 'A-',
         categoryId: 'acai',
@@ -1251,6 +1268,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       allSaleItems.push({
         id: it.id,
         name: it.name,
+        categoryName: 'BATATA FRITA',
         price: it.price,
         prefix: it.prefix || batataPrefix || 'B-',
         categoryId: 'batata',
@@ -1266,6 +1284,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       allSaleItems.push({
         id: it.id,
         name: it.name,
+        categoryName: (cat.name || cat.id).toUpperCase(),
         price: it.price,
         prefix: it.prefix || cat.prefixDefault || 'Ped-',
         categoryId: cat.id,
@@ -1695,6 +1714,40 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
+                {/* CATEGORIAS CADASTRADAS COM BOTÃO DE EXCLUIR PARA CATEGORIAS PERSONALIZADAS */}
+                <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1">
+                      Categorias:
+                    </span>
+                    {categories.map((c) => {
+                      const isSystem = ['pizza', 'acai', 'batata'].includes(c.id);
+                      const count = c.id === 'pizza' ? (c.variations?.length || 0) : (c.items?.length || 0);
+                      return (
+                        <div 
+                          key={c.id} 
+                          className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 text-xs shadow-sm"
+                        >
+                          <span className="font-bold text-white uppercase text-[11px]">{c.name}</span>
+                          <span className="text-[10px] font-mono text-amber-400 bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">
+                            {count} {count === 1 ? 'item' : 'itens'}
+                          </span>
+                          {!isSystem && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteCatConfirmModal({ isOpen: true, category: c })}
+                              className="text-slate-400 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer ml-0.5"
+                              title={`Excluir categoria "${c.name}"`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* GRID DOS ITENS CADASTRADOS PARA VENDA */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {allSaleItems.map((item) => (
@@ -1702,12 +1755,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       key={`${item.categoryId}_${item.id}`} 
                       className="bg-slate-900/90 p-3 rounded-xl border border-slate-700/80 space-y-2 hover:border-amber-500/50 transition-colors shadow-sm flex flex-col justify-between"
                     >
-                      {/* TOPO: NOME, LÁPIS VERDE E LIXEIRINHA COM CONFIRMAÇÃO */}
-                      <div className="flex items-center justify-between gap-1.5">
-                        <span className="text-xs font-black text-white uppercase truncate" title={item.name}>
-                          {item.name}
-                        </span>
-                        <div className="flex items-center gap-1 shrink-0">
+                      {/* TOPO: NOME, CATEGORIA EM LARANJA E BOTÕES */}
+                      <div className="flex items-start justify-between gap-1.5">
+                        <div className="min-w-0 pr-1">
+                          <span className="text-xs font-black text-white uppercase truncate block" title={item.name}>
+                            {item.name}
+                          </span>
+                          <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wide truncate block mt-0.5">
+                            {item.categoryName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 pt-0.5">
                           {/* LÁPIS VERDE */}
                           <button
                             type="button"
@@ -3443,6 +3501,34 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </span>
               </div>
 
+              {/* LISTA DE CATEGORIAS PERSONALIZADAS EXISTENTES COM OPÇÃO DE EXCLUIR */}
+              {categories.some(c => !['pizza', 'acai', 'batata'].includes(c.id)) && (
+                <div className="pt-2 border-t border-slate-800 space-y-2">
+                  <span className="text-xs font-bold text-slate-300 block">
+                    Categorias Personalizadas Cadastradas:
+                  </span>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {categories.filter(c => !['pizza', 'acai', 'batata'].includes(c.id)).map(c => (
+                      <div key={c.id} className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="font-bold text-white uppercase">{c.name}</span>
+                          <span className="text-[10px] text-slate-400 ml-2">({(c.items || []).length} itens)</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteCatConfirmModal({ isOpen: true, category: c })}
+                          className="px-2 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-800 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title={`Excluir categoria "${c.name}"`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Excluir</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-800">
                 <button
                   type="button"
@@ -3693,6 +3779,56 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               >
                 <Trash2 className="w-4 h-4" />
                 <span>SIM</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO: EXCLUIR CATEGORIA PERSONALIZADA (EX: SALADA) */}
+      {deleteCatConfirmModal.isOpen && deleteCatConfirmModal.category && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteCatConfirmModal({ isOpen: false, category: null });
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn"
+        >
+          <div className="bg-slate-900 border border-rose-500/50 rounded-3xl p-6 max-w-sm w-full shadow-2xl shadow-black space-y-4 text-center">
+            <div className="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto border border-rose-500/30">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-white uppercase tracking-wide">
+                Excluir Categoria
+              </h3>
+              <p className="text-sm font-bold text-slate-200 leading-relaxed">
+                Tem certeza que deseja excluir a categoria <strong className="text-rose-400 uppercase">"{deleteCatConfirmModal.category.name}"</strong>?
+              </p>
+              <p className="text-[11px] text-slate-400">
+                {(deleteCatConfirmModal.category.items || []).length > 0 
+                  ? 'Todos os itens desta categoria também deixarão de aparecer para venda no caixa.'
+                  : 'Esta categoria será removida permanentemente do cardápio e do caixa.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteCatConfirmModal({ isOpen: false, category: null })}
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <X className="w-4 h-4" />
+                <span>NÃO</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDeleteCategory(deleteCatConfirmModal.category)}
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>SIM, EXCLUIR</span>
               </button>
             </div>
           </div>
