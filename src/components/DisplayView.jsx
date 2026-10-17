@@ -230,19 +230,16 @@ export default function DisplayView({ onNavigate }) {
               <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-full animate-bounce">
                 <Sparkles className="w-6 h-6" />
               </span>
-              <span className="text-sm sm:text-base md:text-lg uppercase font-black tracking-widest text-emerald-400 bg-emerald-950/80 px-5 py-1.5 rounded-full border border-emerald-500/50 shadow">
-                🔔 PEDIDO ENTREGUE / RETIRADA!
+              <span className="text-base sm:text-lg md:text-xl uppercase font-black tracking-widest text-emerald-400 bg-emerald-950/80 px-6 py-1.5 rounded-full border border-emerald-500/50 shadow">
+                PEDIDO Nº
               </span>
               <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-full animate-bounce">
                 <Sparkles className="w-6 h-6" />
               </span>
             </div>
 
-            {/* 1. PEDIDO (GRANDE) */}
-            <div className="space-y-1">
-              <div className="text-xs sm:text-sm font-black uppercase tracking-widest text-slate-400">
-                COMANDÃO / SENHA DO PEDIDO
-              </div>
+            {/* 1. NÚMERO DO PEDIDO (GRANDE) */}
+            <div>
               <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-amber-400 font-mono tracking-tight drop-shadow-[0_0_40px_rgba(251,191,36,0.9)] animate-pulse">
                 {deliveredModalOrder.orderNumber}
               </div>
@@ -268,12 +265,6 @@ export default function DisplayView({ onNavigate }) {
                   {renderItemDetails(deliveredModalOrder)}
                 </div>
               </div>
-            </div>
-
-            {/* AVISO DO TEMPO / TOQUE PARA FECHAR */}
-            <div className="pt-2 text-xs sm:text-sm text-slate-400 font-bold flex items-center justify-center gap-2">
-              <Clock className="w-4 h-4 text-amber-400 animate-spin-slow" />
-              <span>Retornando aos cards em 6 segundos...</span>
             </div>
 
           </div>
