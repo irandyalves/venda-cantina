@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import ProfileSelector from './ProfileSelector';
+import AutoToast from './AutoToast';
 
 export default function CashierView({ onOpenConfig, onNavigate }) {
   // Estado do Caixa
@@ -40,7 +41,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
   // Validação e feedback
   const [nameShake, setNameShake] = useState(false);
   const [showNameError, setShowNameError] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const nameInputRef = useRef(null);
   const qtyInputRef = useRef(null);
@@ -119,20 +120,22 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
     const { category, item, variation } = selectedProduct;
 
     // Determina o prefixo e descrição
-    let prefix = 'Ped-';
+    let prefix = 'Pp-';
     let unitPrice = item.price || 0;
     let description = item.name;
 
     if (category.id === 'pizza' && variation) {
-      prefix = variation.prefix || (variation.id === 'inteira' ? 'P int-' : 'P ped-');
+      prefix = variation.prefix || (variation.id === 'inteira' ? 'Pi-' : 'Pp-');
       unitPrice = variation.price;
       description = `Pizza ${variation.name}: ${item.name}`;
     } else if (category.id === 'acai') {
-      prefix = item.prefix || category.prefixDefault || 'Açaí ';
+      prefix = item.prefix || category.prefixDefault || 'A-';
       description = `Açaí ${item.name}`;
     } else if (category.id === 'batata') {
-      prefix = item.prefix || category.prefixDefault || 'Bat ';
+      prefix = item.prefix || category.prefixDefault || 'B-';
       description = `Batata ${item.name}`;
+    } else {
+      prefix = item.prefix || category.prefixDefault || 'Ped-';
     }
 
     const orderNumber = storageService.getNextOrderNumber(prefix);
@@ -155,10 +158,12 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
     try {
       const created = await storageService.createOrder(newOrder);
 
-      // Feedback visual
-      setFeedbackMessage({
+      // Feedback visual em Modal Bonito de 2 Segundos
+      setToast({
         type: 'success',
-        text: `Comanda ${created.orderNumber} enviada para a Cozinha! (${cleanName})`
+        title: 'Pedido Enviado para a Cozinha!',
+        message: `Comanda ${created.orderNumber} gerada com sucesso!`,
+        subtext: `Cliente: ${cleanName.toUpperCase()} • ${description} (${qty}x)`
       });
 
       // Resetar para a próxima escolha
@@ -166,13 +171,13 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
       setSelectedPizzaFlavor(null);
       setCustomerName('');
       setQuantity(1);
-
-      setTimeout(() => setFeedbackMessage(null), 3500);
     } catch (err) {
       console.error(err);
-      setFeedbackMessage({
+      setToast({
         type: 'error',
-        text: 'Erro ao enviar pedido para a cozinha.'
+        title: 'Falha no Envio',
+        message: 'Erro ao enviar pedido para a cozinha.',
+        subtext: err.message
       });
     }
   };
@@ -253,17 +258,8 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
         </div>
       </header>
 
-      {/* FEEDBACK DE ENVIO */}
-      {feedbackMessage && (
-        <div className={`px-3 py-1.5 flex items-center justify-between text-xs font-bold transition-all shadow-md shrink-0 ${
-          feedbackMessage.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-        }`}>
-          <div className="flex items-center gap-1.5 mx-auto">
-            {feedbackMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 animate-bounce" /> : <AlertCircle className="w-4 h-4" />}
-            <span>{feedbackMessage.text}</span>
-          </div>
-        </div>
-      )}
+      {/* MODAL BONITO DE 2 SEGUNDOS */}
+      <AutoToast toast={toast} onClose={() => setToast(null)} duration={2000} />
 
       {/* ========================================================
           ÁREA DO TOPO DO CAIXA:
@@ -450,8 +446,8 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                   SEÇÃO PIZZA <span className="text-[10px] font-normal text-slate-400 normal-case">— Escolha o sabor para abrir Pedaço ou Inteira</span>
                 </h2>
               </div>
-              <span className="text-[10px] font-semibold text-amber-400/90 bg-amber-400/10 px-1.5 py-0.2 rounded-full border border-amber-400/20">
-                P ped-XX / P int-XX
+              <span className="text-[10px] font-semibold text-amber-400/90 bg-amber-400/10 px-1.5 py-0.2 rounded-full border border-amber-400/20 font-mono">
+                Pp-XX / Pi-XX
               </span>
             </div>
 
@@ -570,8 +566,8 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                     SEÇÃO AÇAÍ
                   </h2>
                 </div>
-                <span className="text-[10px] font-semibold text-purple-300 bg-purple-900/40 px-1.5 py-0.2 rounded-full border border-purple-500/30">
-                  Açaí XX
+                <span className="text-[10px] font-semibold text-purple-300 bg-purple-900/40 px-1.5 py-0.2 rounded-full border border-purple-500/30 font-mono">
+                  A-XX
                 </span>
               </div>
 
@@ -619,8 +615,8 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                     SEÇÃO BATATA FRITA
                   </h2>
                 </div>
-                <span className="text-[10px] font-semibold text-yellow-300 bg-yellow-900/40 px-1.5 py-0.2 rounded-full border border-yellow-500/30">
-                  Bat XX
+                <span className="text-[10px] font-semibold text-yellow-300 bg-yellow-900/40 px-1.5 py-0.2 rounded-full border border-yellow-500/30 font-mono">
+                  B-XX
                 </span>
               </div>
 

@@ -12,12 +12,14 @@ import {
   Settings
 } from 'lucide-react';
 import { authService, PERFIS } from '../services/auth';
+import AutoToast from './AutoToast';
 
 export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
   const [activeProfile, setActiveProfile] = useState(authService.getActiveProfile());
   const [currentUser, setCurrentUser] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [toast, setToast] = useState(null);
   
   const menuRef = useRef(null);
 
@@ -68,7 +70,12 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
       }
       setIsOpen(false);
     } catch (err) {
-      alert('Não foi possível autenticar com o Google: ' + (err.message || 'Verifique se o Google Sign-In está ativado no Firebase Console.'));
+      setToast({
+        type: 'error',
+        title: 'Login Google',
+        message: 'Não foi possível autenticar com o Google.',
+        subtext: err.message || 'Verifique se o Google Sign-In está ativado no Firebase Console.'
+      });
     } finally {
       setLoadingGoogle(false);
     }
@@ -244,6 +251,9 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
 
         </div>
       )}
+
+      {/* MODAL BONITO DE 2 SEGUNDOS */}
+      <AutoToast toast={toast} onClose={() => setToast(null)} duration={2000} />
 
     </div>
   );

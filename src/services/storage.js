@@ -116,15 +116,17 @@ class StorageService {
   }
 
   // Gerador de código de comanda sequencial:
-  // Ex: P ped-01, P int-02, Açaí 01, Bat 01
-  getNextOrderNumber(prefix = 'P ped-') {
+  // Ex: Pp-01, Pi-02, A-01, B-01
+  getNextOrderNumber(prefix = 'Pp-') {
+    const cleanPrefix = (prefix || 'Pp-').trim();
+    const finalPrefix = cleanPrefix.endsWith('-') || cleanPrefix.endsWith(' ') ? cleanPrefix : `${cleanPrefix}-`;
     const counters = this.getCounters();
-    const current = (counters[prefix] || 0) + 1;
-    counters[prefix] = current;
+    const current = (counters[finalPrefix] || 0) + 1;
+    counters[finalPrefix] = current;
     localStorage.setItem(LOCAL_COUNTERS_KEY, JSON.stringify(counters));
 
     const formattedNum = String(current).padStart(2, '0');
-    return `${prefix}${formattedNum}`;
+    return `${finalPrefix}${formattedNum}`;
   }
 
   getCounters() {
@@ -145,7 +147,63 @@ class StorageService {
   getProducts() {
     try {
       const raw = localStorage.getItem(LOCAL_PRODUCTS_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Normalização de prefixos legados para o novo padrão solicitado (Pp-, Pi-, A-, B-)
+        let modified = false;
+        const normalized = parsed.map(cat => {
+          if (cat.id === 'pizza' && cat.variations) {
+            const variations = cat.variations.map(v => {
+              if (v.id === 'pedaco' && (v.prefix === 'P ped-' || !v.prefix)) {
+                modified = true;
+                return { ...v, prefix: 'Pp-' };
+              }
+              if (v.id === 'inteira' && (v.prefix === 'P int-' || !v.prefix)) {
+                modified = true;
+                return { ...v, prefix: 'Pi-' };
+              }
+              return v;
+            });
+            return { ...cat, variations };
+          }
+          if (cat.id === 'acai') {
+            let catPref = cat.prefixDefault;
+            if (catPref === 'Açaí ' || !catPref) {
+              catPref = 'A-';
+              modified = true;
+            }
+            const items = (cat.items || []).map(it => {
+              if (it.prefix === 'Açaí ' || !it.prefix) {
+                modified = true;
+                return { ...it, prefix: 'A-' };
+              }
+              return it;
+            });
+            return { ...cat, prefixDefault: catPref, items };
+          }
+          if (cat.id === 'batata') {
+            let catPref = cat.prefixDefault;
+            if (catPref === 'Bat ' || !catPref) {
+              catPref = 'B-';
+              modified = true;
+            }
+            const items = (cat.items || []).map(it => {
+              if (it.prefix === 'Bat ' || !it.prefix) {
+                modified = true;
+                return { ...it, prefix: 'B-' };
+              }
+              return it;
+            });
+            return { ...cat, prefixDefault: catPref, items };
+          }
+          return cat;
+        });
+
+        if (modified) {
+          localStorage.setItem(LOCAL_PRODUCTS_KEY, JSON.stringify(normalized));
+        }
+        return normalized;
+      }
     } catch (e) {
       console.error('Erro ao ler produtos locais:', e);
     }

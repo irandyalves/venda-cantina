@@ -19,17 +19,35 @@ import {
   Mail,
   UserCheck,
   ShieldCheck,
-  Tv
+  Tv,
+  Tag,
+  Hash
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
 import { DEFAULT_CATEGORIES } from '../data/defaultProducts';
+import AutoToast from './AutoToast';
 
 export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }) {
   const [activeTab, setActiveTab] = useState(initialTab); // 'products', 'firebase', 'reports', 'emails'
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   
+  // Modal Bonito de 2 Segundos (AutoToast)
+  const [toast, setToast] = useState(null);
+  const showToast = (message, title = 'Sucesso!', type = 'success', subtext = null) => {
+    setToast({ message, title, type, subtext });
+  };
+
+  // Helper para converter preço (suporta vírgula e ponto: 9,50 ou 9.50)
+  const parsePrice = (val) => {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    const normalized = String(val).replace(',', '.');
+    const num = parseFloat(normalized);
+    return isNaN(num) ? 0 : num;
+  };
+
   // Estado Firebase Config
   const [firebaseConfig, setFirebaseConfig] = useState({
     apiKey: '',
@@ -46,17 +64,26 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [selectedProfileForEmail, setSelectedProfileForEmail] = useState(PERFIS.ADMIN);
   const [newEmailInput, setNewEmailInput] = useState('');
 
+  // Prefixos das Senhas (Comandas)
+  const [pedacoPrefix, setPedacoPrefix] = useState('Pp-');
+  const [inteiraPrefix, setInteiraPrefix] = useState('Pi-');
+  const [acaiPrefix, setAcaiPrefix] = useState('A-');
+  const [batataPrefix, setBatataPrefix] = useState('B-');
+
   // Estado Novo Sabor de Pizza
   const [newPizzaFlavor, setNewPizzaFlavor] = useState('');
   const [newPizzaDesc, setNewPizzaDesc] = useState('');
+  const [newPizzaPrefix, setNewPizzaPrefix] = useState('');
 
   // Estado Novo Item de Açaí
   const [newAcaiName, setNewAcaiName] = useState('');
   const [newAcaiPrice, setNewAcaiPrice] = useState('');
+  const [newAcaiPrefix, setNewAcaiPrefix] = useState('A-');
 
   // Estado Novo Item de Batata
   const [newBatataName, setNewBatataName] = useState('');
   const [newBatataPrice, setNewBatataPrice] = useState('');
+  const [newBatataPrefix, setNewBatataPrefix] = useState('B-');
 
   // Estado Configurações da TV
   const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
@@ -80,8 +107,26 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     if (pizzaCat && pizzaCat.variations) {
       const p = pizzaCat.variations.find(v => v.id === 'pedaco');
       const i = pizzaCat.variations.find(v => v.id === 'inteira');
-      if (p) setPedacoPrice(p.price);
-      if (i) setInteiraPrice(i.price);
+      if (p) {
+        setPedacoPrice(p.price);
+        setPedacoPrefix(p.prefix || 'Pp-');
+      }
+      if (i) {
+        setInteiraPrice(i.price);
+        setInteiraPrefix(i.prefix || 'Pi-');
+      }
+    }
+
+    const acaiC = cats.find(c => c.id === 'acai');
+    if (acaiC) {
+      setAcaiPrefix(acaiC.prefixDefault || 'A-');
+      setNewAcaiPrefix(acaiC.prefixDefault || 'A-');
+    }
+
+    const batataC = cats.find(c => c.id === 'batata');
+    if (batataC) {
+      setBatataPrefix(batataC.prefixDefault || 'B-');
+      setNewBatataPrefix(batataC.prefixDefault || 'B-');
     }
 
     const savedFb = storageService.getFirebaseConfig();
@@ -132,35 +177,84 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setEmailRules(authService.getEmailRules());
   };
 
-  // --- AÇÕES DE PRODUTOS ---
+  // --- AÇÕES DE PRODUTOS E PREFIXOS ---
+
+  // Salvar Prefixos Globais das Comandas (Pp-, Pi-, A-, B-)
+  const handleSaveAllPrefixes = () => {
+    const pPed = pedacoPrefix.trim() || 'Pp-';
+    const pInt = inteiraPrefix.trim() || 'Pi-';
+    const aPref = acaiPrefix.trim() || 'A-';
+    const bPref = batataPrefix.trim() || 'B-';
+
+    const updated = categories.map(cat => {
+      if (cat.id === 'pizza') {
+        return {
+          ...cat,
+          variations: (cat.variations || []).map(v => {
+            if (v.id === 'pedaco') return { ...v, prefix: pPed };
+            if (v.id === 'inteira') return { ...v, prefix: pInt };
+            return v;
+          })
+        };
+      }
+      if (cat.id === 'acai') {
+        return {
+          ...cat,
+          prefixDefault: aPref,
+          items: (cat.items || []).map(it => ({ ...it, prefix: it.prefix || aPref }))
+        };
+      }
+      if (cat.id === 'batata') {
+        return {
+          ...cat,
+          prefixDefault: bPref,
+          items: (cat.items || []).map(it => ({ ...it, prefix: it.prefix || bPref }))
+        };
+      }
+      return cat;
+    });
+
+    storageService.saveProducts(updated);
+    setCategories(updated);
+    showToast('Prefixos das senhas atualizados com sucesso!', 'Prefixos Salvos');
+  };
+
   const handleSavePizzaPrices = () => {
+    const pedVal = parsePrice(pedacoPrice);
+    const intVal = parsePrice(inteiraPrice);
+    const pPed = pedacoPrefix.trim() || 'Pp-';
+    const pInt = inteiraPrefix.trim() || 'Pi-';
+
     const updated = categories.map(cat => {
       if (cat.id === 'pizza') {
         return {
           ...cat,
           variations: [
-            { id: 'pedaco', name: 'PEDAÇO', price: parseFloat(pedacoPrice) || 0, prefix: 'P ped-' },
-            { id: 'inteira', name: 'INTEIRA', price: parseFloat(inteiraPrice) || 0, prefix: 'P int-' },
+            { id: 'pedaco', name: 'PEDAÇO', price: pedVal, prefix: pPed },
+            { id: 'inteira', name: 'INTEIRA', price: intVal, prefix: pInt },
           ]
         };
       }
       return cat;
     });
+
     storageService.saveProducts(updated);
     setCategories(updated);
-    alert('Preços da Pizza atualizados!');
+    showToast('Preços e Prefixos da Pizza atualizados!', 'Pizza Salva');
   };
 
   const handleAddPizzaFlavor = (e) => {
     e.preventDefault();
     if (!newPizzaFlavor.trim()) return;
 
+    const flavorName = newPizzaFlavor.trim();
     const updated = categories.map(cat => {
       if (cat.id === 'pizza') {
         const newItem = {
           id: 'p_' + Date.now(),
-          name: newPizzaFlavor.trim(),
-          description: newPizzaDesc.trim() || 'Sabor especial'
+          name: flavorName,
+          description: newPizzaDesc.trim() || 'Sabor especial',
+          prefix: newPizzaPrefix.trim() || null
         };
         return { ...cat, items: [...cat.items, newItem] };
       }
@@ -171,6 +265,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setCategories(updated);
     setNewPizzaFlavor('');
     setNewPizzaDesc('');
+    setNewPizzaPrefix('');
+    showToast(`Sabor "${flavorName}" adicionado ao cardápio!`);
   };
 
   const handleRemovePizzaFlavor = (id) => {
@@ -182,19 +278,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     });
     storageService.saveProducts(updated);
     setCategories(updated);
+    showToast('Sabor de pizza removido.');
   };
 
   const handleAddAcai = (e) => {
     e.preventDefault();
     if (!newAcaiName.trim() || !newAcaiPrice) return;
 
+    const name = newAcaiName.trim();
+    const price = parsePrice(newAcaiPrice);
+    const pref = newAcaiPrefix.trim() || acaiPrefix.trim() || 'A-';
+
     const updated = categories.map(cat => {
       if (cat.id === 'acai') {
         const newItem = {
           id: 'acai_' + Date.now(),
-          name: newAcaiName.trim(),
-          price: parseFloat(newAcaiPrice) || 0,
-          prefix: 'Açaí '
+          name,
+          price,
+          prefix: pref
         };
         return { ...cat, items: [...cat.items, newItem] };
       }
@@ -205,6 +306,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setCategories(updated);
     setNewAcaiName('');
     setNewAcaiPrice('');
+    showToast(`Opção "${name}" adicionada ao Açaí!`);
   };
 
   const handleRemoveAcai = (id) => {
@@ -216,19 +318,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     });
     storageService.saveProducts(updated);
     setCategories(updated);
+    showToast('Opção de Açaí removida.');
   };
 
   const handleAddBatata = (e) => {
     e.preventDefault();
     if (!newBatataName.trim() || !newBatataPrice) return;
 
+    const name = newBatataName.trim();
+    const price = parsePrice(newBatataPrice);
+    const pref = newBatataPrefix.trim() || batataPrefix.trim() || 'B-';
+
     const updated = categories.map(cat => {
       if (cat.id === 'batata') {
         const newItem = {
           id: 'bat_' + Date.now(),
-          name: newBatataName.trim(),
-          price: parseFloat(newBatataPrice) || 0,
-          prefix: 'Bat '
+          name,
+          price,
+          prefix: pref
         };
         return { ...cat, items: [...cat.items, newItem] };
       }
@@ -239,6 +346,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setCategories(updated);
     setNewBatataName('');
     setNewBatataPrice('');
+    showToast(`Opção "${name}" adicionada à Batata!`);
   };
 
   const handleRemoveBatata = (id) => {
@@ -250,12 +358,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     });
     storageService.saveProducts(updated);
     setCategories(updated);
+    showToast('Opção de Batata removida.');
   };
 
-  // Atualizar preço de qualquer item individualmente (Açaí ou Batata)
+  // Atualizar preço individualmente (Açaí ou Batata)
   const handleUpdateItemPrice = (categoryId, itemId, newPrice) => {
-    const priceNum = parseFloat(newPrice);
-    if (isNaN(priceNum) || priceNum < 0) return;
+    const priceNum = parsePrice(newPrice);
 
     const updated = categories.map(cat => {
       if (cat.id === categoryId) {
@@ -269,13 +377,33 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     storageService.saveProducts(updated);
     setCategories(updated);
+    showToast('Preço do item atualizado com sucesso!');
+  };
+
+  // Atualizar prefixo da senha de um item individualmente
+  const handleUpdateItemPrefix = (categoryId, itemId, newPrefix) => {
+    const cleanPref = (newPrefix || '').trim();
+    const updated = categories.map(cat => {
+      if (cat.id === categoryId) {
+        return {
+          ...cat,
+          items: cat.items.map(item => item.id === itemId ? { ...item, prefix: cleanPref } : item)
+        };
+      }
+      return cat;
+    });
+
+    storageService.saveProducts(updated);
+    setCategories(updated);
+    showToast(`Prefixo da senha alterado para "${cleanPref}"!`, 'Senha Personalizada');
   };
 
   const handleResetCatalog = () => {
-    if (window.confirm('Tem certeza que deseja restaurar o cardápio padrão com os sabores iniciais?')) {
+    if (window.confirm('Tem certeza que deseja restaurar o cardápio padrão com os sabores e prefixos iniciais?')) {
       storageService.saveProducts(DEFAULT_CATEGORIES);
       setCategories(DEFAULT_CATEGORIES);
-      alert('Cardápio restaurado com sucesso!');
+      loadData();
+      showToast('Cardápio restaurado com sucesso!', 'Cardápio Padrão');
     }
   };
 
@@ -286,11 +414,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       const ok = storageService.saveFirebaseConfig(firebaseConfig);
       if (ok) {
         setFirebaseStatus({ success: true, message: 'Firebase conectado com sucesso!' });
+        showToast('Firebase conectado com sucesso!', 'Conexão Nuvem');
       } else {
         setFirebaseStatus({ success: false, message: 'Dados salvos, mas verifique se o Project ID e API Key estão corretos.' });
+        showToast('Verifique se o Project ID e API Key estão corretos.', 'Atenção', 'warning');
       }
     } catch (err) {
       setFirebaseStatus({ success: false, message: err.message });
+      showToast(err.message, 'Erro', 'error');
     }
   };
 
@@ -308,7 +439,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     if (window.confirm('ATENÇÃO: Deseja zerar as comandas e fechar o turno de hoje?')) {
       storageService.clearDayOrders();
       setOrders([]);
-      alert('Comandas zeradas para o novo turno!');
+      showToast('Comandas zeradas para o novo turno!', 'Turno Fechado');
     }
   };
 
@@ -582,6 +713,110 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
              ========================================================= */}
           {activeTab === 'products' && (
             <div className="space-y-6">
+
+              {/* ========================================================
+                  NOVO: PAINEL DE DEFINIÇÃO DOS PREFIXOS DAS SENHAS
+                 ======================================================== */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-5 rounded-2xl border-2 border-amber-500/50 shadow-xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/80 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                      <Tag className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
+                        PREFIXOS DAS SENHAS (COMANDAS)
+                        <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                          Personalizável
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Defina a sigla das senhas geradas no caixa para a cozinha e TV. Ex: Pp-01, Pi-02, A-01, B-01.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSaveAllPrefixes}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <Save className="w-4 h-4" /> Salvar Prefixos
+                  </button>
+                </div>
+
+                {/* GRID DOS 4 PREFIXOS PADRÕES */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  
+                  {/* PIZZA PEDAÇO */}
+                  <div className="bg-slate-950/80 p-3 rounded-xl border border-amber-500/30 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-amber-400 uppercase">Pizza Pedaço</span>
+                      <span className="text-[10px] text-slate-500 font-mono">Ex: {pedacoPrefix || 'Pp-'}01</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={pedacoPrefix}
+                        onChange={(e) => setPedacoPrefix(e.target.value)}
+                        placeholder="Pp-"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono font-black text-amber-300 outline-none focus:border-amber-400 uppercase"
+                      />
+                    </div>
+                  </div>
+
+                  {/* PIZZA INTEIRA */}
+                  <div className="bg-slate-950/80 p-3 rounded-xl border border-red-500/30 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-red-400 uppercase">Pizza Inteira</span>
+                      <span className="text-[10px] text-slate-500 font-mono">Ex: {inteiraPrefix || 'Pi-'}01</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={inteiraPrefix}
+                        onChange={(e) => setInteiraPrefix(e.target.value)}
+                        placeholder="Pi-"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono font-black text-red-300 outline-none focus:border-red-400 uppercase"
+                      />
+                    </div>
+                  </div>
+
+                  {/* AÇAÍ */}
+                  <div className="bg-slate-950/80 p-3 rounded-xl border border-purple-500/30 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-purple-400 uppercase">Açaí (Padrão)</span>
+                      <span className="text-[10px] text-slate-500 font-mono">Ex: {acaiPrefix || 'A-'}01</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={acaiPrefix}
+                        onChange={(e) => setAcaiPrefix(e.target.value)}
+                        placeholder="A-"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono font-black text-purple-300 outline-none focus:border-purple-400 uppercase"
+                      />
+                    </div>
+                  </div>
+
+                  {/* BATATA FRITA */}
+                  <div className="bg-slate-950/80 p-3 rounded-xl border border-yellow-500/30 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-yellow-400 uppercase">Batata (Padrão)</span>
+                      <span className="text-[10px] text-slate-500 font-mono">Ex: {batataPrefix || 'B-'}01</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={batataPrefix}
+                        onChange={(e) => setBatataPrefix(e.target.value)}
+                        placeholder="B-"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono font-black text-yellow-300 outline-none focus:border-yellow-400 uppercase"
+                      />
+                    </div>
+                  </div>
+
+                </div>
+              </div>
               
               {/* SEÇÃO PIZZA: PREÇOS E SABORES */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
@@ -598,30 +833,52 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </div>
 
-                {/* DEFINIR PREÇOS DE PEDAÇO E INTEIRA */}
+                {/* DEFINIR PREÇOS DE PEDAÇO E INTEIRA EM REAIS COM DIGITAÇÃO DIRETA */}
                 <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/80 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    
+                    {/* PREÇO PEDAÇO */}
                     <div>
-                      <label className="text-[11px] font-bold text-amber-400 uppercase">Preço Pedaço (R$)</label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        value={pedacoPrice}
-                        onChange={(e) => setPedacoPrice(e.target.value)}
-                        className="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1.5 font-bold text-white outline-none focus:border-amber-400"
-                      />
+                      <label className="text-[11px] font-black text-amber-400 uppercase block mb-1">
+                        Preço Pedaço (R$)
+                      </label>
+                      <div className="flex items-center bg-slate-800 border border-slate-600 rounded-lg overflow-hidden focus-within:border-amber-400">
+                        <span className="bg-slate-700/70 text-amber-300 px-2.5 py-1.5 font-black text-xs border-r border-slate-600">
+                          R$
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={pedacoPrice}
+                          onChange={(e) => setPedacoPrice(e.target.value)}
+                          placeholder="9,00"
+                          className="w-24 bg-transparent px-2.5 py-1.5 font-black text-white text-sm outline-none"
+                        />
+                      </div>
                     </div>
+
+                    {/* PREÇO INTEIRA */}
                     <div>
-                      <label className="text-[11px] font-bold text-red-400 uppercase">Preço Inteira (R$)</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={inteiraPrice}
-                        onChange={(e) => setInteiraPrice(e.target.value)}
-                        className="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1.5 font-bold text-white outline-none focus:border-red-400"
-                      />
+                      <label className="text-[11px] font-black text-red-400 uppercase block mb-1">
+                        Preço Inteira (R$)
+                      </label>
+                      <div className="flex items-center bg-slate-800 border border-slate-600 rounded-lg overflow-hidden focus-within:border-red-400">
+                        <span className="bg-slate-700/70 text-red-300 px-2.5 py-1.5 font-black text-xs border-r border-slate-600">
+                          R$
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={inteiraPrice}
+                          onChange={(e) => setInteiraPrice(e.target.value)}
+                          placeholder="48,00"
+                          className="w-24 bg-transparent px-2.5 py-1.5 font-black text-white text-sm outline-none"
+                        />
+                      </div>
                     </div>
+
                   </div>
+
                   <button
                     onClick={handleSavePizzaPrices}
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 shadow"
@@ -630,7 +887,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </div>
 
-                {/* ADICIONAR NOVO SABOR DE PIZZA */}
+                {/* ADICIONAR NOVO SABOR DE PIZZA (COM PREFIXO PERSONALIZADO OPCIONAL) */}
                 <form onSubmit={handleAddPizzaFlavor} className="flex flex-col sm:flex-row gap-2 pt-2">
                   <input
                     type="text"
@@ -646,9 +903,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     onChange={(e) => setNewPizzaDesc(e.target.value)}
                     className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
                   />
+                  <input
+                    type="text"
+                    placeholder="Prefixo senha (opcional, ex: Pp-)"
+                    value={newPizzaPrefix}
+                    onChange={(e) => setNewPizzaPrefix(e.target.value)}
+                    className="w-32 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs font-mono text-amber-300 outline-none focus:border-amber-400 uppercase"
+                  />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shrink-0"
                   >
                     <Plus className="w-4 h-4" /> Adicionar Sabor
                   </button>
@@ -661,13 +925,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       key={flavor.id}
                       className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2"
                     >
-                      <div>
-                        <div className="font-bold text-sm text-white">{flavor.name}</div>
-                        <div className="text-[11px] text-slate-400 line-clamp-1">{flavor.description}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-white truncate">{flavor.name}</span>
+                          {flavor.prefix && (
+                            <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/30">
+                              {flavor.prefix}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{flavor.description}</div>
                       </div>
                       <button
                         onClick={() => handleRemovePizzaFlavor(flavor.id)}
-                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
                         title="Remover sabor"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -679,58 +950,106 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
               {/* SEÇÃO AÇAÍ */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-700 pb-3">
-                  <IceCream className="w-5 h-5 text-purple-400" />
-                  <h3 className="font-extrabold text-white text-base">Cardápio de Açaí</h3>
+                <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+                  <div className="flex items-center gap-2">
+                    <IceCream className="w-5 h-5 text-purple-400" />
+                    <h3 className="font-extrabold text-white text-base">Cardápio de Açaí</h3>
+                  </div>
+                  <span className="text-xs font-mono bg-purple-950 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-lg">
+                    Prefixo Padrão: {acaiPrefix || 'A-'}
+                  </span>
                 </div>
 
+                {/* FORMULÁRIO DE ADICIONAR COM PREÇO EM REAIS E SENHA PERSONALIZADA */}
                 <form onSubmit={handleAddAcai} className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
+                    required
                     placeholder="Opção (ex: Copo 400ml Especial)"
                     value={newAcaiName}
                     onChange={(e) => setNewAcaiName(e.target.value)}
                     className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-purple-400"
                   />
-                  <input
-                    type="number"
-                    step="0.5"
-                    placeholder="Preço R$"
-                    value={newAcaiPrice}
-                    onChange={(e) => setNewAcaiPrice(e.target.value)}
-                    className="w-32 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-purple-400"
-                  />
+                  
+                  {/* PREÇO EM REAIS */}
+                  <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl overflow-hidden focus-within:border-purple-400">
+                    <span className="bg-slate-800 text-purple-300 px-2.5 py-2 font-black text-xs border-r border-slate-700">
+                      R$
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      placeholder="Preço"
+                      value={newAcaiPrice}
+                      onChange={(e) => setNewAcaiPrice(e.target.value)}
+                      className="w-24 bg-transparent px-2.5 py-2 text-sm font-bold text-white outline-none"
+                    />
+                  </div>
+
+                  {/* PREFIXO DA SENHA PERSONALIZADA */}
+                  <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl overflow-hidden focus-within:border-purple-400">
+                    <span className="bg-slate-800 text-purple-300 px-2 py-2 font-black text-[11px] border-r border-slate-700">
+                      Senha:
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="A-"
+                      value={newAcaiPrefix}
+                      onChange={(e) => setNewAcaiPrefix(e.target.value)}
+                      className="w-16 bg-transparent px-2 py-2 text-xs font-mono font-bold text-purple-200 outline-none uppercase"
+                    />
+                  </div>
+
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shrink-0"
                   >
                     <Plus className="w-4 h-4" /> Adicionar
                   </button>
                 </form>
 
+                {/* LISTAGEM DOS ITENS DE AÇAÍ COM PREÇO EM REAIS E PREFIXO EDITÁVEL */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {acaiCat?.items.map((item) => (
                     <div
                       key={item.id}
                       className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2"
                     >
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="font-bold text-xs text-white truncate">{item.name}</div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="text-[10px] text-purple-400 font-bold">R$</span>
-                          <input
-                            type="number"
-                            step="0.5"
-                            defaultValue={item.price}
-                            onBlur={(e) => handleUpdateItemPrice('acai', item.id, e.target.value)}
-                            className="w-16 bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 text-xs font-bold text-white outline-none focus:border-purple-400"
-                            title="Altere o valor e saia do campo para salvar"
-                          />
+                        
+                        <div className="flex items-center gap-2 mt-1.5">
+                          {/* PREÇO EM REAIS SEM SETINHAS */}
+                          <div className="flex items-center bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 focus-within:border-purple-400">
+                            <span className="text-[10px] text-purple-400 font-bold mr-1">R$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              defaultValue={Number(item.price).toFixed(2)}
+                              onBlur={(e) => handleUpdateItemPrice('acai', item.id, e.target.value)}
+                              className="w-14 bg-transparent text-xs font-bold text-white outline-none"
+                              title="Altere o valor em reais e saia do campo para salvar"
+                            />
+                          </div>
+
+                          {/* PREFIXO DA SENHA */}
+                          <div className="flex items-center bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 focus-within:border-purple-400">
+                            <span className="text-[9px] text-slate-400 font-mono mr-1">Senha:</span>
+                            <input
+                              type="text"
+                              defaultValue={item.prefix || acaiPrefix || 'A-'}
+                              onBlur={(e) => handleUpdateItemPrefix('acai', item.id, e.target.value)}
+                              className="w-10 bg-transparent text-xs font-mono font-bold text-purple-300 outline-none uppercase"
+                              title="Altere o prefixo da senha e saia do campo para salvar"
+                            />
+                          </div>
                         </div>
                       </div>
+
                       <button
                         onClick={() => handleRemoveAcai(item.id)}
-                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
                         title="Remover opção"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -742,58 +1061,106 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
               {/* SEÇÃO BATATA FRITA */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-700 pb-3">
-                  <UtensilsCrossed className="w-5 h-5 text-yellow-400" />
-                  <h3 className="font-extrabold text-white text-base">Cardápio de Batata Frita</h3>
+                <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+                  <div className="flex items-center gap-2">
+                    <UtensilsCrossed className="w-5 h-5 text-yellow-400" />
+                    <h3 className="font-extrabold text-white text-base">Cardápio de Batata Frita</h3>
+                  </div>
+                  <span className="text-xs font-mono bg-yellow-950 text-yellow-300 border border-yellow-500/40 px-2 py-0.5 rounded-lg">
+                    Prefixo Padrão: {batataPrefix || 'B-'}
+                  </span>
                 </div>
 
+                {/* FORMULÁRIO DE ADICIONAR COM PREÇO EM REAIS E SENHA PERSONALIZADA */}
                 <form onSubmit={handleAddBatata} className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
+                    required
                     placeholder="Opção (ex: Batata Rústica c/ Molho)"
                     value={newBatataName}
                     onChange={(e) => setNewBatataName(e.target.value)}
                     className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-yellow-400"
                   />
-                  <input
-                    type="number"
-                    step="0.5"
-                    placeholder="Preço R$"
-                    value={newBatataPrice}
-                    onChange={(e) => setNewBatataPrice(e.target.value)}
-                    className="w-32 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-yellow-400"
-                  />
+                  
+                  {/* PREÇO EM REAIS */}
+                  <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl overflow-hidden focus-within:border-yellow-400">
+                    <span className="bg-slate-800 text-yellow-300 px-2.5 py-2 font-black text-xs border-r border-slate-700">
+                      R$
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      placeholder="Preço"
+                      value={newBatataPrice}
+                      onChange={(e) => setNewBatataPrice(e.target.value)}
+                      className="w-24 bg-transparent px-2.5 py-2 text-sm font-bold text-white outline-none"
+                    />
+                  </div>
+
+                  {/* PREFIXO DA SENHA PERSONALIZADA */}
+                  <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl overflow-hidden focus-within:border-yellow-400">
+                    <span className="bg-slate-800 text-yellow-300 px-2 py-2 font-black text-[11px] border-r border-slate-700">
+                      Senha:
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="B-"
+                      value={newBatataPrefix}
+                      onChange={(e) => setNewBatataPrefix(e.target.value)}
+                      className="w-16 bg-transparent px-2 py-2 text-xs font-mono font-bold text-yellow-200 outline-none uppercase"
+                    />
+                  </div>
+
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shrink-0"
                   >
                     <Plus className="w-4 h-4" /> Adicionar
                   </button>
                 </form>
 
+                {/* LISTAGEM DOS ITENS DE BATATA COM PREÇO EM REAIS E PREFIXO EDITÁVEL */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {batataCat?.items.map((item) => (
                     <div
                       key={item.id}
                       className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2"
                     >
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="font-bold text-xs text-white truncate">{item.name}</div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="text-[10px] text-amber-400 font-bold">R$</span>
-                          <input
-                            type="number"
-                            step="0.5"
-                            defaultValue={item.price}
-                            onBlur={(e) => handleUpdateItemPrice('batata', item.id, e.target.value)}
-                            className="w-16 bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 text-xs font-bold text-white outline-none focus:border-amber-400"
-                            title="Altere o valor e saia do campo para salvar"
-                          />
+                        
+                        <div className="flex items-center gap-2 mt-1.5">
+                          {/* PREÇO EM REAIS SEM SETINHAS */}
+                          <div className="flex items-center bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 focus-within:border-yellow-400">
+                            <span className="text-[10px] text-amber-400 font-bold mr-1">R$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              defaultValue={Number(item.price).toFixed(2)}
+                              onBlur={(e) => handleUpdateItemPrice('batata', item.id, e.target.value)}
+                              className="w-14 bg-transparent text-xs font-bold text-white outline-none"
+                              title="Altere o valor em reais e saia do campo para salvar"
+                            />
+                          </div>
+
+                          {/* PREFIXO DA SENHA */}
+                          <div className="flex items-center bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 focus-within:border-yellow-400">
+                            <span className="text-[9px] text-slate-400 font-mono mr-1">Senha:</span>
+                            <input
+                              type="text"
+                              defaultValue={item.prefix || batataPrefix || 'B-'}
+                              onBlur={(e) => handleUpdateItemPrefix('batata', item.id, e.target.value)}
+                              className="w-10 bg-transparent text-xs font-mono font-bold text-amber-300 outline-none uppercase"
+                              title="Altere o prefixo da senha e saia do campo para salvar"
+                            />
+                          </div>
                         </div>
                       </div>
+
                       <button
                         onClick={() => handleRemoveBatata(item.id)}
-                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
                         title="Remover opção"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1060,6 +1427,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         </div>
 
       </div>
+
+      {/* MODAL BONITO DE 2 SEGUNDOS */}
+      <AutoToast toast={toast} onClose={() => setToast(null)} duration={2000} />
 
     </div>
   );
