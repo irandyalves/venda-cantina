@@ -632,25 +632,23 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </h2>
               </div>
 
-              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO */}
+              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO (REDONDOS SEM CAPTION) */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleOpenQuickAdd(pizzaCategory)}
                   title="Adicionar novo sabor / opção de pizza"
-                  className="h-6 px-2.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs rounded-lg shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Adicionar</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleOpenQuickDelete(pizzaCategory)}
                   title="Excluir sabor de pizza"
-                  className="h-6 px-2.5 bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white font-black text-xs rounded-lg border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Excluir</span>
                 </button>
               </div>
             </div>
@@ -873,25 +871,23 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </h2>
               </div>
 
-              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO */}
+              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO (REDONDOS SEM CAPTION) */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleOpenQuickAdd(acaiCategory)}
                   title="Adicionar nova opção de Açaí (ex: Copo 500ml)"
-                  className="h-6 px-2.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs rounded-lg shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Adicionar</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleOpenQuickDelete(acaiCategory)}
                   title="Excluir opção de Açaí"
-                  className="h-6 px-2.5 bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white font-black text-xs rounded-lg border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Excluir</span>
                 </button>
               </div>
             </div>
@@ -1080,25 +1076,23 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </h2>
               </div>
 
-              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO */}
+              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO (REDONDOS SEM CAPTION) */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleOpenQuickAdd(batataCategory)}
                   title="Adicionar nova opção de Batata"
-                  className="h-6 px-2.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs rounded-lg shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Adicionar</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleOpenQuickDelete(batataCategory)}
                   title="Excluir opção de Batata"
-                  className="h-6 px-2.5 bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white font-black text-xs rounded-lg border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Excluir</span>
                 </button>
               </div>
             </div>
@@ -1287,25 +1281,23 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </h2>
               </div>
 
-              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO */}
+              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO (REDONDOS SEM CAPTION) */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleOpenQuickAdd(cat)}
                   title={`Adicionar opções de ${cat.name}`}
-                  className="h-6 px-2.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs rounded-lg shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Adicionar</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleOpenQuickDelete(cat)}
                   title={`Excluir opções de ${cat.name}`}
-                  className="h-6 px-2.5 bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white font-black text-xs rounded-lg border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Excluir</span>
                 </button>
               </div>
             </div>
