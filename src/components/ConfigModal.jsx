@@ -158,6 +158,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [newEnvName, setNewEnvName] = useState('');
   const [newEnvType, setNewEnvType] = useState('kitchen'); // 'kitchen', 'cashier', 'display'
   const [newEnvDesc, setNewEnvDesc] = useState('');
+  const [newEnvLinkedKitchen, setNewEnvLinkedKitchen] = useState('');
   const [editingEnv, setEditingEnv] = useState(null);
   const [deleteEnvConfirmModal, setDeleteEnvConfirmModal] = useState({ isOpen: false, env: null });
 
@@ -551,7 +552,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         name: cleanName,
         shortName: cleanName,
         type: newEnvType,
-        description: newEnvDesc.trim()
+        description: newEnvDesc.trim(),
+        linkedKitchen: newEnvType === 'display' ? newEnvLinkedKitchen : ''
       });
       setEnvironments(authService.getEnvironments());
       setEmailRules(authService.getEmailRules());
@@ -559,6 +561,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       setNewEnvName('');
       setNewEnvType('kitchen');
       setNewEnvDesc('');
+      setNewEnvLinkedKitchen('');
       showToast(`Ambiente "${created.name}" cadastrado com sucesso!`, 'Ambiente Criado');
     } catch (err) {
       showToast(err.message, 'Erro', 'error');
@@ -572,6 +575,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       shortName: env.shortName || '',
       type: env.type || 'kitchen',
       description: env.description || '',
+      linkedKitchen: env.linkedKitchen || '',
       isSystem: Boolean(env.isSystem)
     });
     setShowEditEnvModal(true);
@@ -590,7 +594,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         name: cleanName,
         shortName: cleanName,
         type: editingEnv.type,
-        description: (editingEnv.description || '').trim()
+        description: (editingEnv.description || '').trim(),
+        linkedKitchen: editingEnv.type === 'display' ? (editingEnv.linkedKitchen || '') : ''
       });
       setEnvironments(authService.getEnvironments());
       setShowEditEnvModal(false);
@@ -3556,6 +3561,30 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </select>
               </div>
 
+              {/* SE FOR PAINEL TV: ESCOLHA SE É TV GERAL OU EXCLUSIVA DE UMA COZINHA */}
+              {newEnvType === 'display' && (
+                <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-1.5 animate-fadeIn">
+                  <label className="text-xs font-bold text-emerald-300 block">
+                    📺 Exibição Exclusiva (Vincular à Cozinha):
+                  </label>
+                  <select
+                    value={newEnvLinkedKitchen}
+                    onChange={(e) => setNewEnvLinkedKitchen(e.target.value)}
+                    className="w-full bg-slate-900 border border-emerald-500/50 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-emerald-400 cursor-pointer"
+                  >
+                    <option value="">🌐 Painel TV Geral (Exibe pedidos e chamadas de todas as cozinhas)</option>
+                    {environments.filter(e => e.type === 'kitchen' && e.id !== 'ADMIN' && e.id !== 'PUBLICO' && e.id !== 'TENDA').map((k) => (
+                      <option key={k.id} value={k.id}>
+                        🍳 Exclusivo de: {k.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-emerald-200/80 leading-relaxed">
+                    Se você escolher uma cozinha específica, esta TV tocará o sino e chamará os clientes <strong>apenas</strong> dos itens daquela cozinha!
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">
                   Descrição / Função (Opcional):
@@ -3652,6 +3681,30 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <option value="display">📺 Painel TV / Público</option>
                 </select>
               </div>
+
+              {/* SE FOR PAINEL TV: ESCOLHA SE É TV GERAL OU EXCLUSIVA DE UMA COZINHA */}
+              {editingEnv.type === 'display' && (
+                <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-1.5 animate-fadeIn">
+                  <label className="text-xs font-bold text-emerald-300 block">
+                    📺 Exibição Exclusiva (Vincular à Cozinha):
+                  </label>
+                  <select
+                    value={editingEnv.linkedKitchen || ''}
+                    onChange={(e) => setEditingEnv({ ...editingEnv, linkedKitchen: e.target.value })}
+                    className="w-full bg-slate-900 border border-emerald-500/50 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-emerald-400 cursor-pointer"
+                  >
+                    <option value="">🌐 Painel TV Geral (Exibe pedidos e chamadas de todas as cozinhas)</option>
+                    {environments.filter(e => e.type === 'kitchen' && e.id !== 'ADMIN' && e.id !== 'PUBLICO' && e.id !== 'TENDA').map((k) => (
+                      <option key={k.id} value={k.id}>
+                        🍳 Exclusivo de: {k.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-emerald-200/80 leading-relaxed">
+                    Se você escolher uma cozinha específica, esta TV tocará o sino e chamará os clientes <strong>apenas</strong> dos itens daquela cozinha!
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">

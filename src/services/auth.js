@@ -186,7 +186,7 @@ class AuthService {
     storageService.saveEnvironmentsCloud(environments);
   }
 
-  addEnvironment({ name, shortName, type = 'kitchen', icon, color, description = '' }) {
+  addEnvironment({ name, shortName, type = 'kitchen', icon, color, description = '', linkedKitchen = '' }) {
     const cleanName = (name || '').trim();
     if (!cleanName) throw new Error('O nome do ambiente é obrigatório');
 
@@ -212,7 +212,8 @@ class AuthService {
       icon: finalIcon,
       color: finalColor,
       isSystem: false,
-      description: description || `Ambiente ${cleanName}`
+      description: description || `Ambiente ${cleanName}`,
+      linkedKitchen: isDisplay ? (linkedKitchen || '') : ''
     };
 
     const updated = [...envs, newEnv];
@@ -237,6 +238,9 @@ class AuthService {
         const isCashier = nextType === 'cashier';
         const nextIcon = isDisplay ? 'Tv' : isCashier ? 'ShieldCheck' : (updatedData.icon || 'UtensilsCrossed');
         const nextColor = isDisplay ? 'emerald' : isCashier ? 'amber' : (updatedData.color || 'orange');
+        const nextLinked = isDisplay 
+          ? (updatedData.linkedKitchen !== undefined ? updatedData.linkedKitchen : (e.linkedKitchen || '')) 
+          : '';
 
         return {
           ...e,
@@ -245,7 +249,8 @@ class AuthService {
           type: nextType,
           icon: nextIcon,
           color: nextColor,
-          description: updatedData.description !== undefined ? updatedData.description : e.description
+          description: updatedData.description !== undefined ? updatedData.description : e.description,
+          linkedKitchen: nextLinked
         };
       }
       return e;

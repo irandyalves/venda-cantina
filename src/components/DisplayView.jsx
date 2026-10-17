@@ -84,6 +84,22 @@ export default function DisplayView({ environment, onNavigate }) {
     }, 6000);
   };
 
+  const linkedKitchenId = environment?.linkedKitchen;
+
+  // Verifica se o pedido pertence a este Painel TV
+  const isOrderForThisDisplay = (order) => {
+    // 1. Checa se o item está configurado para aparecer na TV
+    if (!isOrderForTV(order)) return false;
+
+    // 2. Se esta TV estiver vinculada a uma cozinha específica, filtra só pedidos dessa cozinha
+    if (linkedKitchenId) {
+      return order.targetEnvironment === linkedKitchenId;
+    }
+
+    // Caso contrário, é Painel TV Geral (mostra de todas as cozinhas)
+    return true;
+  };
+
   // Escutar pedidos em tempo real
   useEffect(() => {
     const unsubscribe = storageService.subscribeOrders((allOrders) => {
@@ -94,6 +110,8 @@ export default function DisplayView({ environment, onNavigate }) {
       if (!isFirstLoadRef.current) {
         const rungOrders = todayOrders.filter(o => {
           if (!o.bellRungAt) return false;
+          // FILTRO EXCLUSIVO: Só toca o sino e abre o modal nesta TV se o pedido pertencer a ela!
+          if (!isOrderForThisDisplay(o)) return false;
           const prevTime = prevBellTimestampsRef.current.get(o.id) || 0;
           return o.bellRungAt > prevTime;
         });
@@ -117,7 +135,7 @@ export default function DisplayView({ environment, onNavigate }) {
     });
 
     return () => unsubscribe();
-  }, [tvSettings.soundEnabled]);
+  }, [tvSettings.soundEnabled, linkedKitchenId]);
 
   const [productionRouting, setProductionRouting] = useState(() => storageService.getProductionRouting());
 
@@ -156,8 +174,8 @@ export default function DisplayView({ environment, onNavigate }) {
     }
   };
 
-  // Pedidos destinados ao Painel TV
-  const tvOrders = orders.filter(isOrderForTV);
+  // Pedidos destinados ao Painel TV (filtrados exclusivamente se vinculado a uma cozinha)
+  const tvOrders = orders.filter(isOrderForThisDisplay);
   const preparingOrders = tvOrders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
   const deliveredOrders = tvOrders.filter(o => o.status === 'entregue').slice(0, 8);
 
