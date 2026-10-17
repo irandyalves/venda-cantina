@@ -45,6 +45,9 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
 
   const nameInputRef = useRef(null);
   const qtyInputRef = useRef(null);
+  const paymentSelectRef = useRef(null);
+  const submitButtonRef = useRef(null);
+  const drawerRef = useRef(null);
 
   // Carregar produtos e escutar pedidos em tempo real
   useEffect(() => {
@@ -64,10 +67,13 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
     };
   }, []);
 
-  // Quando um produto é selecionado, dá foco automático no campo de nome
+  // Quando um produto é selecionado, dá foco automático no campo de nome e rola suavemente para o formulário
   useEffect(() => {
-    if (selectedProduct && nameInputRef.current) {
-      nameInputRef.current.focus();
+    if (selectedProduct) {
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+        drawerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 70);
     }
   }, [selectedProduct]);
 
@@ -194,6 +200,186 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
 
   const isNameFilled = customerName.trim().length > 0;
 
+  // Renderiza o drawer/modal de finalização diretamente embaixo do item escolhido
+  const renderCheckoutDrawer = (categoryId) => {
+    if (!selectedProduct || selectedProduct.category?.id !== categoryId) return null;
+
+    const unitPrice = selectedProduct.variation?.price || selectedProduct.item?.price || 0;
+    const totalPrice = unitPrice * quantity;
+
+    return (
+      <div 
+        ref={drawerRef}
+        className="mt-3 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl p-3 sm:p-4 border-2 border-emerald-500 shadow-2xl animate-curtain-down space-y-3"
+      >
+        {/* LINHA DE RESUMO DO PRODUTO ESCOLHIDO (SEM O BOTÃO TROCAR ITEM) */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/80 pb-2.5">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
+              <CheckCircle2 className="w-5 h-5" />
+            </span>
+            <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
+              <span className="text-[11px] uppercase font-extrabold text-slate-400">Item Selecionado:</span>
+              <span className="text-sm sm:text-base font-black text-amber-300">
+                {selectedProduct.category.id === 'pizza'
+                  ? `Pizza ${selectedProduct.variation?.name}: ${selectedProduct.item.name}`
+                  : `${selectedProduct.category.name} — ${selectedProduct.item.name}`}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-black bg-slate-850 text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/40 font-mono shadow-sm">
+              Total: R$ {totalPrice.toFixed(2)}
+            </span>
+          </div>
+        </div>
+
+        {/* FORMULÁRIO COM NOME, QUANTIDADE, PAGAMENTO E O BOTÃO ENVIAR */}
+        <form onSubmit={handleConfirmAndSend} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          
+          {/* CAMPO DO NOME */}
+          <div className="sm:col-span-12 xl:col-span-5 flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                isNameFilled ? 'text-emerald-400' : 'text-rose-400'
+              }`}>
+                <User className="w-4 h-4" />
+                <span>Nome de quem comprou *</span>
+              </label>
+              {!isNameFilled ? (
+                <span className="text-[10px] text-rose-300 font-extrabold bg-rose-950/80 px-2 py-0.5 rounded border border-rose-500/60 animate-pulse">
+                  ⚠️ Obrigatório
+                </span>
+              ) : (
+                <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/40">
+                  ✓ Preenchido
+                </span>
+              )}
+            </div>
+
+            <div className={`relative ${nameShake ? 'animate-shake' : ''}`}>
+              <input
+                ref={nameInputRef}
+                type="text"
+                required
+                placeholder="Digite o nome de quem comprou..."
+                value={customerName}
+                onChange={(e) => {
+                  setCustomerName(e.target.value);
+                  if (showNameError && e.target.value.trim()) setShowNameError(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!customerName.trim()) {
+                      setNameShake(true);
+                      setShowNameError(true);
+                      setTimeout(() => setNameShake(false), 500);
+                    } else {
+                      qtyInputRef.current?.focus();
+                      qtyInputRef.current?.select();
+                    }
+                  }
+                }}
+                className={`w-full h-12 sm:h-14 bg-slate-950 text-white text-base font-bold px-3.5 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-sm border-2 ${
+                  !isNameFilled 
+                    ? 'border-rose-500 glow-required-name' 
+                    : 'border-emerald-500 ring-2 ring-emerald-500/30'
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* CAMPO DE QUANTIDADE */}
+          <div className="sm:col-span-6 xl:col-span-2 flex flex-col gap-1">
+            <label className="text-xs font-black uppercase tracking-wider text-slate-300">
+              Quantidade
+            </label>
+            <div className="h-12 sm:h-14 flex items-center gap-1.5 bg-slate-950 px-2 rounded-xl border border-slate-700">
+              <button 
+                type="button"
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                className="w-10 h-10 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-lg rounded-lg flex items-center justify-center transition-colors"
+              >
+                -
+              </button>
+              <input 
+                ref={qtyInputRef}
+                type="number"
+                min="1"
+                max="99"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    paymentSelectRef.current?.focus();
+                  }
+                }}
+                className="w-full text-center bg-transparent text-lg font-black text-amber-300 outline-none"
+              />
+              <button 
+                type="button"
+                onClick={() => setQuantity(q => q + 1)}
+                className="w-10 h-10 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-lg rounded-lg flex items-center justify-center transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* FORMA DE PAGAMENTO */}
+          <div className="sm:col-span-6 xl:col-span-2 flex flex-col gap-1">
+            <label className="text-xs font-black uppercase tracking-wider text-slate-300">
+              Pagamento
+            </label>
+            <select
+              ref={paymentSelectRef}
+              value={paymentMethod}
+              onChange={(e) => {
+                setPaymentMethod(e.target.value);
+                setTimeout(() => submitButtonRef.current?.focus(), 50);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  submitButtonRef.current?.focus();
+                }
+              }}
+              className="w-full h-12 sm:h-14 bg-slate-950 border border-slate-700 text-white font-black text-sm px-3 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/40 transition-all cursor-pointer"
+            >
+              <option value="PIX">PIX</option>
+              <option value="DINHEIRO">Dinheiro</option>
+              <option value="DEBITO">Débito</option>
+              <option value="CREDITO">Crédito</option>
+            </select>
+          </div>
+
+          {/* BOTÃO VERDE ENVIAR COM ALTURA DOBRADA E FOCO BRILHANTE */}
+          <div className="sm:col-span-12 xl:col-span-3">
+            <button
+              ref={submitButtonRef}
+              type="submit"
+              className="w-full h-14 sm:h-16 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm sm:text-base uppercase tracking-wider rounded-xl transition-all shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused focus:scale-[1.02]"
+            >
+              <Send className="w-5 h-5 fill-current" />
+              <span>ENVIAR PARA COZINHA</span>
+            </button>
+          </div>
+
+        </form>
+
+        {showNameError && (
+          <div className="text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>Por favor, digite o nome de quem comprou para enviar para a cozinha!</span>
+          </div>
+        )}
+
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden text-xs">
       
@@ -266,150 +452,14 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           - SE NADA SELECIONADO: AVISO AMIGÁVEL
           - QUANDO ESCOLHE (PEDAÇO/INTEIRO/ITEM): ABRE NOME, QTDE E BOTÃO VERDE ENVIAR!
          ======================================================== */}
-      <div className="px-3 pt-2.5 shrink-0">
-        {selectedProduct ? (
-          <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl p-3 border-2 border-emerald-500 shadow-2xl animate-fadeIn space-y-2.5">
-            
-            {/* LINHA DE RESUMO DO PRODUTO ESCOLHIDO */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/80 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg">
-                  <CheckCircle2 className="w-4 h-4" />
-                </span>
-                <span className="text-xs uppercase font-extrabold text-slate-400">Item Selecionado:</span>
-                <span className="text-sm font-black text-amber-300">
-                  {selectedProduct.category.id === 'pizza'
-                    ? `Pizza ${selectedProduct.variation?.name}: ${selectedProduct.item.name}`
-                    : `${selectedProduct.category.name} — ${selectedProduct.item.name}`}
-                </span>
-                <span className="text-xs font-bold bg-slate-800 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
-                  R$ {((selectedProduct.variation?.price || selectedProduct.item.price || 0) * quantity).toFixed(2)}
-                </span>
-              </div>
-
-              <button
-                onClick={cancelSelection}
-                className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1 bg-slate-800 hover:bg-slate-750 px-2 py-1 rounded-lg border border-slate-700 transition-colors"
-                title="Trocar item ou cancelar seleção"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>Trocar Item</span>
-              </button>
-            </div>
-
-            {/* FORMULÁRIO COM NOME, QUANTIDADE, PAGAMENTO E O BOTÃO VERDE ENVIAR */}
-            <form onSubmit={handleConfirmAndSend} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-              
-              {/* CAMPO DO NOME (OBRIGATÓRIO COM BORDA VERMELHA SE VAZIO) */}
-              <div className="sm:col-span-5 flex flex-col gap-0.5">
-                <div className="flex items-center justify-between">
-                  <label className={`text-[11px] font-black uppercase tracking-wider flex items-center gap-1 ${
-                    isNameFilled ? 'text-emerald-400' : 'text-rose-400'
-                  }`}>
-                    <User className="w-3.5 h-3.5" />
-                    <span>Nome de quem comprou *</span>
-                  </label>
-                  {!isNameFilled ? (
-                    <span className="text-[10px] text-rose-300 font-extrabold bg-rose-950/70 px-1.5 py-0.2 rounded border border-rose-500/60 animate-pulse">
-                      ⚠️ Obrigatório
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-emerald-300 font-bold">✓ Preenchido</span>
-                  )}
-                </div>
-
-                <div className={`relative ${nameShake ? 'animate-shake' : ''}`}>
-                  <input
-                    ref={nameInputRef}
-                    type="text"
-                    required
-                    placeholder="Digite o nome de quem comprou..."
-                    value={customerName}
-                    onChange={(e) => {
-                      setCustomerName(e.target.value);
-                      if (showNameError && e.target.value.trim()) setShowNameError(false);
-                    }}
-                    className={`w-full bg-slate-950 text-white text-sm font-bold px-3 py-1.5 rounded-lg outline-none transition-all placeholder:text-slate-500 placeholder:font-normal border-2 ${
-                      !isNameFilled 
-                        ? 'border-rose-500 glow-required-name' 
-                        : 'border-emerald-500 ring-1 ring-emerald-500/40'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* CAMPO DE QUANTIDADE */}
-              <div className="sm:col-span-2 flex flex-col gap-0.5">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-300">
-                  Quantidade
-                </label>
-                <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-700">
-                  <button 
-                    type="button"
-                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold text-sm rounded flex items-center justify-center"
-                  >
-                    -
-                  </button>
-                  <input 
-                    ref={qtyInputRef}
-                    type="number"
-                    min="1"
-                    max="99"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full text-center bg-transparent text-sm font-black text-amber-300 outline-none"
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => setQuantity(q => q + 1)}
-                    className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold text-sm rounded flex items-center justify-center"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* FORMA DE PAGAMENTO */}
-              <div className="sm:col-span-2 flex flex-col gap-0.5">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-300">
-                  Pagamento
-                </label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 text-white font-bold text-xs py-1.5 px-2 rounded-lg outline-none focus:border-amber-400"
-                >
-                  <option value="PIX">PIX</option>
-                  <option value="DINHEIRO">Dinheiro</option>
-                  <option value="DEBITO">Débito</option>
-                  <option value="CREDITO">Crédito</option>
-                </select>
-              </div>
-
-              {/* BOTÃO VERDE ENVIAR */}
-              <div className="sm:col-span-3">
-                <button
-                  type="submit"
-                  className="w-full py-2 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-900/50 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer border border-emerald-300"
-                >
-                  <Send className="w-4 h-4 fill-current" />
-                  <span>ENVIAR PARA COZINHA</span>
-                </button>
-              </div>
-
-            </form>
-
-            {showNameError && (
-              <div className="text-[11px] text-rose-300 font-bold bg-rose-950/80 px-2.5 py-1 rounded-lg border border-rose-500/50 flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
-                <span>Por favor, digite o nome de quem comprou para enviar para a cozinha!</span>
-              </div>
-            )}
-
-          </div>
-        ) : (
-          /* QUANDO NENHUM ITEM ESTIVER SELECIONADO AINDA */
+      {/* ========================================================
+          ÁREA DO TOPO DO CAIXA:
+          - DICA INICIAL AMIGÁVEL (QUANDO NENHUM ITEM ESCOLHIDO)
+          - AO ESCOLHER O PRODUTO, O FORMULÁRIO DESCE EM EFEITO CORTINA
+            DIRETAMENTE EMBAIXO DO ITEM SELECIONADO!
+         ======================================================== */}
+      {!selectedProduct && (
+        <div className="px-3 pt-2.5 shrink-0">
           <div className="bg-slate-800/60 rounded-xl p-2.5 border border-dashed border-slate-700 text-slate-300 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-2">
               <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg">
@@ -426,8 +476,8 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
               Aguardando Escolha
             </span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA) */}
       <main className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-2.5">
@@ -540,6 +590,9 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                     );
                   })}
                 </div>
+
+                {/* MODAL / DRAWER COM EFEITO CORTINA REVELANDO EMBAIXO DA PIZZA */}
+                {renderCheckoutDrawer('pizza')}
               </div>
             ) : (
               <div className="mt-2 text-center py-1 bg-slate-900/50 rounded-lg border border-dashed border-slate-700 text-[10px] text-slate-400">
@@ -600,6 +653,9 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                   );
                 })}
               </div>
+
+              {/* MODAL / DRAWER COM EFEITO CORTINA REVELANDO EMBAIXO DO AÇAÍ */}
+              {renderCheckoutDrawer('acai')}
             </div>
           )}
 
@@ -649,6 +705,9 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                   );
                 })}
               </div>
+
+              {/* MODAL / DRAWER COM EFEITO CORTINA REVELANDO EMBAIXO DA BATATA */}
+              {renderCheckoutDrawer('batata')}
             </div>
           )}
 

@@ -126,3 +126,40 @@ input[type="number"] {
   animation: toast-progress 2s linear forwards;
 }
 
+/* Efeito cortina revelando para baixo */
+@keyframes curtain-reveal {
+  0% {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-16px) scaleY(0.92);
+  }
+  100% {
+    opacity: 1;
+    max-height: 600px;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+.animate-curtain-down {
+  animation: curtain-reveal 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top;
+  overflow: hidden;
+}
+
+/* Brilho pulsante intenso nas bordas quando o botão Enviar recebe o foco */
+@keyframes glow-submit-focus {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.9), 0 0 35px rgba(52, 211, 153, 0.85);
+    border-color: #ffffff;
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(110, 231, 183, 1), 0 0 55px rgba(16, 185, 129, 0.95);
+    border-color: #a7f3d0;
+  }
+}
+
+.glow-btn-focused:focus {
+  animation: glow-submit-focus 1s infinite ease-in-out !important;
+}
+
+
