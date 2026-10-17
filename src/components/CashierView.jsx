@@ -20,7 +20,10 @@ import {
   ShoppingCart,
   GripHorizontal,
   Disc,
-  Utensils
+  Utensils,
+  Plus,
+  Minus,
+  Trash2
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import ProfileSelector from './ProfileSelector';
@@ -46,6 +49,35 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const [nameShake, setNameShake] = useState(false);
   const [showNameError, setShowNameError] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // MODAIS RÁPIDOS NA LINHA DA CATEGORIA: + (VERDINHO BRILHO) E - (VERMELHO FOSCO)
+  const [quickAddModal, setQuickAddModal] = useState({ isOpen: false, category: null });
+  const [quickAddName, setQuickAddName] = useState('');
+  const [quickAddPrice, setQuickAddPrice] = useState('0,00');
+  const [quickAddPrefix, setQuickAddPrefix] = useState('');
+  const [quickAddDesc, setQuickAddDesc] = useState('');
+
+  const [quickDeleteModal, setQuickDeleteModal] = useState({ isOpen: false, category: null, itemToDelete: null });
+
+  // Máscara monetária em Reais 0,00
+  const formatCurrencyMask = (val) => {
+    if (val === undefined || val === null || val === '') return '0,00';
+    if (typeof val === 'number') {
+      return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const digits = String(val).replace(/\D/g, '');
+    if (!digits) return '0,00';
+    const num = parseInt(digits, 10) / 100;
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const parseCurrencyMask = (maskedVal) => {
+    if (!maskedVal) return 0;
+    if (typeof maskedVal === 'number') return maskedVal;
+    const digits = String(maskedVal).replace(/\D/g, '');
+    if (!digits) return 0;
+    return parseInt(digits, 10) / 100;
+  };
 
   const nameInputRef = useRef(null);
   const qtyInputRef = useRef(null);
@@ -118,12 +150,40 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const handleEvt = (e) => setCurrentEvent(e.detail || storageService.getCurrentEvent());
     window.addEventListener('cantina_event_changed', handleEvt);
 
+    const handleProductsEvt = (e) => {
+      setCategories(e.detail || storageService.getProducts());
+    };
+    window.addEventListener('cantina_products_changed', handleProductsEvt);
+
     return () => {
       unsubscribeOrders();
       unsubscribeStatus();
       window.removeEventListener('cantina_event_changed', handleEvt);
+      window.removeEventListener('cantina_products_changed', handleProductsEvt);
     };
   }, []);
+
+  // Fechar com tecla ESC
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        if (quickDeleteModal.isOpen) {
+          setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null });
+          return;
+        }
+        if (quickAddModal.isOpen) {
+          setQuickAddModal({ isOpen: false, category: null });
+          return;
+        }
+        if (selectedProduct || selectedPizzaFlavor) {
+          cancelSelection();
+          return;
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quickDeleteModal.isOpen, quickAddModal.isOpen, selectedProduct, selectedPizzaFlavor]);
 
   // Quando um produto é selecionado, dá foco automático no campo de nome e rola suavemente para o formulário
   useEffect(() => {
@@ -369,10 +429,108 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     setShowNameError(false);
   };
 
+  // AÇÕES RÁPIDAS: ADICIONAR E EXCLUIR ITEM DIRETAMENTE NA CATEGORIA (BOTÕES + E -)
+  const handleOpenQuickAdd = (category) => {
+    if (!category) return;
+    let defPrefix = category.prefixDefault || '';
+    if (!defPrefix) {
+      if (category.id === 'pizza') defPrefix = 'Pp-';
+      else if (category.id === 'acai') defPrefix = 'A-';
+      else if (category.id === 'batata') defPrefix = 'B-';
+      else defPrefix = `${category.name.substring(0, 3).toUpperCase()}-`;
+    }
+    setQuickAddName('');
+    setQuickAddPrice(category.id === 'pizza' ? '0,00' : '10,00');
+    setQuickAddPrefix(defPrefix);
+    setQuickAddDesc('');
+    setQuickAddModal({ isOpen: true, category });
+  };
+
+  const handleSaveQuickAdd = (e) => {
+    if (e) e.preventDefault();
+    const cat = quickAddModal.category;
+    if (!cat) return;
+
+    const cleanName = quickAddName.trim();
+    if (!cleanName) {
+      setToast({
+        title: 'Atenção',
+        message: 'Por favor, digite o nome do item / sabor!',
+        type: 'error'
+      });
+      return;
+    }
+
+    const priceNum = parseCurrencyMask(quickAddPrice);
+    const cleanPrefix = quickAddPrefix.trim() || (cat.prefixDefault || `${cat.id.substring(0, 3).toUpperCase()}-`);
+    const cleanDesc = quickAddDesc.trim();
+
+    const newItem = {
+      id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: cleanName.toUpperCase(),
+      price: priceNum,
+      prefix: cleanPrefix,
+      description: cleanDesc
+    };
+
+    const updatedCategories = categories.map((c) => {
+      if (c.id === cat.id) {
+        return {
+          ...c,
+          items: [...(c.items || []), newItem]
+        };
+      }
+      return c;
+    });
+
+    storageService.saveProducts(updatedCategories);
+    setCategories(updatedCategories);
+    setQuickAddModal({ isOpen: false, category: null });
+    setToast({
+      title: 'Item Adicionado!',
+      message: `"${cleanName.toUpperCase()}" agora está disponível para venda em ${cat.name}!`,
+      type: 'success'
+    });
+  };
+
+  const handleOpenQuickDelete = (category) => {
+    if (!category) return;
+    setQuickDeleteModal({ isOpen: true, category, itemToDelete: null });
+  };
+
+  const handleConfirmQuickDelete = (item) => {
+    const cat = quickDeleteModal.category;
+    if (!cat || !item) return;
+
+    const updatedCategories = categories.map((c) => {
+      if (c.id === cat.id) {
+        return {
+          ...c,
+          items: (c.items || []).filter((it) => it.id !== item.id)
+        };
+      }
+      return c;
+    });
+
+    storageService.saveProducts(updatedCategories);
+    setCategories(updatedCategories);
+
+    // Se o item deletado for o atualmente selecionado no caixa, limpa a seleção
+    if (selectedPizzaFlavor?.id === item.id) setSelectedPizzaFlavor(null);
+    if (selectedProduct?.item?.id === item.id) cancelSelection();
+
+    setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null });
+    setToast({
+      title: 'Item Excluído!',
+      message: `"${item.name}" foi removido de ${cat.name}!`,
+      type: 'info'
+    });
+  };
+
   const pizzaCategory = categories.find(c => c.id === 'pizza');
   const acaiCategory = categories.find(c => c.id === 'acai');
   const batataCategory = categories.find(c => c.id === 'batata');
-  const otherCategories = categories.filter(c => !['pizza', 'acai', 'batata'].includes(c.id) && c.items && c.items.length > 0);
+  const otherCategories = categories.filter(c => !['pizza', 'acai', 'batata'].includes(c.id));
 
   const isNameFilled = customerName.trim().length > 0;
 
@@ -447,7 +605,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
            ======================================================== */}
         {pizzaCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center mb-2 border-b border-slate-700/60 pb-1.5">
+            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="p-1 bg-orange-500/20 text-orange-400 rounded-md border border-orange-500/30">
                   <Pizza className="w-3.5 h-3.5" />
@@ -455,6 +613,28 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <h2 className="text-xs font-black text-white tracking-wide uppercase">
                   PIZZA
                 </h2>
+              </div>
+
+              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleOpenQuickAdd(pizzaCategory)}
+                  title="Adicionar novo sabor / opção de pizza"
+                  className="h-6 px-2.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs rounded-lg shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Adicionar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenQuickDelete(pizzaCategory)}
+                  title="Excluir sabor de pizza"
+                  className="h-6 px-2.5 bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white font-black text-xs rounded-lg border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Excluir</span>
+                </button>
               </div>
             </div>
 
@@ -666,7 +846,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
            ======================================================== */}
         {acaiCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center mb-2 border-b border-slate-700/60 pb-1.5">
+            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="p-1 bg-purple-500/20 text-purple-400 rounded-md border border-purple-500/30">
                   <IceCream className="w-3.5 h-3.5" />
@@ -674,6 +854,28 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <h2 className="text-xs font-black text-white tracking-wide uppercase">
                   AÇAÍ
                 </h2>
+              </div>
+
+              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleOpenQuickAdd(acaiCategory)}
+                  title="Adicionar nova opção de Açaí (ex: Copo 500ml)"
+                  className="h-6 px-2.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs rounded-lg shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Adicionar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenQuickDelete(acaiCategory)}
+                  title="Excluir opção de Açaí"
+                  className="h-6 px-2.5 bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white font-black text-xs rounded-lg border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Excluir</span>
+                </button>
               </div>
             </div>
 
@@ -851,7 +1053,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
            ======================================================== */}
         {batataCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center mb-2 border-b border-slate-700/60 pb-1.5">
+            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="p-1 bg-yellow-500/20 text-yellow-400 rounded-md border border-yellow-500/30">
                   <UtensilsCrossed className="w-3.5 h-3.5" />
@@ -859,6 +1061,28 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <h2 className="text-xs font-black text-white tracking-wide uppercase">
                   BATATA
                 </h2>
+              </div>
+
+              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleOpenQuickAdd(batataCategory)}
+                  title="Adicionar nova opção de Batata"
+                  className="h-6 px-2.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs rounded-lg shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Adicionar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenQuickDelete(batataCategory)}
+                  title="Excluir opção de Batata"
+                  className="h-6 px-2.5 bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white font-black text-xs rounded-lg border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Excluir</span>
+                </button>
               </div>
             </div>
 
@@ -1036,7 +1260,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
            ======================================================== */}
         {otherCategories.map((cat) => (
           <div key={cat.id} className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center mb-2 border-b border-slate-700/60 pb-1.5">
+            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="p-1 bg-cyan-500/20 text-cyan-400 rounded-md border border-cyan-500/30">
                   <Utensils className="w-3.5 h-3.5" />
@@ -1045,11 +1269,38 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   {cat.name}
                 </h2>
               </div>
+
+              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleOpenQuickAdd(cat)}
+                  title={`Adicionar opções de ${cat.name}`}
+                  className="h-6 px-2.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs rounded-lg shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Adicionar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenQuickDelete(cat)}
+                  title={`Excluir opções de ${cat.name}`}
+                  className="h-6 px-2.5 bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white font-black text-xs rounded-lg border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">Excluir</span>
+                </button>
+              </div>
             </div>
 
             {/* CARDS: MESMA ALTURA E FORMATO DE PIZZA */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
-              {cat.items.map((item) => {
+            {(!cat.items || cat.items.length === 0) ? (
+              <div className="py-3 text-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-dashed border-slate-700/80">
+                Nenhum item cadastrado em {cat.name}. Clique no botão <strong className="text-emerald-400 font-bold">+ Adicionar</strong> acima para cadastrar!
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+                {cat.items.map((item) => {
                 const isSelected = selectedProduct?.category?.id === cat.id && selectedProduct?.item?.id === item.id;
                 return (
                   <button
@@ -1075,6 +1326,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 );
               })}
             </div>
+            )}
 
             {/* AO CLICAR NO ITEM: BARRA DE 1 LINHA APENAS */}
             {selectedProduct?.category?.id === cat.id && (
@@ -1433,6 +1685,232 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
 
       </footer>
+
+      {/* MODAL RÁPIDO: ADICIONAR OPÇÃO DE PRODUTO (+ VERDINHO BRILHO) */}
+      {quickAddModal.isOpen && quickAddModal.category && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn">
+          <div className="bg-slate-900 border border-emerald-500/50 rounded-3xl p-5 max-w-md w-full shadow-2xl shadow-black space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                  <Plus className="w-5 h-5 stroke-[2.5]" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-wide uppercase">
+                    Adicionar Opção em {quickAddModal.category.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Cadastre uma nova opção para venda imediata no caixa
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickAddModal({ isOpen: false, category: null })}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuickAdd} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  {quickAddModal.category.id === 'pizza' ? 'Sabor da Pizza: *' : 'Nome da Opção: *'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder={
+                    quickAddModal.category.id === 'pizza'
+                      ? 'Ex: Quatro Queijos, Bacon Especial...'
+                      : quickAddModal.category.id === 'acai'
+                      ? 'Ex: Copo 500ml, Tigela 700ml...'
+                      : 'Ex: Porção Grande, Lata 350ml...'
+                  }
+                  value={quickAddName}
+                  onChange={(e) => setQuickAddName(e.target.value.toUpperCase())}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-emerald-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Preço de Venda (R$): *
+                  </label>
+                  <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-emerald-400">
+                    <span className="text-xs font-bold text-emerald-400 mr-1.5">R$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      required
+                      placeholder="0,00"
+                      value={quickAddPrice}
+                      onChange={(e) => setQuickAddPrice(formatCurrencyMask(e.target.value))}
+                      className="w-full bg-transparent text-sm font-mono font-bold text-white outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Prefixo Senha: *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: A-, B-, Pp-"
+                    value={quickAddPrefix}
+                    onChange={(e) => setQuickAddPrefix(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Descrição (Opcional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Acompanha granola e leite condensado..."
+                  value={quickAddDesc}
+                  onChange={(e) => setQuickAddDesc(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setQuickAddModal({ isOpen: false, category: null })}
+                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>Adicionar Opção</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ESCOLHA O ITEM QUE QUER EXCLUIR (- VERMELHO FOSCO) */}
+      {quickDeleteModal.isOpen && quickDeleteModal.category && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn">
+          <div className="bg-slate-900 border border-rose-500/50 rounded-3xl p-5 max-w-md w-full shadow-2xl shadow-black space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/30">
+                  <Trash2 className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-rose-400 tracking-wide uppercase">
+                    Escolha o item que quer excluir
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Categoria: <strong className="text-white uppercase">{quickDeleteModal.category.name}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null })}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* SE UM ITEM FOI SELECIONADO PARA EXCLUSÃO: CONFIRMAÇÃO */}
+            {quickDeleteModal.itemToDelete ? (
+              <div className="bg-rose-950/30 border border-rose-500/50 rounded-2xl p-4 space-y-3 animate-fadeIn">
+                <p className="text-sm font-bold text-slate-200 leading-relaxed">
+                  Tem certeza que deseja excluir o item <strong className="text-rose-400 uppercase">"{quickDeleteModal.itemToDelete.name}"</strong>? Ele deixará de aparecer para venda no caixa.
+                </p>
+
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs font-mono flex items-center justify-between">
+                  <span className="text-slate-400 font-sans">Valor:</span>
+                  <span className="font-black text-emerald-400">R$ {formatCurrencyMask(quickDeleteModal.itemToDelete.price)}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setQuickDeleteModal(prev => ({ ...prev, itemToDelete: null }))}
+                    className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                  >
+                    NÃO
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleConfirmQuickDelete(quickDeleteModal.itemToDelete)}
+                    className="py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>SIM, EXCLUIR</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* LISTAGEM DE ITENS DA CATEGORIA PARA ESCOLHER QUAL EXCLUIR */
+              <div className="space-y-3">
+                {(!quickDeleteModal.category.items || quickDeleteModal.category.items.length === 0) ? (
+                  <div className="py-8 text-center text-slate-500 text-xs italic bg-slate-950/40 rounded-xl border border-slate-800">
+                    Nenhum item cadastrado nesta categoria para excluir.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {quickDeleteModal.category.items.map((it) => (
+                      <div
+                        key={it.id}
+                        className="bg-slate-950/90 hover:bg-slate-950 border border-slate-800 hover:border-rose-500/60 p-3 rounded-xl flex items-center justify-between gap-3 transition-all group"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-xs font-black text-white uppercase truncate">
+                            {it.name}
+                          </div>
+                          <div className="text-[11px] font-mono text-emerald-400 font-bold mt-0.5">
+                            R$ {formatCurrencyMask(it.price)}
+                            {it.prefix && <span className="text-slate-500 font-normal ml-2">Prefixo: {it.prefix}</span>}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setQuickDeleteModal(prev => ({ ...prev, itemToDelete: it }))}
+                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-all shadow-md shadow-rose-950/50 cursor-pointer flex items-center gap-1.5 shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Excluir</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-slate-800 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null })}
+                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -376,6 +376,9 @@ class StorageService {
     if (syncChannel) {
       syncChannel.postMessage({ type: 'PRODUCTS_UPDATED', payload: categories });
     }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cantina_products_changed', { detail: categories }));
+    }
   }
 
   // --- CONFIGURAÇÕES DE EXIBIÇÃO DA TV ---
