@@ -34,13 +34,43 @@ export const DEFAULT_ENVIRONMENTS = [
   },
   {
     id: 'COZINHA',
-    name: 'COZINHA (KDS Principal)',
+    name: 'COZINHA 1 (Principal)',
     shortName: 'COZINHA',
     type: 'kitchen',
     icon: 'UtensilsCrossed',
     color: 'orange',
     isSystem: true,
-    description: 'Painel KDS de Pedidos, Alertas & Sons'
+    description: 'Painel KDS Cozinha 1, Fogões & Fornos'
+  },
+  {
+    id: 'COZINHA_2',
+    name: 'COZINHA 2',
+    shortName: 'COZINHA-2',
+    type: 'kitchen',
+    icon: 'ChefHat',
+    color: 'indigo',
+    isSystem: false,
+    description: 'Equipe de apoio, fogões adicionais e massas'
+  },
+  {
+    id: 'TENDA',
+    name: 'TENDA',
+    shortName: 'TENDA',
+    type: 'kitchen',
+    icon: 'Store',
+    color: 'emerald',
+    isSystem: false,
+    description: 'Tenda externa de lanches rápidos e açaí'
+  },
+  {
+    id: 'QUADRA',
+    name: 'QUADRA',
+    shortName: 'QUADRA',
+    type: 'kitchen',
+    icon: 'UtensilsCrossed',
+    color: 'amber',
+    isSystem: false,
+    description: 'Área da quadra, fogões e churrasqueiras'
   },
   {
     id: 'PUBLICO',

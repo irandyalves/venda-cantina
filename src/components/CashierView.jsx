@@ -366,6 +366,22 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       sendToKitchen = catId === 'pizza';
     }
 
+    // Destino do ambiente de preparo (Cozinha 1, Cozinha 2, Tenda, Quadra, etc.)
+    let targetEnvironment = 'COZINHA';
+    if (routing.destinationEnv?.[targetId] !== undefined) {
+      targetEnvironment = routing.destinationEnv[targetId];
+    } else if (routing.destinationEnv?.[catId] !== undefined) {
+      targetEnvironment = routing.destinationEnv[catId];
+    } else {
+      targetEnvironment = sendToKitchen ? 'COZINHA' : 'none';
+    }
+
+    if (targetEnvironment === 'none') {
+      sendToKitchen = false;
+    } else {
+      sendToKitchen = true;
+    }
+
     let showOnTV = true;
     if (routing.showOnTV?.[targetId] !== undefined) {
       showOnTV = routing.showOnTV[targetId];
@@ -390,6 +406,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       totalPrice,
       paymentMethod,
       sendToKitchen,
+      targetEnvironment,
       showOnTV,
       status: sendToKitchen ? 'em_preparo' : 'entregue'
     };

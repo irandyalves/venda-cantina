@@ -53,20 +53,46 @@ export default function KitchenView({ environment, onNavigate }) {
   const knownOrderIdsRef = useRef(new Set());
   const isFirstLoadRef = useRef(true);
 
-  // Helper para verificar se o pedido é destinado para preparo na cozinha
+  // Helper para verificar se o pedido é destinado para preparo neste ambiente/cozinha específico
   const isOrderForKitchen = (order) => {
-    if (order.sendToKitchen === false) return false;
-    if (order.sendToKitchen === true) return true;
+    if (order.sendToKitchen === false || order.targetEnvironment === 'none') {
+      return false;
+    }
+
+    const currentEnvId = environment?.id || 'COZINHA';
+
+    if (order.targetEnvironment) {
+      return order.targetEnvironment === currentEnvId;
+    }
+
+    // Fallbacks para pedidos legados sem targetEnvironment gravado
+    if (order.sendToKitchen === true) {
+      return currentEnvId === 'COZINHA';
+    }
 
     const targetId = order.variationId || order.itemId;
+    if (targetId && productionRouting.destinationEnv?.[targetId]) {
+      const dest = productionRouting.destinationEnv[targetId];
+      if (dest === 'none') return false;
+      return dest === currentEnvId;
+    }
     if (targetId && productionRouting.sendToKitchen?.[targetId] !== undefined) {
-      return productionRouting.sendToKitchen[targetId];
+      if (!productionRouting.sendToKitchen[targetId]) return false;
+      return currentEnvId === 'COZINHA';
     }
+
     const cat = (order.category || order.categoryName || '').toLowerCase();
-    if (productionRouting.sendToKitchen?.[cat] !== undefined) {
-      return productionRouting.sendToKitchen[cat];
+    if (productionRouting.destinationEnv?.[cat]) {
+      const dest = productionRouting.destinationEnv[cat];
+      if (dest === 'none') return false;
+      return dest === currentEnvId;
     }
-    return cat.includes('pizza');
+    if (productionRouting.sendToKitchen?.[cat] !== undefined) {
+      if (!productionRouting.sendToKitchen[cat]) return false;
+      return currentEnvId === 'COZINHA';
+    }
+
+    return cat.includes('pizza') && currentEnvId === 'COZINHA';
   };
 
   // Relógio para atualizar cronômetros dos pedidos a cada segundo
@@ -323,9 +349,16 @@ export default function KitchenView({ environment, onNavigate }) {
                   {/* BLOCO 2: DETALHES DO PRODUTO (LARGURA EXPANDIDA PARA A ESQUERDA) */}
                   <div className="flex-1 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-800/80 flex flex-col justify-center gap-0.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider leading-none">
-                        {order.categoryName}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider leading-none">
+                          {order.categoryName}
+                        </span>
+                        {order.targetEnvironment && order.targetEnvironment !== 'none' && order.targetEnvironment !== 'COZINHA' && (
+                          <span className="text-[9px] font-extrabold px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded uppercase tracking-wider leading-none">
+                            📍 {order.targetEnvironment.replace('_', ' ')}
+                          </span>
+                        )}
+                      </div>
                       {order.paymentMethod && (
                         <span className="text-slate-400 font-mono text-[10px] leading-none">
                           {order.paymentMethod}

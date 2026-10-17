@@ -431,7 +431,8 @@ class StorageService {
         const parsed = JSON.parse(raw);
         return {
           sendToKitchen: parsed.sendToKitchen || {},
-          showOnTV: parsed.showOnTV || {}
+          showOnTV: parsed.showOnTV || {},
+          destinationEnv: parsed.destinationEnv || {}
         };
       }
     } catch (e) {
@@ -454,6 +455,14 @@ class StorageService {
         'acai': false,
         'batata': false,
         'outros': false
+      },
+      destinationEnv: {
+        'pizza': 'COZINHA',
+        'pedaco': 'COZINHA',
+        'inteira': 'COZINHA',
+        'acai': 'none',
+        'batata': 'none',
+        'outros': 'none'
       }
     };
   }

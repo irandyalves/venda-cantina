@@ -33,7 +33,8 @@ import {
   Store,
   Monitor,
   FolderPlus,
-  ExternalLink
+  ExternalLink,
+  ChevronDown
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -399,7 +400,35 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     showToast(updated.soundEnabled ? 'Som da Cozinha ativado!' : 'Som da Cozinha em silêncio/mudo.');
   };
 
-  // --- AÇÕES DE DESTINO DE PRODUÇÃO (COZINHA VS TENDA / TV) ---
+  // --- AÇÕES DE DESTINO DE PRODUÇÃO (COZINHA, COZINHA 2, TENDA, QUADRA, ETC.) ---
+  const handleChangeItemDestination = (targetId, newDestEnvId, itemName) => {
+    const current = storageService.getProductionRouting();
+    const isKitchen = newDestEnvId !== 'none';
+    const updated = {
+      ...current,
+      destinationEnv: {
+        ...(current.destinationEnv || {}),
+        [targetId]: newDestEnvId
+      },
+      sendToKitchen: {
+        ...(current.sendToKitchen || {}),
+        [targetId]: isKitchen
+      }
+    };
+    setProductionRouting(updated);
+    storageService.saveProductionRouting(updated);
+
+    const envObj = environments.find(e => e.id === newDestEnvId);
+    const destName = envObj ? envObj.name : (isKitchen ? newDestEnvId : 'Tenda / Balcão (Sem Cozinha)');
+    showToast(
+      isKitchen 
+        ? `"${itemName}" agora será enviado para: ${destName}!` 
+        : `"${itemName}" agora será entregue direto na Tenda/Balcão.`,
+      'Destino de Preparo',
+      'info'
+    );
+  };
+
   const handleToggleItemKitchen = (targetId, newValue) => {
     const current = storageService.getProductionRouting();
     const updated = {
@@ -407,6 +436,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       sendToKitchen: {
         ...current.sendToKitchen,
         [targetId]: newValue
+      },
+      destinationEnv: {
+        ...(current.destinationEnv || {}),
+        [targetId]: newValue ? 'COZINHA' : 'none'
       }
     };
     setProductionRouting(updated);
@@ -453,6 +486,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         'acai': false,
         'batata': false,
         'outros': false
+      },
+      destinationEnv: {
+        'pizza': 'COZINHA',
+        'pedaco': 'COZINHA',
+        'inteira': 'COZINHA',
+        'acai': 'none',
+        'batata': 'none',
+        'outros': 'none'
       }
     };
     setProductionRouting(defaultRouting);
@@ -1252,6 +1293,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
         {/* NAVEGAÇÃO POR ABAS */}
         <div className="flex border-b border-slate-800 bg-slate-950/60 px-6 gap-2 pt-2 shrink-0 overflow-x-auto">
+          {/* 1. VENDAS */}
           <button
             onClick={() => setActiveTab('products')}
             className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
@@ -1261,9 +1303,65 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>Cardápio & Vendas</span>
+            <span>VENDAS</span>
           </button>
 
+          {/* 2. AMBIENTES */}
+          <button
+            onClick={() => setActiveTab('emails')}
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
+              activeTab === 'emails'
+                ? 'bg-slate-800 text-amber-400 border-amber-400'
+                : 'text-slate-400 border-transparent hover:text-white'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Ambientes</span>
+            <span className="bg-amber-400/20 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-amber-400/30">
+              {environments.length}
+            </span>
+          </button>
+
+          {/* 3. TELAS */}
+          <button
+            onClick={() => setActiveTab('tv')}
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
+              activeTab === 'tv'
+                ? 'bg-slate-800 text-amber-400 border-amber-400'
+                : 'text-slate-400 border-transparent hover:text-white'
+            }`}
+          >
+            <Tv className="w-4 h-4" />
+            <span>Telas</span>
+          </button>
+
+          {/* 4. CONEXÕES */}
+          <button
+            onClick={() => setActiveTab('firebase')}
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
+              activeTab === 'firebase'
+                ? 'bg-slate-800 text-amber-400 border-amber-400'
+                : 'text-slate-400 border-transparent hover:text-white'
+            }`}
+          >
+            <Cloud className="w-4 h-4" />
+            <span>Conexões</span>
+          </button>
+
+          {/* 5. FECHAMENTO CAIXA */}
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
+              activeTab === 'reports'
+                ? 'bg-slate-800 text-amber-400 border-amber-400'
+                : 'text-slate-400 border-transparent hover:text-white'
+            }`}
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Fechamento Caixa</span>
+          </button>
+
+          {/* 6. HISTÓRICO */}
           <button
             onClick={() => setActiveTab('history')}
             className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
@@ -1279,57 +1377,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 {turnoHistory.length}
               </span>
             )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('emails')}
-            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
-              activeTab === 'emails'
-                ? 'bg-slate-800 text-amber-400 border-amber-400'
-                : 'text-slate-400 border-transparent hover:text-white'
-            }`}
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>Ambientes & Acessos</span>
-            <span className="bg-amber-400/20 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-amber-400/30">
-              {environments.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('firebase')}
-            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
-              activeTab === 'firebase'
-                ? 'bg-slate-800 text-amber-400 border-amber-400'
-                : 'text-slate-400 border-transparent hover:text-white'
-            }`}
-          >
-            <Cloud className="w-4 h-4" />
-            <span>Conexão Firebase</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('tv')}
-            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
-              activeTab === 'tv'
-                ? 'bg-slate-800 text-amber-400 border-amber-400'
-                : 'text-slate-400 border-transparent hover:text-white'
-            }`}
-          >
-            <Tv className="w-4 h-4" />
-            <span>Telas & Som (TV/Cozinha)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('reports')}
-            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
-              activeTab === 'reports'
-                ? 'bg-slate-800 text-amber-400 border-amber-400'
-                : 'text-slate-400 border-transparent hover:text-white'
-            }`}
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Fechamento de Caixa</span>
           </button>
         </div>
 
@@ -2336,14 +2383,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     </span>
                     <div>
                       <h3 className="font-extrabold text-white text-base flex items-center gap-2 flex-wrap">
-                        Destino de Produção (Cozinha vs Tenda / Balcão)
+                        Destino de Envio e Preparo (Cozinha, Cozinha 2, Tenda, Quadra, etc.)
                         <span className="text-[10px] bg-orange-400/20 text-orange-300 font-bold px-2 py-0.5 rounded-full border border-orange-400/30">
                           {allSaleItems.length} itens configuráveis
                         </span>
                       </h3>
                       <p className="text-xs text-slate-400">
-                        Defina quais itens vão para a fila da <strong>Cozinha</strong> e quais são exibidos no <strong>Painel TV</strong>.
-                        Itens preparados na tenda/balcão externo (ex: Açaí, Batata) <strong>nunca poluem a fila da cozinha</strong>.
+                        Escolha no listbox o local de preparo de cada item (onde ficam os fogões e equipes). Itens marcados como "Tenda / Balcão" não vão para a cozinha.
                       </p>
                     </div>
                   </div>
@@ -2359,7 +2405,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </div>
 
-                {/* LISTAGEM DOS ITENS DE VENDA COM TOGGLES DE COZINHA E TV */}
+                {/* LISTAGEM DOS ITENS DE VENDA COM LISTBOX DE DESTINO E TOGGLE DE TV */}
                 <div className="space-y-2.5 pt-1">
                   {allSaleItems.map((item) => {
                     const targetId = item.isVariation ? item.variationId : item.id;
@@ -2369,9 +2415,18 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       ? productionRouting.sendToKitchen[targetId]
                       : (productionRouting.sendToKitchen?.[catId] !== undefined ? productionRouting.sendToKitchen[catId] : (catId === 'pizza'));
 
+                    const currentDest = productionRouting.destinationEnv?.[targetId] !== undefined
+                      ? productionRouting.destinationEnv[targetId]
+                      : (productionRouting.destinationEnv?.[catId] !== undefined 
+                          ? productionRouting.destinationEnv[catId] 
+                          : (isToKitchen ? 'COZINHA' : 'none'));
+
                     const isToTV = productionRouting.showOnTV?.[targetId] !== undefined
                       ? productionRouting.showOnTV[targetId]
                       : (productionRouting.showOnTV?.[catId] !== undefined ? productionRouting.showOnTV[catId] : (catId === 'pizza'));
+
+                    const destEnvObj = environments.find(e => e.id === currentDest);
+                    const destDisplayName = destEnvObj ? destEnvObj.name : (currentDest !== 'none' ? currentDest : 'Tenda / Balcão');
 
                     return (
                       <div 
@@ -2398,41 +2453,77 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                 Senha: {item.prefix || 'Sem prefixo'}
                               </span>
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                isToKitchen 
+                                currentDest !== 'none' 
                                   ? 'bg-orange-500/15 text-orange-300 border-orange-500/30' 
                                   : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                               }`}>
-                                {isToKitchen ? '🍳 Cozinha (Interno)' : '🎪 Tenda / Balcão'}
+                                {currentDest !== 'none' ? `🍳 ${destDisplayName}` : '🎪 Tenda / Balcão'}
                               </span>
                             </div>
                             <span className="text-[11px] text-slate-400 mt-0.5 block">
-                              {isToKitchen 
-                                ? 'Enviado para a fila da Cozinha e emite aviso sonoro de preparo.' 
-                                : 'Venda direta na tenda externa — não aparece nem toca na cozinha.'}
+                              {currentDest !== 'none' 
+                                ? `Enviado para a fila de preparo de "${destDisplayName}".` 
+                                : 'Venda direta na tenda / balcão — entregue na hora, sem fila de cozinha.'}
                             </span>
                           </div>
                         </div>
 
-                        {/* BOTÕES DE TOGGLE: COZINHA E TV */}
-                        <div className="flex items-center gap-2 shrink-0 flex-wrap self-end md:self-auto">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleItemKitchen(targetId, !isToKitchen)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                              isToKitchen
-                                ? 'bg-orange-600/25 text-orange-300 border-orange-500/50 shadow-sm'
-                                : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
-                            }`}
-                            title="Alternar se o item deve ir para a Cozinha ou se é feito na Tenda"
-                          >
-                            <UtensilsCrossed className="w-3.5 h-3.5" />
-                            <span>{isToKitchen ? '✓ Enviar p/ Cozinha' : '✕ Tenda (Sem Cozinha)'}</span>
-                          </button>
+                        {/* LISTBOX DE DESTINO (COZINHA, COZINHA 2, TENDA, QUADRA...) E BOTÃO DE TV */}
+                        <div className="flex items-center gap-2.5 shrink-0 flex-wrap self-end md:self-auto">
+                          <div className="relative">
+                            <select
+                              value={currentDest}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '__NEW_ENV__') {
+                                  setShowAddEnvModal(true);
+                                } else {
+                                  handleChangeItemDestination(targetId, val, item.name);
+                                }
+                              }}
+                              className={`h-9 px-3 pr-8 rounded-xl text-xs font-black transition-all border outline-none cursor-pointer appearance-none shadow-sm ${
+                                currentDest !== 'none'
+                                  ? 'bg-orange-950/85 text-orange-300 border-orange-500/60 focus:border-orange-400'
+                                  : 'bg-slate-800/90 text-emerald-300 border-emerald-500/40 hover:text-emerald-200 focus:border-emerald-400'
+                              }`}
+                              title="Selecione onde este item deve ser preparado (Cozinha, Cozinha 2, Tenda, Quadra...)"
+                            >
+                              <optgroup label="Fogões / Ambientes de Preparo">
+                                {environments
+                                  .filter(env => env.type === 'kitchen' || env.id === 'COZINHA' || env.id === 'COZINHA_2' || env.id === 'TENDA' || env.id === 'QUADRA')
+                                  .map((env) => (
+                                    <option key={env.id} value={env.id} className="bg-slate-900 text-white font-bold py-1">
+                                      🍳 Enviar p/ {env.name}
+                                    </option>
+                                  ))}
+                                {environments
+                                  .filter(env => env.type !== 'kitchen' && env.id !== 'ADMIN' && env.id !== 'PUBLICO')
+                                  .map((env) => (
+                                    <option key={env.id} value={env.id} className="bg-slate-900 text-white font-bold py-1">
+                                      📍 Enviar p/ {env.name}
+                                    </option>
+                                  ))}
+                              </optgroup>
+                              <optgroup label="Balcão / Sem Preparo">
+                                <option value="none" className="bg-slate-900 text-emerald-300 font-bold py-1">
+                                  🎪 Tenda / Balcão (Sem Cozinha)
+                                </option>
+                              </optgroup>
+                              <optgroup label="Personalizado">
+                                <option value="__NEW_ENV__" className="bg-slate-900 text-amber-300 font-black py-1">
+                                  ✨ + Cadastrar Novo Espaço...
+                                </option>
+                              </optgroup>
+                            </select>
+                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </div>
+                          </div>
 
                           <button
                             type="button"
                             onClick={() => handleToggleItemTV(targetId, !isToTV)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                            className={`h-9 px-3 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
                               isToTV
                                 ? 'bg-blue-600/25 text-blue-300 border-blue-500/50 shadow-sm'
                                 : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
