@@ -55,7 +55,14 @@ class StorageService {
       };
     }
 
-    return null;
+    return {
+      apiKey: "AIzaSyC3Kaas0J2aoVjE-8CLUP7bFDd1xYCNtEk",
+      authDomain: "cantina-express-32161.firebaseapp.com",
+      projectId: "cantina-express-32161",
+      storageBucket: "cantina-express-32161.firebasestorage.app",
+      messagingSenderId: "863820186259",
+      appId: "1:863820186259:web:03fab2dcfc369e386b8366"
+    };
   }
 
   saveFirebaseConfig(config) {
