@@ -216,6 +216,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     order: null
   });
 
+  // Estado do Modal de Confirmação de Exclusão de Item do Cardápio
+  const [deleteItemConfirmModal, setDeleteItemConfirmModal] = useState({
+    isOpen: false,
+    item: null
+  });
+
   useEffect(() => {
     if (isOpen) {
       if (initialTab) setActiveTab(initialTab);
@@ -229,6 +235,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
+        if (deleteItemConfirmModal.isOpen) {
+          setDeleteItemConfirmModal({ isOpen: false, item: null });
+          return;
+        }
         if (cancelConfirmModal.isOpen) {
           setCancelConfirmModal({ isOpen: false, order: null });
           return;
@@ -470,6 +480,42 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setConfirmDeleteGear(false);
     setShowGearModal(false);
     showToast(`Item "${gearItemData.name}" removido com sucesso!`, 'Item Excluído');
+  };
+
+  // Abrir modal de confirmação para excluir item diretamente pelo card
+  const handleOpenDeleteItemConfirm = (item) => {
+    if (item.isVariation) {
+      showToast('Itens base de pizza (Pedaço/Inteira) são essenciais da cantina e não podem ser excluídos.', 'Aviso', 'info');
+      return;
+    }
+    setDeleteItemConfirmModal({ isOpen: true, item });
+  };
+
+  // Confirmar exclusão de item do cardápio
+  const handleConfirmDeleteItem = () => {
+    const itemToDelete = deleteItemConfirmModal.item;
+    if (!itemToDelete) return;
+
+    if (itemToDelete.isVariation) {
+      showToast('Itens base de pizza (Pedaço/Inteira) não podem ser excluídos.', 'Aviso', 'info');
+      setDeleteItemConfirmModal({ isOpen: false, item: null });
+      return;
+    }
+
+    const updated = categories.map(cat => {
+      if (cat.id === itemToDelete.categoryId) {
+        return {
+          ...cat,
+          items: (cat.items || []).filter(it => it.id !== itemToDelete.id)
+        };
+      }
+      return cat;
+    });
+
+    storageService.saveProducts(updated);
+    setCategories(updated);
+    setDeleteItemConfirmModal({ isOpen: false, item: null });
+    showToast(`Item "${itemToDelete.name}" excluído com sucesso!`, 'Item Removido');
   };
 
   // Adicionar novo item para venda
@@ -910,12 +956,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
+      className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-3 pt-2 sm:pt-3 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer overflow-y-auto"
     >
       
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-slate-900 border-2 border-slate-700 w-full max-w-6xl max-h-[92vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 font-sans cursor-default"
+        className="bg-slate-900 border-2 border-slate-700 w-full max-w-6xl max-h-[96vh] rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 font-sans cursor-default my-0"
       >
         
         {/* CABEÇALHO DO MODAL */}
@@ -1214,7 +1260,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </span>
                       </h3>
                       <p className="text-xs text-slate-400">
-                        Edite senhas e valores diretamente abaixo ou clique na engrenagem ⚙️ para configurações completas.
+                        Edite senhas e valores abaixo, clique no lápis verde ✏️ para editar ou na lixeira 🗑️ para excluir.
                       </p>
                     </div>
                   </div>
@@ -1254,19 +1300,32 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       key={`${item.categoryId}_${item.id}`} 
                       className="bg-slate-900/90 p-3 rounded-xl border border-slate-700/80 space-y-2 hover:border-amber-500/50 transition-colors shadow-sm flex flex-col justify-between"
                     >
-                      {/* TOPO: NOME E BOTÃO ENGRENAGEM (SEM O 'Ex: xxx') */}
+                      {/* TOPO: NOME, LÁPIS VERDE E LIXEIRINHA COM CONFIRMAÇÃO */}
                       <div className="flex items-center justify-between gap-1.5">
                         <span className="text-xs font-black text-white uppercase truncate" title={item.name}>
                           {item.name}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenGearModal(item)}
-                          className="p-1 text-slate-400 hover:text-amber-300 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
-                          title="Configurações completas deste item"
-                        >
-                          <Settings className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* LÁPIS VERDE */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenGearModal(item)}
+                            className="p-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 rounded-lg transition-colors cursor-pointer"
+                            title="Editar configurações deste item"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* LIXEIRINHA COM CONFIRMAÇÃO */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDeleteItemConfirm(item)}
+                            className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer"
+                            title="Excluir item do cardápio"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* EMBAIXO: PREFIXO SENHA (ACEITA MAIÚSCULO E MINÚSCULO) E VALOR */}
@@ -2571,6 +2630,80 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={handleConfirmCancelOrder}
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>SIM</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL BONITO DE CONFIRMAÇÃO DE EXCLUSÃO DE ITEM DO CARDÁPIO */}
+      {deleteItemConfirmModal.isOpen && (
+        <div 
+          onClick={() => setDeleteItemConfirmModal({ isOpen: false, item: null })}
+          className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-rose-500/80 max-w-md w-full rounded-3xl p-6 shadow-2xl space-y-4 text-slate-100 animate-modal-pop cursor-default"
+          >
+            {/* CABEÇALHO DO MODAL */}
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <span className="p-2.5 bg-rose-500/20 text-rose-400 rounded-2xl border border-rose-500/30">
+                <Trash2 className="w-6 h-6" />
+              </span>
+              <div>
+                <h3 className="text-xl font-black text-rose-400 tracking-wider uppercase">
+                  ATENÇÃO!
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Confirmação de exclusão do item do cardápio
+                </p>
+              </div>
+            </div>
+
+            {/* MENSAGEM PRINCIPAL */}
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-slate-200 leading-relaxed">
+                Tem certeza que deseja excluir o item cadastrado? Ele deixará de aparecer para venda no caixa.
+              </p>
+
+              {/* CARD RESUMO DO ITEM */}
+              {deleteItemConfirmModal.item && (
+                <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-1.5 font-mono text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 font-sans">Nome do Item:</span>
+                    <span className="font-black text-amber-300 text-sm">{deleteItemConfirmModal.item.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 font-sans">Prefixo Senha:</span>
+                    <span className="font-bold text-white">{deleteItemConfirmModal.item.prefix || 'Sem prefixo'}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-slate-800/80 pt-1.5 mt-1">
+                    <span className="text-slate-400 font-sans">Valor de Venda:</span>
+                    <span className="font-black text-emerald-400 text-sm">R$ {formatCurrencyMask(deleteItemConfirmModal.item.price)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BOTÕES SIM / NÃO */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteItemConfirmModal({ isOpen: false, item: null })}
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <X className="w-4 h-4" />
+                <span>NÃO</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmDeleteItem}
                 className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-4 h-4" />
