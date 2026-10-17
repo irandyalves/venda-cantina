@@ -566,11 +566,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             <h1 className="text-base font-black tracking-widest text-white uppercase leading-none">
               CAIXA
             </h1>
-            {currentEvent?.name && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-950/70 border border-amber-600/40 px-2 py-0.5 rounded-md">
-                🎉 {currentEvent.name}
-              </span>
-            )}
           </div>
         </div>
 
