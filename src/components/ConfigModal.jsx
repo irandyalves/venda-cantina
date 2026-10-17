@@ -1743,27 +1743,30 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     Nenhum turno anterior arquivado ainda. Ao clicar em "Zerar / Fechar Turno", uma cópia será guardada aqui automaticamente.
                   </div>
                 ) : (
-                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pr-1">
                     {turnoHistory.map((hist) => (
-                      <div key={hist.id} className="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-black text-amber-300">
+                      <div key={hist.id} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors flex flex-col justify-between gap-1.5 shadow-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs font-black text-amber-300 truncate">
                               {hist.event?.name || 'Cantina Geral'}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                            <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 shrink-0">
                               📅 {hist.archivedAtFormatted || new Date(hist.archivedAt).toLocaleString('pt-BR')}
                             </span>
                           </div>
-                          <div className="text-[11px] text-slate-400">
-                            {hist.totalOrders} pedidos arquivados • PIX: R$ {(hist.paymentBreakdown?.pix || 0).toFixed(2)} • Dinheiro: R$ {(hist.paymentBreakdown?.dinheiro || 0).toFixed(2)} • Cartões: R$ {((hist.paymentBreakdown?.debito || 0) + (hist.paymentBreakdown?.credito || 0)).toFixed(2)}
+                          <div className="text-right shrink-0">
+                            <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight">
+                              R$ {(hist.totalRevenue || 0).toFixed(2)}
+                            </span>
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-[10px] font-bold text-slate-500 uppercase">Faturamento do Turno</div>
-                          <div className="text-sm font-black text-emerald-400 font-mono">
-                            R$ {(hist.totalRevenue || 0).toFixed(2)}
-                          </div>
+
+                        <div className="text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1 leading-none font-mono">
+                          <span><strong className="text-slate-300">{hist.totalOrders}</strong> ped.</span>
+                          <span>PIX: R$ {(hist.paymentBreakdown?.pix || 0).toFixed(2)}</span>
+                          <span>Din: R$ {(hist.paymentBreakdown?.dinheiro || 0).toFixed(2)}</span>
+                          <span>Cart: R$ {((hist.paymentBreakdown?.debito || 0) + (hist.paymentBreakdown?.credito || 0)).toFixed(2)}</span>
                         </div>
                       </div>
                     ))}
@@ -1773,43 +1776,34 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
               {/* SEÇÃO 2: HISTÓRICO E AUDITORIA DE TODAS AS VENDAS DE HOJE */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700 pb-3">
-                  <div>
-                    <h4 className="font-extrabold text-white text-base">
-                      Histórico de Vendas de Hoje (Auditoria)
-                    </h4>
-                    <p className="text-xs text-slate-400">
-                      Visualize todos os pedidos do turno atual. Vendas excluídas ficam esmaecidas com [EXCLUÍDO] e não somam no faturamento.
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs text-slate-400 font-bold">Total Faturado: </span>
-                    <span className="text-sm font-black text-emerald-400 font-mono">R$ {totalGeral.toFixed(2)}</span>
-                  </div>
-                </div>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-700/80 pb-3">
+                  <h4 className="font-extrabold text-white text-base tracking-wide shrink-0">
+                    Histórico
+                  </h4>
 
-                {/* CARDS TOTALIZADORES */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase">Total Geral</div>
-                    <div className="text-base font-black text-emerald-400 font-mono">R$ {totalGeral.toFixed(2)}</div>
-                    <div className="text-[9px] text-slate-400">{activeOrders.length} ativas</div>
-                  </div>
-                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                    <div className="text-[10px] font-bold text-emerald-400 uppercase">PIX</div>
-                    <div className="text-sm font-black text-white font-mono">R$ {totalPix.toFixed(2)}</div>
-                  </div>
-                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                    <div className="text-[10px] font-bold text-teal-400 uppercase">Dinheiro</div>
-                    <div className="text-sm font-black text-white font-mono">R$ {totalDinheiro.toFixed(2)}</div>
-                  </div>
-                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                    <div className="text-[10px] font-bold text-blue-400 uppercase">Cartões</div>
-                    <div className="text-sm font-black text-white font-mono">R$ {(totalDebito + totalCredito).toFixed(2)}</div>
-                  </div>
-                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                    <div className="text-[10px] font-bold text-rose-400 uppercase">Excluídas</div>
-                    <div className="text-sm font-black text-rose-300 font-mono">{todayOrders.length - activeOrders.length}</div>
+                  {/* CARDS TOTALIZADORES NO CABEÇALHO AO LADO DE HISTÓRICO */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase leading-none">Total Geral</div>
+                      <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">R$ {totalGeral.toFixed(2)}</div>
+                      <div className="text-[8px] text-slate-500 leading-none">{activeOrders.length} ativas</div>
+                    </div>
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
+                      <div className="text-[9px] font-bold text-emerald-400 uppercase leading-none">PIX</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalPix.toFixed(2)}</div>
+                    </div>
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
+                      <div className="text-[9px] font-bold text-teal-400 uppercase leading-none">Dinheiro</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalDinheiro.toFixed(2)}</div>
+                    </div>
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
+                      <div className="text-[9px] font-bold text-blue-400 uppercase leading-none">Cartões</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {(totalDebito + totalCredito).toFixed(2)}</div>
+                    </div>
+                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
+                      <div className="text-[9px] font-bold text-rose-400 uppercase leading-none">Excluídas</div>
+                      <div className="text-xs sm:text-sm font-black text-rose-400 font-mono leading-tight mt-0.5">{todayOrders.length - activeOrders.length}</div>
+                    </div>
                   </div>
                 </div>
 
@@ -2177,27 +2171,28 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </span>
                     </div>
 
-                    <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                       {turnoHistory.map((hist) => (
-                        <div key={hist.id} className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-black text-amber-300">
+                        <div key={hist.id} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between gap-1.5 hover:border-slate-700 transition-colors">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-xs font-black text-amber-300 truncate">
                                 {hist.event?.name || 'Cantina Geral'}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                              <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 shrink-0">
                                 📅 {hist.archivedAtFormatted || new Date(hist.archivedAt).toLocaleString('pt-BR')}
                               </span>
                             </div>
-                            <div className="text-[11px] text-slate-400">
-                              {hist.totalOrders} pedidos arquivados • PIX: R$ {(hist.paymentBreakdown?.pix || 0).toFixed(2)} • Dinheiro: R$ {(hist.paymentBreakdown?.dinheiro || 0).toFixed(2)}
+                            <div className="text-right shrink-0">
+                              <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight">
+                                R$ {(hist.totalRevenue || 0).toFixed(2)}
+                              </span>
                             </div>
                           </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-[10px] font-bold text-slate-500 uppercase">Total Arquivado</div>
-                            <div className="text-sm font-black text-emerald-400 font-mono">
-                              R$ {(hist.totalRevenue || 0).toFixed(2)}
-                            </div>
+                          <div className="text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1 leading-none font-mono">
+                            <span><strong className="text-slate-300">{hist.totalOrders}</strong> ped.</span>
+                            <span>PIX: R$ {(hist.paymentBreakdown?.pix || 0).toFixed(2)}</span>
+                            <span>Din: R$ {(hist.paymentBreakdown?.dinheiro || 0).toFixed(2)}</span>
                           </div>
                         </div>
                       ))}
