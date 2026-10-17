@@ -389,8 +389,8 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
         </div>
       </header>
 
-      {/* MODAL BONITO DE 2 SEGUNDOS */}
-      <AutoToast toast={toast} onClose={() => setToast(null)} duration={2000} />
+      {/* MODAL BONITO RÁPIDO (1 SEGUNDO) */}
+      <AutoToast toast={toast} onClose={() => setToast(null)} duration={1000} />
 
       {/* ========================================================
           ÁREA DO TOPO DO CAIXA:
@@ -595,7 +595,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                           placeholder="Digite o nome de quem comprou..."
                           value={customerName}
                           onChange={(e) => {
-                            setCustomerName(e.target.value);
+                            setCustomerName(e.target.value.toUpperCase());
                             if (showNameError && e.target.value.trim()) setShowNameError(false);
                           }}
                           onKeyDown={(e) => {
@@ -611,7 +611,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                               }
                             }
                           }}
-                          className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
+                          className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold uppercase px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:normal-case placeholder:text-xs border-2 ${
                             !isNameFilled 
                               ? 'border-rose-500 glow-required-name' 
                               : 'border-emerald-500 ring-2 ring-emerald-500/30'
@@ -713,11 +713,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="mt-2 text-center py-1.5 bg-slate-900/50 rounded-lg border border-dashed border-slate-700 text-[10px] text-slate-400">
-                👆 Clique no sabor da pizza para abrir as opções e enviar para a cozinha.
-              </div>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -812,7 +808,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                               placeholder="Digite o nome de quem comprou..."
                               value={customerName}
                               onChange={(e) => {
-                                setCustomerName(e.target.value);
+                                setCustomerName(e.target.value.toUpperCase());
                                 if (showNameError && e.target.value.trim()) setShowNameError(false);
                               }}
                               onKeyDown={(e) => {
@@ -828,7 +824,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                                   }
                                 }
                               }}
-                              className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
+                              className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold uppercase px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:normal-case placeholder:text-xs border-2 ${
                                 !isNameFilled 
                                   ? 'border-rose-500 glow-required-name' 
                                   : 'border-emerald-500 ring-2 ring-emerald-500/30'
@@ -1032,7 +1028,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                               placeholder="Digite o nome de quem comprou..."
                               value={customerName}
                               onChange={(e) => {
-                                setCustomerName(e.target.value);
+                                setCustomerName(e.target.value.toUpperCase());
                                 if (showNameError && e.target.value.trim()) setShowNameError(false);
                               }}
                               onKeyDown={(e) => {
@@ -1048,7 +1044,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                                   }
                                 }
                               }}
-                              className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
+                              className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold uppercase px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:normal-case placeholder:text-xs border-2 ${
                                 !isNameFilled 
                                   ? 'border-rose-500 glow-required-name' 
                                   : 'border-emerald-500 ring-2 ring-emerald-500/30'
@@ -1256,7 +1252,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                                 placeholder="Digite o nome de quem comprou..."
                                 value={customerName}
                                 onChange={(e) => {
-                                  setCustomerName(e.target.value);
+                                  setCustomerName(e.target.value.toUpperCase());
                                   if (showNameError && e.target.value.trim()) setShowNameError(false);
                                 }}
                                 onKeyDown={(e) => {
@@ -1272,7 +1268,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
                                     }
                                   }
                                 }}
-                                className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
+                                className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold uppercase px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:normal-case placeholder:text-xs border-2 ${
                                   !isNameFilled 
                                     ? 'border-rose-500 glow-required-name' 
                                     : 'border-emerald-500 ring-2 ring-emerald-500/30'

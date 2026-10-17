@@ -269,19 +269,19 @@ export default function DisplayView({ onNavigate }) {
           - BORDAS ESQUERDA E DIREITA RETIRADAS DOS CARDS
           - LINHAS SUPERIOR E INFERIOR ENCOSTAM NA BORDA DA SEÇÃO
          ======================================================== */}
-      <main className={`flex-1 p-4 sm:p-6 overflow-hidden ${
+      <main className={`flex-1 px-0 py-3 sm:py-4 overflow-hidden ${
         tvSettings.showDelivered 
-          ? 'grid grid-cols-1 lg:grid-cols-12 gap-6' 
-          : 'flex flex-col items-center justify-center'
+          ? 'grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6' 
+          : 'flex flex-col items-center justify-center px-4'
       }`}>
         
-        {/* COLUNA CENTRAL: EM PREPARAÇÃO */}
-        <section className={`flex flex-col bg-slate-900/85 rounded-3xl border-2 border-amber-500/50 shadow-2xl overflow-hidden ${
+        {/* COLUNA CENTRAL: EM PREPARAÇÃO (SEM BORDA ESQ, LINHAS SUP/INF ENCOSTAM NA JANELA, BORDA GROSSA À DIREITA) */}
+        <section className={`flex flex-col bg-slate-900/85 rounded-l-none rounded-r-3xl border-y-2 border-l-0 border-r-[6px] border-amber-500/60 border-r-amber-400 shadow-[4px_0_24px_rgba(245,158,11,0.25)] overflow-hidden ${
           tvSettings.showDelivered ? 'lg:col-span-7' : 'w-full max-w-5xl h-full'
         }`}>
           
           {/* CABEÇALHO DA SEÇÃO EM PREPARAÇÃO */}
-          <div className="flex items-center justify-between border-b-2 border-amber-500/40 p-5 pb-4 shrink-0 bg-slate-900/90">
+          <div className="flex items-center justify-between border-b-2 border-amber-500/40 p-5 pl-6 sm:pl-8 pb-4 shrink-0 bg-slate-900/90">
             <div className="flex items-center gap-3">
               <span className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl">
                 <Flame className="w-7 h-7 animate-pulse" />
@@ -294,7 +294,7 @@ export default function DisplayView({ onNavigate }) {
               </div>
             </div>
 
-            <span className="text-2xl font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-4 py-1 rounded-2xl font-mono">
+            <span className="text-2xl font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-4 py-1 rounded-2xl font-mono mr-2">
               {preparingOrders.length}
             </span>
           </div>
@@ -340,11 +340,11 @@ export default function DisplayView({ onNavigate }) {
           </div>
         </section>
 
-        {/* COLUNA LATERAL: ENTREGUES (SE HABILITADO) */}
+        {/* COLUNA LATERAL: ENTREGUES (SEM BORDA DIR, LINHAS SUP/INF ENCOSTAM NA JANELA, BORDA GROSSA À ESQUERDA) */}
         {tvSettings.showDelivered && (
-          <section className="lg:col-span-5 flex flex-col bg-slate-900/85 rounded-3xl border-2 border-blue-500/40 shadow-2xl overflow-hidden">
+          <section className="lg:col-span-5 flex flex-col bg-slate-900/85 rounded-r-none rounded-l-3xl border-y-2 border-r-0 border-l-[6px] border-blue-500/50 border-l-blue-400 shadow-[-4px_0_24px_rgba(59,130,246,0.25)] overflow-hidden">
             
-            <div className="flex items-center justify-between border-b-2 border-blue-500/30 p-5 pb-4 shrink-0 bg-slate-900/90">
+            <div className="flex items-center justify-between border-b-2 border-blue-500/30 p-5 pr-6 sm:pr-8 pb-4 shrink-0 bg-slate-900/90 ml-2">
               <div className="flex items-center gap-2.5">
                 <span className="p-2 bg-blue-500/20 text-blue-400 rounded-xl">
                   <CheckCircle2 className="w-5 h-5" />

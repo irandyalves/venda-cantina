@@ -247,19 +247,33 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
   const loadData = () => {
     const cats = storageService.getProducts();
-    setCategories(cats);
+    // Normalizar caso o banco local tenha o antigo 'PP-' ou 'PI-' em maiúsculo
+    const normalizedCats = cats.map(cat => {
+      if (cat.id === 'pizza' && cat.variations) {
+        return {
+          ...cat,
+          variations: cat.variations.map(v => {
+            if (v.id === 'pedaco' && (v.prefix === 'PP-' || v.prefix === 'PP')) return { ...v, prefix: 'Pp-' };
+            if (v.id === 'inteira' && (v.prefix === 'PI-' || v.prefix === 'PI')) return { ...v, prefix: 'Pi-' };
+            return v;
+          })
+        };
+      }
+      return cat;
+    });
+    setCategories(normalizedCats);
 
-    const pizzaCat = cats.find(c => c.id === 'pizza');
+    const pizzaCat = normalizedCats.find(c => c.id === 'pizza');
     if (pizzaCat && pizzaCat.variations) {
       const p = pizzaCat.variations.find(v => v.id === 'pedaco');
       const i = pizzaCat.variations.find(v => v.id === 'inteira');
       if (p) {
         setPedacoPrice(formatCurrencyMask(p.price));
-        setPedacoPrefix(p.prefix || 'Pp-');
+        setPedacoPrefix(p.prefix === 'PP-' ? 'Pp-' : (p.prefix || 'Pp-'));
       }
       if (i) {
         setInteiraPrice(formatCurrencyMask(i.price));
-        setInteiraPrefix(i.prefix || 'Pi-');
+        setInteiraPrefix(i.prefix === 'PI-' ? 'Pi-' : (i.prefix || 'Pi-'));
       }
     }
 
@@ -2907,8 +2921,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         </div>
       )}
 
-      {/* MODAL BONITO DE 2 SEGUNDOS */}
-      <AutoToast toast={toast} onClose={() => setToast(null)} duration={2000} />
+      {/* MODAL BONITO RÁPIDO (1 SEGUNDO) */}
+      <AutoToast toast={toast} onClose={() => setToast(null)} duration={1000} />
 
     </div>
   );

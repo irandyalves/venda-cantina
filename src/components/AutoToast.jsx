@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Info, X, Sparkles } from 'lucide-react';
 
-export default function AutoToast({ toast, onClose, duration = 2000 }) {
+export default function AutoToast({ toast, onClose, duration = 1000 }) {
   useEffect(() => {
     if (!toast) return;
 
@@ -25,7 +25,7 @@ export default function AutoToast({ toast, onClose, duration = 2000 }) {
         onClick={onClose}
       />
 
-      {/* Cartão do Modal Bonito (2 segundos) */}
+      {/* Cartão do Modal Bonito (Rápido - 1 segundo) */}
       <div 
         className={`pointer-events-auto relative w-full max-w-md mx-auto rounded-2xl p-4 sm:p-5 shadow-2xl border-2 transition-all transform animate-toast-in ${
           isSuccess 
@@ -76,9 +76,10 @@ export default function AutoToast({ toast, onClose, duration = 2000 }) {
           </button>
         </div>
 
-        {/* Barra de progresso animada de 2 segundos que consome e fecha */}
+        {/* Barra de progresso animada rápida que consome e fecha */}
         <div className="w-full bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
           <div 
+            style={{ animationDuration: `${duration}ms` }}
             className={`h-full rounded-full animate-toast-progress ${
               isSuccess ? 'bg-emerald-400' : isError ? 'bg-rose-400' : 'bg-amber-400'
             }`} 

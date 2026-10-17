@@ -123,7 +123,7 @@ input[type="number"] {
 }
 
 .animate-toast-progress {
-  animation: toast-progress 2s linear forwards;
+  animation: toast-progress 1s linear forwards;
 }
 
 /* Efeito cortina revelando para baixo */
