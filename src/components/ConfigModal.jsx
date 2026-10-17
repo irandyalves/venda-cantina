@@ -191,9 +191,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   // Modal de Adicionar Item para Venda
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [newItemName, setNewItemName] = useState('');
-  const [newItemCategory, setNewItemCategory] = useState('acai');
+  const [newItemCategory, setNewItemCategory] = useState('pizza');
   const [newItemPrice, setNewItemPrice] = useState('0,00');
-  const [newItemPrefix, setNewItemPrefix] = useState('A-');
+  const [newItemPrefix, setNewItemPrefix] = useState('Pp-');
   const [newItemDesc, setNewItemDesc] = useState('');
 
   // Modal de Configurações Completas do Item (Engrenagem ⚙️)
@@ -477,12 +477,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     if (e) e.preventDefault();
     const cleanName = newItemName.trim();
     if (!cleanName) {
-      showToast('O nome do item é obrigatório!', 'Atenção', 'error');
+      showToast(newItemCategory === 'pizza' ? 'O sabor da pizza é obrigatório!' : 'O nome do item é obrigatório!', 'Atenção', 'error');
       return;
     }
 
     const priceNum = parseCurrencyMask(newItemPrice);
-    const cleanPrefix = newItemPrefix.trim() || (newItemCategory === 'acai' ? 'A-' : newItemCategory === 'batata' ? 'B-' : 'Ped-');
+    const cleanPrefix = newItemPrefix.trim() || (newItemCategory === 'pizza' ? 'Pp-' : newItemCategory === 'acai' ? 'A-' : newItemCategory === 'batata' ? 'B-' : 'Ped-');
     const cleanDesc = newItemDesc.trim();
 
     const newItem = {
@@ -516,7 +516,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setShowAddItemModal(false);
     setNewItemName('');
     setNewItemPrice('0,00');
-    setNewItemPrefix('');
+    setNewItemPrefix('Pp-');
+    setNewItemCategory('pizza');
     setNewItemDesc('');
     showToast(`"${cleanName}" adicionado para venda com sucesso!`, 'Item Cadastrado');
   };
@@ -1221,7 +1222,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
-                      onClick={() => setShowAddItemModal(true)}
+                      onClick={() => {
+                        setNewItemCategory('pizza');
+                        setNewItemPrefix('Pp-');
+                        setNewItemName('');
+                        setNewItemPrice('0,00');
+                        setNewItemDesc('');
+                        setShowAddItemModal(true);
+                      }}
                       className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                     >
                       <Plus className="w-4 h-4" />
@@ -2788,20 +2796,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             </div>
 
             <form onSubmit={handleAddNewSaleItem} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Nome do Item: *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Copo Açaí 400ml, Refrigerante Lata, Pastel de Queijo..."
-                  value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-emerald-400"
-                />
-              </div>
-
+              {/* LINHA 1: CATEGORIA E PREFIXO DA SENHA */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
@@ -2810,17 +2805,18 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <select
                     value={newItemCategory}
                     onChange={(e) => {
-                      setNewItemCategory(e.target.value);
-                      if (e.target.value === 'acai') setNewItemPrefix('A-');
-                      else if (e.target.value === 'batata') setNewItemPrefix('B-');
-                      else if (e.target.value === 'pizza') setNewItemPrefix('Pp-');
+                      const newCat = e.target.value;
+                      setNewItemCategory(newCat);
+                      if (newCat === 'acai') setNewItemPrefix('A-');
+                      else if (newCat === 'batata') setNewItemPrefix('B-');
+                      else if (newCat === 'pizza') setNewItemPrefix('Pp-');
                       else setNewItemPrefix('Ped-');
                     }}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold outline-none focus:border-emerald-400 cursor-pointer"
                   >
+                    <option value="pizza">Pizza</option>
                     <option value="acai">Açaí</option>
                     <option value="batata">Batata Frita</option>
-                    <option value="pizza">Pizza</option>
                     <option value="outros">Outros / Bebidas</option>
                   </select>
                 </div>
@@ -2840,7 +2836,26 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
+              {/* LINHA 2: SABOR/NOME DO ITEM + PREÇO DE VENDA NA FRENTE */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    {newItemCategory === 'pizza' ? 'Sabor da Pizza: *' : 'Nome do Item: *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={
+                      newItemCategory === 'pizza'
+                        ? 'Ex: Marguerita, Calabresa, 4 Queijos...'
+                        : 'Ex: Copo 400ml, Batata Frita, Suco...'
+                    }
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value.toUpperCase())}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-emerald-400"
+                  />
+                </div>
+
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
                     Preço de Venda (R$): *
@@ -2858,19 +2873,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     />
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Descrição / Detalhes:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Opcional (ex: 350ml gelada)"
-                    value={newItemDesc}
-                    onChange={(e) => setNewItemDesc(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-400"
-                  />
-                </div>
+              {/* LINHA 3: DESCRIÇÃO EMBAIXO */}
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Descrição / Detalhes:
+                </label>
+                <input
+                  type="text"
+                  placeholder={
+                    newItemCategory === 'pizza'
+                      ? 'Opcional (ex: Molho especial, queijo, tomate, orégano)'
+                      : 'Opcional (ex: Gelada 350ml, porção 500g)'
+                  }
+                  value={newItemDesc}
+                  onChange={(e) => setNewItemDesc(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-400"
+                />
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
