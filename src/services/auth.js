@@ -109,21 +109,27 @@ class AuthService {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Garante que TODOS os ambientes padrão essenciais do sistema existam (COZINHA 1, COZINHA 2, TENDA, QUADRA, ADMIN, PÚBLICO)
+          // Garante apenas que os ambientes essenciais do sistema (ADMIN, COZINHA, PÚBLICO) existam
           const ids = new Set(parsed.map(e => e.id));
-          const missingDefaults = DEFAULT_ENVIRONMENTS.filter(d => !ids.has(d.id));
+          const missingSystemDefaults = DEFAULT_ENVIRONMENTS.filter(d => d.isSystem && !ids.has(d.id));
 
-          // Atualiza nomes/descrições de itens padrão se estiverem com textos antigos
+          // NUNCA sobrescreve nomes ou descrições personalizados pelo usuário
           const updated = parsed.map(env => {
             const defaultMatch = DEFAULT_ENVIRONMENTS.find(d => d.id === env.id);
-            if (defaultMatch && defaultMatch.isSystem) {
-              return { ...defaultMatch, ...env, name: defaultMatch.name, description: defaultMatch.description };
+            if (defaultMatch) {
+              return {
+                ...defaultMatch,
+                ...env,
+                name: env.name || defaultMatch.name,
+                shortName: env.shortName || defaultMatch.shortName,
+                description: env.description !== undefined ? env.description : defaultMatch.description
+              };
             }
             return env;
           });
 
-          if (missingDefaults.length > 0) {
-            const merged = [...updated, ...missingDefaults];
+          if (missingSystemDefaults.length > 0) {
+            const merged = [...updated, ...missingSystemDefaults];
             localStorage.setItem(ENVIRONMENTS_STORAGE_KEY, JSON.stringify(merged));
             return merged;
           }

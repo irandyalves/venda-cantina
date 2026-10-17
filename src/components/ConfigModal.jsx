@@ -253,6 +253,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
   }, [isOpen, initialTab]);
 
+  // Escuta atualizações de ambientes e roteamento em tempo real (vindos de outros dispositivos ou da nuvem)
+  useEffect(() => {
+    const handleEnvsChange = (e) => {
+      setEnvironments(e.detail || authService.getEnvironments());
+    };
+    const handleRoutingChange = (e) => {
+      setProductionRouting(e.detail || storageService.getProductionRouting());
+    };
+    window.addEventListener('cantina_environments_changed', handleEnvsChange);
+    window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
+    return () => {
+      window.removeEventListener('cantina_environments_changed', handleEnvsChange);
+      window.removeEventListener('cantina_production_routing_changed', handleRoutingChange);
+    };
+  }, []);
+
   // Fechar com tecla ESC
   useEffect(() => {
     if (!isOpen) return;

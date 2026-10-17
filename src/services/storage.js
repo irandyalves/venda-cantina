@@ -164,13 +164,33 @@ class StorageService {
     }
 
     try {
-      // 1. Listener de pedidos em tempo real
+      // 1. Listener de pedidos e configurações em tempo real
       const colRef = collection(this.db, COLLECTION_ORDERS);
       this.unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
         const list = [];
         snapshot.forEach((docSnap) => {
+          const docId = docSnap.id;
           const data = docSnap.data();
-          list.push({ ...data, id: docSnap.id, firestoreDocId: docSnap.id });
+
+          if (docId === '__config_ambientes__') {
+            if (Array.isArray(data?.environments) && data.environments.length > 0) {
+              console.log(`📡 [Realtime Nuvem] ${data.environments.length} ambientes sincronizados via WebSocket`);
+              this.handleCloudEnvironments(data.environments);
+            }
+            return;
+          }
+
+          if (docId === '__config_roteamento__') {
+            if (data?.routing) {
+              console.log('📡 [Realtime Nuvem] Roteamento sincronizado via WebSocket');
+              this.handleCloudRouting(data.routing);
+            }
+            return;
+          }
+
+          if (docId.startsWith('__config_')) return;
+
+          list.push({ ...data, id: docId, firestoreDocId: docId });
         });
         
         // Ordena por data decrescente de forma segura em JavaScript
@@ -228,11 +248,20 @@ class StorageService {
   async seedCloudEnvironments() {
     if (!this.isFirebaseReady || !this.db) return;
     try {
-      const docRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
-      await setDoc(docRef, {
+      const ordersDocRef = doc(this.db, COLLECTION_ORDERS, '__config_ambientes__');
+      await setDoc(ordersDocRef, {
         environments: DEFAULT_ENVIRONMENTS,
         updatedAt: serverTimestamp()
       }, { merge: true });
+
+      try {
+        const docRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
+        await setDoc(docRef, {
+          environments: DEFAULT_ENVIRONMENTS,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (_) {}
+
       console.log('🌱 Ambientes padrão semeados no Firestore');
     } catch (err) {
       console.warn('Falha ao semear ambientes:', err);
@@ -243,8 +272,8 @@ class StorageService {
   handleCloudEnvironments(cloudEnvs) {
     try {
       const cloudIds = new Set(cloudEnvs.map(e => e.id));
-      const missingDefaults = DEFAULT_ENVIRONMENTS.filter(d => !cloudIds.has(d.id));
-      const fullList = [...cloudEnvs, ...missingDefaults];
+      const missingSystemDefaults = DEFAULT_ENVIRONMENTS.filter(d => d.isSystem && !cloudIds.has(d.id));
+      const fullList = [...cloudEnvs, ...missingSystemDefaults];
 
       localStorage.setItem('cantina_environments', JSON.stringify(fullList));
       window.dispatchEvent(new CustomEvent('cantina_environments_changed', { detail: fullList }));
@@ -261,11 +290,22 @@ class StorageService {
   async saveEnvironmentsCloud(environments) {
     if (!this.isFirebaseReady || !this.db) return;
     try {
-      const docRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
-      await setDoc(docRef, {
+      // 1. Grava no documento especial em cantina_pedidos para garantir acionamento do WebSocket e regras
+      const ordersDocRef = doc(this.db, COLLECTION_ORDERS, '__config_ambientes__');
+      await setDoc(ordersDocRef, {
         environments,
         updatedAt: serverTimestamp()
       }, { merge: true });
+
+      // 2. Grava também na coleção de configurações como redundância
+      try {
+        const configDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
+        await setDoc(configDocRef, {
+          environments,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (_) {}
+
       console.log('☁️ Ambientes salvos no Firestore na nuvem com sucesso:', environments.length);
     } catch (err) {
       console.error('⚠️ Erro ao salvar ambientes no Firestore:', err);
@@ -290,16 +330,26 @@ class StorageService {
   async saveProductionRoutingCloud(routing) {
     if (!this.isFirebaseReady || !this.db) return;
     try {
-      const docRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
-      await setDoc(docRef, {
+      const ordersDocRef = doc(this.db, COLLECTION_ORDERS, '__config_roteamento__');
+      await setDoc(ordersDocRef, {
         routing,
         updatedAt: serverTimestamp()
       }, { merge: true });
+
+      try {
+        const configDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
+        await setDoc(configDocRef, {
+          routing,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (_) {}
+
       console.log('☁️ Roteamento salvo no Firestore na nuvem com sucesso');
     } catch (err) {
       console.error('⚠️ Erro ao salvar roteamento no Firestore:', err);
     }
   }
+
 
   // Heartbeat Polling ativo a cada 2 segundos para garantir atualização contínua
   // (essencial para TVs e navegadores móveis que suspendem WebSockets ociosos)
@@ -313,7 +363,25 @@ class StorageService {
           const snap = await getDocs(colRef);
           const list = [];
           snap.forEach(docSnap => {
+            const docId = docSnap.id;
             const data = docSnap.data();
+
+            if (docId === '__config_ambientes__') {
+              if (Array.isArray(data?.environments) && data.environments.length > 0) {
+                this.handleCloudEnvironments(data.environments);
+              }
+              return;
+            }
+
+            if (docId === '__config_roteamento__') {
+              if (data?.routing) {
+                this.handleCloudRouting(data.routing);
+              }
+              return;
+            }
+
+            if (docId.startsWith('__config_')) return;
+
             list.push({ ...data, id: docSnap.id, firestoreDocId: docSnap.id });
           });
           list.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
