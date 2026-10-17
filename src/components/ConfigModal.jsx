@@ -208,6 +208,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     variationId: null
   });
 
+  // Estado do Modal Bonito de Confirmação de Exclusão de Venda (Substitui window.confirm)
+  const [cancelConfirmModal, setCancelConfirmModal] = useState({
+    isOpen: false,
+    order: null
+  });
+
   useEffect(() => {
     if (isOpen) {
       if (initialTab) setActiveTab(initialTab);
@@ -221,6 +227,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
+        if (cancelConfirmModal.isOpen) {
+          setCancelConfirmModal({ isOpen: false, order: null });
+          return;
+        }
         if (showAddItemModal) {
           setShowAddItemModal(false);
           return;
@@ -243,7 +253,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showAddItemModal, showGearModal, showResetModal, editingItemId, onClose]);
+  }, [isOpen, cancelConfirmModal.isOpen, showAddItemModal, showGearModal, showResetModal, editingItemId, onClose]);
 
   const loadData = () => {
     const cats = storageService.getProducts();
@@ -348,10 +358,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setEmailRules(authService.getEmailRules());
   };
 
-  // --- AÇÕES DE PRODUTOS E PREFIXOS ---
+  const [confirmDeleteGear, setConfirmDeleteGear] = useState(false);
 
   // Abrir Modal de Configurações Completas do Item (Engrenagem ⚙️)
   const handleOpenGearModal = (item) => {
+    setConfirmDeleteGear(false);
     setGearItemData({
       id: item.id,
       name: item.name || '',
@@ -433,14 +444,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     showToast(`Configurações de "${cleanName}" salvas com sucesso!`, 'Item Atualizado');
   };
 
-  // Excluir item a partir da engrenagem ⚙️
+  // Excluir item a partir da engrenagem ⚙️ (Sem window.confirm nativo)
   const handleDeleteGearItem = () => {
     if (gearItemData.isVariation) {
       showToast('Itens base de pizza (Pedaço/Inteira) não podem ser excluídos.', 'Aviso', 'info');
-      return;
-    }
-
-    if (!window.confirm(`Deseja realmente excluir "${gearItemData.name}" do cardápio de vendas?`)) {
       return;
     }
 
@@ -456,6 +463,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     storageService.saveProducts(updated);
     setCategories(updated);
+    setConfirmDeleteGear(false);
     setShowGearModal(false);
     showToast(`Item "${gearItemData.name}" removido com sucesso!`, 'Item Excluído');
   };
@@ -753,12 +761,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
   };
 
-  const handleCancelOrder = async (orderId) => {
-    if (window.confirm('Tem certeza que deseja excluir esta venda do caixa? Ela permanecerá no histórico de hoje em esmaecido como [EXCLUÍDO], mas seu valor será deduzido do faturamento.')) {
-      await storageService.updateOrderStatus(orderId, 'cancelado');
-      setOrders(storageService.getLocalOrders());
-      showToast('Venda excluída do faturamento!', 'Venda Excluída', 'info');
-    }
+  // Abre o modal bonito de confirmação de exclusão
+  const handleOpenCancelConfirm = (order) => {
+    setCancelConfirmModal({
+      isOpen: true,
+      order
+    });
+  };
+
+  // Executa a exclusão após o usuário clicar em SIM no modal bonito
+  const handleConfirmCancelOrder = async () => {
+    if (!cancelConfirmModal.order) return;
+    const orderId = cancelConfirmModal.order.id;
+    await storageService.updateOrderStatus(orderId, 'cancelado');
+    setOrders(storageService.getLocalOrders());
+    setCancelConfirmModal({ isOpen: false, order: null });
+    showToast('Venda excluída do faturamento!', 'Venda Excluída', 'info');
   };
 
   const handleRestoreOrder = async (orderId) => {
@@ -2006,7 +2024,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                     </button>
                                   ) : (
                                     <button
-                                      onClick={() => handleCancelOrder(ord.id)}
+                                      onClick={() => handleOpenCancelConfirm(ord)}
                                       className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                                       title="Excluir venda do faturamento (permanece no histórico esmaecida)"
                                     >
@@ -2427,7 +2445,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={() => handleCancelOrder(ord.id)}
+                                    onClick={() => handleOpenCancelConfirm(ord)}
                                     className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                                     title="Excluir venda do faturamento (permanece no histórico esmaecida)"
                                   >
@@ -2885,14 +2903,34 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
               <div className="flex items-center justify-between gap-2.5 pt-3 border-t border-slate-800">
                 {!gearItemData.isVariation ? (
-                  <button
-                    type="button"
-                    onClick={handleDeleteGearItem}
-                    className="px-3.5 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/80 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Excluir Item</span>
-                  </button>
+                  !confirmDeleteGear ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteGear(true)}
+                      className="px-3.5 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/80 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Excluir Item</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1.5 animate-fadeIn">
+                      <button
+                        type="button"
+                        onClick={handleDeleteGearItem}
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl shadow transition-all cursor-pointer flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Sim, Excluir!</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteGear(false)}
+                        className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-xl transition-all cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )
                 ) : (
                   <span className="text-[11px] text-slate-500 italic">
                     Item base da cantina
@@ -2917,6 +2955,86 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL BONITO DE CONFIRMAÇÃO DE EXCLUSÃO DE VENDA */}
+      {cancelConfirmModal.isOpen && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCancelConfirmModal({ isOpen: false, order: null });
+          }}
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border-2 border-rose-500/80 w-full max-w-md rounded-3xl shadow-[0_0_60px_rgba(244,63,94,0.35)] p-6 space-y-5 text-slate-100 relative cursor-default animate-modal-delivered"
+          >
+            {/* CABEÇALHO COM ÍCONE ATENÇÃO */}
+            <div className="flex items-center gap-3 border-b border-rose-500/30 pb-3">
+              <div className="p-2.5 bg-rose-500/20 text-rose-400 rounded-2xl border border-rose-500/40 shadow-inner">
+                <AlertTriangle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-rose-400 tracking-wider uppercase">
+                  ATENÇÃO!
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Confirmação de exclusão do item vendido
+                </p>
+              </div>
+            </div>
+
+            {/* MENSAGEM PRINCIPAL SOLICITADA PELO USUÁRIO */}
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-slate-200 leading-relaxed">
+                Tem certeza da exclusão do item vendido? Isso impacta no balanço final, mas estará no histórico para futura auditoria.
+              </p>
+
+              {/* CARD RESUMO DO ITEM A SER EXCLUÍDO */}
+              {cancelConfirmModal.order && (
+                <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-1.5 font-mono text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Comanda:</span>
+                    <span className="font-black text-amber-400 text-sm">{cancelConfirmModal.order.orderNumber}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Cliente:</span>
+                    <span className="font-bold text-white uppercase">{cancelConfirmModal.order.customerName}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Item:</span>
+                    <span className="text-slate-200 font-semibold">{cancelConfirmModal.order.fullDescription || cancelConfirmModal.order.itemName}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-slate-800/80 pt-1.5 mt-1">
+                    <span className="text-slate-400">Valor a deduzir:</span>
+                    <span className="font-black text-rose-400 text-sm">R$ {(cancelConfirmModal.order.totalPrice || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BOTÕES SIM / NÃO */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setCancelConfirmModal({ isOpen: false, order: null })}
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <X className="w-4 h-4" />
+                <span>NÃO</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmCancelOrder}
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>SIM</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
