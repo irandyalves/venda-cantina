@@ -162,34 +162,32 @@ class StorageService {
 
   async createOrder(orderData) {
     const timestamp = Date.now();
+    const orderId = 'ord_' + timestamp + '_' + Math.random().toString(36).substr(2, 6);
     const order = {
       ...orderData,
-      id: 'ord_' + timestamp + '_' + Math.random().toString(36).substr(2, 5),
+      id: orderId,
       createdAt: timestamp,
       status: 'em_preparo', // Chegou na cozinha já entra Em Preparação direto!
     };
 
-    // 1. Grava no Cloud Firestore na nuvem
+    // 1. Grava no Cloud Firestore com ID explícito
     if (this.isFirebaseReady && this.db) {
       try {
-        const docRef = await addDoc(collection(this.db, COLLECTION_ORDERS), {
+        const orderRef = doc(this.db, COLLECTION_ORDERS, orderId);
+        await setDoc(orderRef, {
           ...order,
           firebaseCreatedAt: serverTimestamp()
         });
-        order.id = docRef.id;
-        console.log('✅ Pedido salvo no Firestore em tempo real:', order.id);
+        console.log('✅ Pedido gravado no Firestore em tempo real:', orderId);
       } catch (err) {
-        console.error('⚠️ Falha ao salvar no Firestore, usando fallback local:', err);
+        console.error('⚠️ Falha ao salvar no Firestore:', err);
       }
     }
 
     // 2. Salva localmente para resposta instantânea
     const localOrders = this.getLocalOrders();
-    const exists = localOrders.some(o => o.id === order.id);
-    if (!exists) {
-      localOrders.unshift(order);
-      localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(localOrders));
-    }
+    localOrders.unshift(order);
+    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(localOrders));
 
     // 3. Notifica abas locais
     if (syncChannel) {
@@ -204,11 +202,11 @@ class StorageService {
     if (this.isFirebaseReady && this.db) {
       try {
         const orderRef = doc(this.db, COLLECTION_ORDERS, orderId);
-        await updateDoc(orderRef, {
+        await setDoc(orderRef, {
           status: newStatus,
           updatedAt: serverTimestamp()
-        });
-        console.log('✅ Status do pedido atualizado no Firestore:', orderId, '->', newStatus);
+        }, { merge: true });
+        console.log('✅ Status atualizado no Firestore para:', newStatus, orderId);
       } catch (err) {
         console.error('⚠️ Erro ao atualizar status no Firestore:', err);
       }

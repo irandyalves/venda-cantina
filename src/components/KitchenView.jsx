@@ -12,19 +12,27 @@ import {
   Flame, 
   Check, 
   Sparkles,
+  Settings,
+  Wifi,
+  WifiOff,
+  User,
   ArrowRight
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
 import ProfileSelector from './ProfileSelector';
 
-export default function KitchenView({ onNavigate }) {
+export default function KitchenView({ onNavigate, onOpenConfig }) {
   const [orders, setOrders] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('active'); // 'active' (em_preparo + pronto), 'entregue', 'all'
+  const [activeFilter, setActiveFilter] = useState('active'); // 'active', 'entregue', 'all'
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [isFirebaseOnline, setIsFirebaseOnline] = useState(storageService.isFirebaseReady);
-  
+
+  // Controle do efeito de 10 segundos no novo pedido
+  const [newestOrderId, setNewestOrderId] = useState(null);
+  const newestTimerRef = useRef(null);
+
   // Guardar IDs já tocados para não repetir som
   const knownOrderIdsRef = useRef(new Set());
   const isFirstLoadRef = useRef(true);
@@ -37,17 +45,29 @@ export default function KitchenView({ onNavigate }) {
 
   // Escutar pedidos em tempo real
   useEffect(() => {
-    const unsubscribe = storageService.subscribeOrders((allOrders) => {
-      // Identificar novos pedidos para tocar o som específico
-      if (soundEnabled && !isFirstLoadRef.current) {
+    const unsubscribeOrders = storageService.subscribeOrders((allOrders) => {
+      // Identificar novos pedidos para tocar o som e ativar o efeito de 10 segundos
+      if (!isFirstLoadRef.current) {
         allOrders.forEach((order) => {
           if (!knownOrderIdsRef.current.has(order.id) && order.status === 'em_preparo') {
             knownOrderIdsRef.current.add(order.id);
+
             // Toca som específico: Pizza, Batata ou Açaí
-            soundService.playCategorySound(order.category || order.orderNumber);
+            if (soundEnabled) {
+              soundService.playCategorySound(order.category || order.orderNumber);
+            }
+
+            // ATIVA O EFEITO DE 10 SEGUNDOS (SUBSTITUI SE JÁ TIVER OUTRO)
+            if (newestTimerRef.current) {
+              clearTimeout(newestTimerRef.current);
+            }
+            setNewestOrderId(order.id);
+            newestTimerRef.current = setTimeout(() => {
+              setNewestOrderId(null);
+            }, 10000); // 10 segundos
           }
         });
-      } else if (isFirstLoadRef.current) {
+      } else {
         // Na primeira carga, memoriza os existentes sem apitar
         allOrders.forEach(o => knownOrderIdsRef.current.add(o.id));
         isFirstLoadRef.current = false;
@@ -61,19 +81,32 @@ export default function KitchenView({ onNavigate }) {
     });
 
     return () => {
-      unsubscribe();
+      unsubscribeOrders();
       unsubscribeStatus();
+      if (newestTimerRef.current) clearTimeout(newestTimerRef.current);
     };
   }, [soundEnabled]);
 
-  // Ações de status
+  // AÇÃO DE ENTREGAR (GARANTINDO CONCLUSÃO IMEDIATA)
   const handleDeliver = async (orderId) => {
-    await storageService.updateOrderStatus(orderId, 'entregue');
+    try {
+      // Se for o que estava com o efeito, limpa
+      if (newestOrderId === orderId) {
+        setNewestOrderId(null);
+      }
+
+      // Atualiza no estado local de imediato para sumir na hora da fila
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'entregue', updatedAt: Date.now() } : o));
+
+      // Atualiza no Cloud Firestore
+      await storageService.updateOrderStatus(orderId, 'entregue');
+    } catch (err) {
+      console.error('Erro ao entregar pedido:', err);
+    }
   };
 
   const handleMarkReady = async (orderId) => {
     await storageService.updateOrderStatus(orderId, 'pronto');
-    // Toca o aviso de pedido pronto
     soundService.playReadySound();
   };
 
@@ -100,7 +133,6 @@ export default function KitchenView({ onNavigate }) {
     return `${min}m ${sec < 10 ? '0' : ''}${sec}s`;
   };
 
-  // Cor do tempo decorrido
   const getTimeColor = (timestamp) => {
     const min = Math.floor((currentTime - timestamp) / 60000);
     if (min < 5) return 'text-emerald-400 bg-emerald-950/60 border-emerald-500/40';
@@ -108,7 +140,6 @@ export default function KitchenView({ onNavigate }) {
     return 'text-rose-400 bg-rose-950/60 border-rose-500/50 animate-pulse';
   };
 
-  // Ícone por categoria
   const getCategoryIcon = (category) => {
     const cat = (category || '').toLowerCase();
     if (cat.includes('pizza')) return <Pizza className="w-5 h-5 text-red-400" />;
@@ -120,51 +151,52 @@ export default function KitchenView({ onNavigate }) {
     <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-100 font-sans overflow-hidden">
       
       {/* CABEÇALHO DA COZINHA */}
-      <header className="bg-slate-900 border-b border-slate-800 px-5 py-3 flex items-center justify-between shrink-0 shadow-xl">
+      <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between shrink-0 shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-tr from-orange-500 to-amber-600 rounded-xl shadow-lg shadow-orange-500/20">
-            <UtensilsCrossed className="w-7 h-7 text-white" />
+          <div className="p-2 bg-gradient-to-tr from-orange-500 to-amber-600 rounded-xl shadow-lg">
+            <UtensilsCrossed className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-white tracking-wide flex items-center gap-2">
-              COZINHA & PRODUÇÃO <span className="text-xs bg-orange-500/20 text-orange-400 font-bold px-2 py-0.5 rounded-full border border-orange-500/30">KDS</span>
+            <h1 className="text-base font-black text-white tracking-wide flex items-center gap-2">
+              COZINHA & PRODUÇÃO <span className="text-[10px] bg-orange-500/20 text-orange-400 font-bold px-2 py-0.5 rounded-full border border-orange-500/30">KDS</span>
             </h1>
             <p className="text-xs text-slate-400">
-              Fila em tempo real: <strong className="text-orange-400">{activeOrders.length} pedidos pendentes</strong>
+              Fila em tempo real: <strong className="text-orange-400 font-mono">{activeOrders.length} pedidos pendentes</strong>
             </p>
           </div>
         </div>
 
-        {/* CONTROLES E SONS */}
-        <div className="flex items-center gap-2.5">
-          {/* BADGE DE REALTIME CLOUD */}
-          <div className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border ${
+        {/* STATUS DA NUVEM + SONS + CONFIGURAÇÕES ⚙️ + NAVEGAÇÃO */}
+        <div className="flex items-center gap-2">
+          
+          {/* BADGE NUVEM REALTIME */}
+          <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${
             isFirebaseOnline 
               ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/50' 
               : 'bg-amber-950/60 text-amber-300 border-amber-600/50'
           }`}>
             <span className={`w-2 h-2 rounded-full ${isFirebaseOnline ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
-            <span>{isFirebaseOnline ? 'Nuvem Conectada' : 'Modo Local'}</span>
+            <span>{isFirebaseOnline ? 'Nuvem Realtime' : 'Modo Local'}</span>
           </div>
 
           {/* TESTE DE SONS */}
-          <div className="hidden sm:flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700 text-xs">
-            <span className="text-slate-400 text-[11px] font-semibold">Testar Som:</span>
+          <div className="hidden md:flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
+            <span className="text-slate-400 text-[10px] font-semibold">Testar:</span>
             <button 
               onClick={() => soundService.playPizzaSound()}
-              className="px-2 py-0.5 bg-red-950/70 hover:bg-red-900 text-red-300 font-bold rounded border border-red-700/50"
+              className="px-1.5 py-0.5 bg-red-950/70 hover:bg-red-900 text-red-300 font-bold rounded text-[10px]"
             >
               🍕 Pizza
             </button>
             <button 
               onClick={() => soundService.playPotatoSound()}
-              className="px-2 py-0.5 bg-amber-950/70 hover:bg-amber-900 text-amber-300 font-bold rounded border border-amber-700/50"
+              className="px-1.5 py-0.5 bg-amber-950/70 hover:bg-amber-900 text-amber-300 font-bold rounded text-[10px]"
             >
               🍟 Batata
             </button>
             <button 
               onClick={() => soundService.playAcaiSound()}
-              className="px-2 py-0.5 bg-purple-950/70 hover:bg-purple-900 text-purple-300 font-bold rounded border border-purple-700/50"
+              className="px-1.5 py-0.5 bg-purple-950/70 hover:bg-purple-900 text-purple-300 font-bold rounded text-[10px]"
             >
               🍧 Açaí
             </button>
@@ -173,29 +205,39 @@ export default function KitchenView({ onNavigate }) {
           {/* TOGGLE SOM GERAL */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-xl font-bold text-xs border transition-all ${
               soundEnabled 
                 ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/60' 
                 : 'bg-rose-950/60 text-rose-300 border-rose-600/60'
             }`}
             title="Ligar ou desligar avisos sonoros da cozinha"
           >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-rose-400" />}
-            <span>{soundEnabled ? 'Som Ativo' : 'Mudo'}</span>
+            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-rose-400" />}
+            <span className="hidden sm:inline">{soundEnabled ? 'Som Ativo' : 'Mudo'}</span>
+          </button>
+
+          {/* BOTÃO ENGRENAGEM DE CONFIGURAÇÃO NA COZINHA (NOVO) */}
+          <button
+            onClick={() => onOpenConfig && onOpenConfig('products')}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-md active:scale-95 border border-amber-500"
+            title="Ajustar preços da pizza, tamanhos de açaí, batatas e cardápio"
+          >
+            <Settings className="w-4 h-4 animate-spin-slow" />
+            <span className="hidden sm:inline">CONFIGURAÇÕES ⚙️</span>
           </button>
 
           {/* NAVEGAÇÃO */}
           <button 
             onClick={() => onNavigate('cashier')}
-            className="px-3 py-1.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors"
+            className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors"
           >
-            Ir ao Caixa
+            Caixa
           </button>
           <button 
             onClick={() => onNavigate('display')}
-            className="px-3 py-1.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors"
+            className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors"
           >
-            Ir à TV
+            TV
           </button>
 
           {/* PERFIL NO CANTO SUPERIOR DIREITO */}
@@ -204,179 +246,167 @@ export default function KitchenView({ onNavigate }) {
               if (profile === 'ADMIN') onNavigate('cashier');
               else if (profile === 'PUBLICO') onNavigate('display');
             }}
+            onOpenConfig={onOpenConfig}
           />
         </div>
       </header>
 
       {/* BARRA DE FILTROS */}
-      <div className="bg-slate-900/60 border-b border-slate-800/80 px-5 py-2 flex items-center justify-between text-xs">
+      <div className="bg-slate-900/60 border-b border-slate-800/80 px-4 py-1.5 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveFilter('active')}
-            className={`px-3 py-1.5 rounded-lg font-extrabold transition-all ${
+            className={`px-3 py-1 rounded-lg font-black transition-all ${
               activeFilter === 'active'
                 ? 'bg-orange-500 text-slate-950 shadow-md'
                 : 'bg-slate-800 text-slate-400 hover:text-white'
             }`}
           >
-            🔥 Fila da Cozinha ({activeOrders.length})
+            🔥 Fila em Linhas ({activeOrders.length})
           </button>
 
           <button
             onClick={() => setActiveFilter('entregue')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`px-3 py-1 rounded-lg font-bold transition-all ${
               activeFilter === 'entregue'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-slate-800 text-slate-400 hover:text-white'
             }`}
           >
-            ✓ Recém Entregues ({deliveredOrders.length})
+            ✓ Entregues ({deliveredOrders.length})
           </button>
         </div>
 
-        <div className="text-slate-400 text-xs">
-          Dica: Ao entregar para o cliente, clique em <strong className="text-emerald-400">[ENTREGAR / DAR OK]</strong>
+        <div className="text-slate-400 text-xs hidden sm:block">
+          Ao finalizar, clique diretamente em <strong className="text-emerald-400">[ENTREGAR]</strong>
         </div>
       </div>
 
-      {/* GRADE DE CARDS DOS PEDIDOS */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+      {/* ========================================================
+          LISTA DOS PEDIDOS EM FORMATO DE LINHAS (ROW CARDS)
+         ======================================================== */}
+      <main className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5">
         {displayedOrders.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center text-slate-500">
-            <Flame className="w-16 h-16 text-slate-700 mb-3 animate-pulse" />
-            <h2 className="text-2xl font-bold text-slate-400">Nenhum pedido pendente na cozinha!</h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Assim que o caixa confirmar uma venda, ela surgirá aqui com o alerta sonoro correspondente.
+            <Flame className="w-14 h-14 text-slate-700 mb-2 animate-pulse" />
+            <h2 className="text-xl font-bold text-slate-400">Nenhum pedido pendente na cozinha!</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Assim que o caixa confirmar uma venda, ela surgirá aqui com o efeito de 10 segundos e o aviso sonoro.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="space-y-2 max-w-6xl mx-auto">
             {displayedOrders.map((order) => {
               const isReady = order.status === 'pronto';
               const isDelivered = order.status === 'entregue';
               const isPreparing = order.status === 'em_preparo';
+              
+              // Verifica se este pedido é o mais novo que está com o efeito de 10 segundos
+              const isNewestHighlight = newestOrderId === order.id && !isDelivered;
 
               return (
                 <div
                   key={order.id}
-                  className={`flex flex-col justify-between rounded-2xl p-4 transition-all border-2 shadow-2xl relative ${
+                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between p-3 rounded-2xl border-2 transition-all shadow-lg gap-3 relative ${
                     isDelivered
                       ? 'bg-slate-900/40 border-slate-800 opacity-60'
-                      : isReady
-                        ? 'bg-gradient-to-b from-emerald-950/80 to-slate-900 border-emerald-500 shadow-emerald-500/20'
-                        : 'bg-slate-900 border-slate-700 hover:border-orange-500/70'
+                      : isNewestHighlight
+                        ? 'glow-new-order-line border-amber-400'
+                        : isReady
+                          ? 'bg-emerald-950/40 border-emerald-500 shadow-emerald-500/10'
+                          : 'bg-slate-900/90 border-slate-700/80 hover:border-orange-500/60'
                   }`}
                 >
-                  {/* TOPO DO CARD: COMANDA, CRONÔMETRO E STATUS */}
-                  <div>
-                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
-                      <div>
-                        {/* CÓDIGO DA COMANDA (P ped-01, P int-02, Bat 01, Açaí 01) */}
-                        <div className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                          <span className="text-orange-400 font-mono">{order.orderNumber}</span>
-                        </div>
-                        {/* NOME DO CLIENTE EM DESTAQUE */}
-                        <div className="text-base font-extrabold text-amber-300 mt-0.5">
-                          👤 {order.customerName}
-                        </div>
-                      </div>
-
-                      {/* TEMPO TRANSCORRIDO */}
-                      {!isDelivered && (
-                        <div className={`text-xs font-mono font-bold px-2 py-1 rounded-lg border flex items-center gap-1 ${getTimeColor(order.createdAt)}`}>
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{getElapsedTime(order.createdAt)}</span>
-                        </div>
-                      )}
+                  {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
+                  {isNewestHighlight && (
+                    <div className="absolute -top-3 left-4 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-lg animate-bounce">
+                      <Sparkles className="w-3 h-3" />
+                      <span>NOVO PEDIDO CHEGOU!</span>
                     </div>
+                  )}
 
-                    {/* CONTEÚDO DO PEDIDO */}
-                    <div className="my-4 space-y-2">
-                      <div className="flex items-center gap-2">
-                        {getCategoryIcon(order.category)}
-                        <span className="text-xs uppercase tracking-wider font-extrabold text-slate-400">
-                          {order.categoryName}
-                        </span>
+                  {/* BLOCO 1: NÚMERO DA COMANDA + NOME DO CLIENTE */}
+                  <div className="flex items-center gap-3 min-w-[220px]">
+                    <div className="p-2 bg-slate-950 rounded-xl border border-slate-800">
+                      {getCategoryIcon(order.category)}
+                    </div>
+                    <div>
+                      {/* CÓDIGO DA COMANDA (P ped-01, P int-02, Bat 01, Açaí 01) */}
+                      <div className="text-xl font-black text-orange-400 font-mono tracking-tight flex items-center gap-2">
+                        <span>{order.orderNumber}</span>
                       </div>
-
-                      {/* DESCRIÇÃO PRINCIPAL (SABOR / OPÇÃO) */}
-                      <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-                        <div className="text-lg font-black text-white leading-tight">
-                          {order.fullDescription || order.itemName}
-                        </div>
-
-                        {/* QUANTIDADE EM DESTAQUE */}
-                        <div className="mt-2 flex items-center justify-between text-xs">
-                          <span className="bg-orange-500/20 text-orange-300 font-black px-2 py-0.5 rounded-lg border border-orange-500/30">
-                            QUANTIDADE: {order.quantity}x
-                          </span>
-                          <span className="text-slate-400 font-mono text-[11px]">
-                            {order.paymentMethod}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* STATUS ATUAL */}
-                      <div className="flex items-center gap-2 text-xs font-bold pt-1">
-                        <span className="text-slate-400">Status:</span>
-                        {isPreparing && (
-                          <span className="text-amber-400 flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                            Em Preparação
-                          </span>
-                        )}
-                        {isReady && (
-                          <span className="text-emerald-400 flex items-center gap-1">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            Pronto / Aguardando
-                          </span>
-                        )}
-                        {isDelivered && (
-                          <span className="text-blue-400 flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Entregue
-                          </span>
-                        )}
+                      {/* NOME DO CLIENTE */}
+                      <div className="text-sm font-extrabold text-amber-300 flex items-center gap-1">
+                        <User className="w-3.5 h-3.5" />
+                        <span>{order.customerName}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* AÇÕES DE 1 CLIQUE */}
-                  <div className="pt-2 border-t border-slate-800/80 space-y-2">
-                    
-                    {/* FLUXO PRINCIPAL: DAR OK E ENTREGAR DIRETO */}
-                    {!isDelivered ? (
-                      <div className="flex flex-col gap-2">
-                        
-                        {/* BOTÃO PRINCIPAL: ENTREGAR / DAR OK */}
-                        <button
-                          onClick={() => handleDeliver(order.id)}
-                          className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-98 text-white font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 border border-emerald-400"
-                        >
-                          <Check className="w-5 h-5 stroke-[3]" />
-                          <span>ENTREGAR / DAR OK</span>
-                        </button>
+                  {/* BLOCO 2: DETALHES DO PRODUTO (SABOR / OPÇÃO / QUANTIDADE) */}
+                  <div className="flex-1 bg-slate-950/60 px-3.5 py-2 rounded-xl border border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs uppercase font-extrabold text-slate-400">
+                        {order.categoryName}
+                      </div>
+                      <div className="text-base font-black text-white leading-tight">
+                        {order.fullDescription || order.itemName}
+                      </div>
+                    </div>
 
-                        {/* BOTÃO SECUNDÁRIO: MÓDULO PRONTO (FUTURAMENTE / SE PREFERIR CHAMAR NA TV PRIMEIRO) */}
+                    <div className="flex items-center gap-3">
+                      <span className="bg-orange-500/20 text-orange-300 font-black px-2.5 py-1 rounded-lg border border-orange-500/40 text-xs">
+                        QTDE: {order.quantity}x
+                      </span>
+
+                      <span className="text-slate-400 font-mono text-xs">
+                        {order.paymentMethod}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* BLOCO 3: CRONÔMETRO + BOTÕES DE AÇÃO */}
+                  <div className="flex items-center justify-between md:justify-end gap-3 shrink-0">
+                    
+                    {/* CRONÔMETRO */}
+                    {!isDelivered && (
+                      <div className={`text-xs font-mono font-bold px-2.5 py-1 rounded-xl border flex items-center gap-1 ${getTimeColor(order.createdAt)}`}>
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{getElapsedTime(order.createdAt)}</span>
+                      </div>
+                    )}
+
+                    {/* BOTÕES DE AÇÃO */}
+                    {!isDelivered ? (
+                      <div className="flex items-center gap-2">
+                        {/* BOTÃO SECUNDÁRIO: CHAMAR NA TV (PRONTO) */}
                         {isPreparing && (
                           <button
                             onClick={() => handleMarkReady(order.id)}
-                            className="w-full py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 border border-slate-700"
+                            className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-colors flex items-center gap-1 border border-slate-700"
                             title="Chamar na TV antes de entregar"
                           >
                             <BellRing className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Chamar na TV (Pronto)</span>
+                            <span className="hidden lg:inline">Chamar TV</span>
                           </button>
                         )}
+
+                        {/* BOTÃO PRINCIPAL: APENAS ENTREGAR (SEM DAR OK) */}
+                        <button
+                          onClick={() => handleDeliver(order.id)}
+                          className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-emerald-400 cursor-pointer"
+                        >
+                          <Check className="w-4 h-4 stroke-[3]" />
+                          <span>ENTREGAR</span>
+                        </button>
                       </div>
                     ) : (
-                      /* CASO PRECISE REABRIR O PEDIDO ENTREGUE */
                       <button
                         onClick={() => handleReopen(order.id)}
-                        className="w-full py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1"
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold rounded-xl transition-colors flex items-center gap-1"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Reabrir Pedido</span>
+                        <span>Reabrir</span>
                       </button>
                     )}
 

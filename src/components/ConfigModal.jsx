@@ -229,6 +229,25 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setCategories(updated);
   };
 
+  // Atualizar preço de qualquer item individualmente (Açaí ou Batata)
+  const handleUpdateItemPrice = (categoryId, itemId, newPrice) => {
+    const priceNum = parseFloat(newPrice);
+    if (isNaN(priceNum) || priceNum < 0) return;
+
+    const updated = categories.map(cat => {
+      if (cat.id === categoryId) {
+        return {
+          ...cat,
+          items: cat.items.map(item => item.id === itemId ? { ...item, price: priceNum } : item)
+        };
+      }
+      return cat;
+    });
+
+    storageService.saveProducts(updated);
+    setCategories(updated);
+  };
+
   const handleResetCatalog = () => {
     if (window.confirm('Tem certeza que deseja restaurar o cardápio padrão com os sabores iniciais?')) {
       storageService.saveProducts(DEFAULT_CATEGORIES);
@@ -660,13 +679,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       key={item.id}
                       className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2"
                     >
-                      <div>
-                        <div className="font-bold text-sm text-white">{item.name}</div>
-                        <div className="text-xs text-purple-400 font-bold">R$ {Number(item.price).toFixed(2)}</div>
+                      <div className="flex-1">
+                        <div className="font-bold text-xs text-white truncate">{item.name}</div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-[10px] text-purple-400 font-bold">R$</span>
+                          <input
+                            type="number"
+                            step="0.5"
+                            defaultValue={item.price}
+                            onBlur={(e) => handleUpdateItemPrice('acai', item.id, e.target.value)}
+                            className="w-16 bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 text-xs font-bold text-white outline-none focus:border-purple-400"
+                            title="Altere o valor e saia do campo para salvar"
+                          />
+                        </div>
                       </div>
                       <button
                         onClick={() => handleRemoveAcai(item.id)}
                         className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                        title="Remover opção"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -712,13 +742,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       key={item.id}
                       className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2"
                     >
-                      <div>
-                        <div className="font-bold text-sm text-white">{item.name}</div>
-                        <div className="text-xs text-amber-400 font-bold">R$ {Number(item.price).toFixed(2)}</div>
+                      <div className="flex-1">
+                        <div className="font-bold text-xs text-white truncate">{item.name}</div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-[10px] text-amber-400 font-bold">R$</span>
+                          <input
+                            type="number"
+                            step="0.5"
+                            defaultValue={item.price}
+                            onBlur={(e) => handleUpdateItemPrice('batata', item.id, e.target.value)}
+                            className="w-16 bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 text-xs font-bold text-white outline-none focus:border-amber-400"
+                            title="Altere o valor e saia do campo para salvar"
+                          />
+                        </div>
                       </div>
                       <button
                         onClick={() => handleRemoveBatata(item.id)}
                         className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                        title="Remover opção"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

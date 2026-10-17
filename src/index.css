@@ -59,6 +59,24 @@
   animation: pulse-qty-border 1.2s infinite ease-in-out;
 }
 
+/* Borda pulsante vibrante para Novo Pedido na Cozinha (10 segundos) */
+@keyframes pulse-new-order {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.95), 0 0 25px rgba(245, 158, 11, 0.8);
+    border-color: #fbbf24;
+    background-color: rgba(120, 53, 15, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 0 10px rgba(245, 158, 11, 0.3);
+    border-color: #f59e0b;
+    background-color: rgba(15, 23, 42, 0.85);
+  }
+}
+
+.glow-new-order-line {
+  animation: pulse-new-order 1.1s infinite ease-in-out;
+}
+
 /* Animações e pulsos para TV e Cozinha */
 @keyframes pulse-subtle {
   0%, 100% { transform: scale(1); }

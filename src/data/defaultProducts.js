@@ -50,18 +50,5 @@ export const DEFAULT_CATEGORIES = [
       { id: 'bat_grande', name: 'Porção Especial Família (G)', price: 32.00, prefix: 'Bat ' },
     ],
     variations: []
-  },
-  {
-    id: 'bebidas',
-    name: 'BEBIDAS',
-    icon: 'CupSoda',
-    color: 'from-sky-500 to-blue-700',
-    prefixDefault: 'Beb ',
-    items: [
-      { id: 'refri_lata', name: 'Refrigerante Lata 350ml', price: 6.00, prefix: 'Beb ' },
-      { id: 'agua_mineral', name: 'Água Mineral 500ml', price: 4.00, prefix: 'Beb ' },
-      { id: 'suco_natural', name: 'Suco Natural da Fruta 400ml', price: 8.00, prefix: 'Beb ' },
-    ],
-    variations: []
   }
 ];
