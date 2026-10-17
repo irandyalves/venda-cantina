@@ -103,8 +103,12 @@ export default function KitchenView({ onNavigate }) {
   };
 
   const handleMarkReady = async (orderId) => {
-    await storageService.updateOrderStatus(orderId, 'pronto');
-    soundService.playReadySound();
+    try {
+      await storageService.ringOrderBell(orderId);
+      soundService.playReadySound();
+    } catch (e) {
+      console.error('Erro ao acionar sino:', e);
+    }
   };
 
   const handleReopen = async (orderId) => {
@@ -316,40 +320,46 @@ export default function KitchenView({ onNavigate }) {
                     </div>
                   </div>
 
-                  {/* BLOCO 3: CRONÔMETRO + BOTÕES DE AÇÃO */}
-                  <div className="flex items-center justify-between md:justify-end gap-3 shrink-0">
-                    
-                    {/* CRONÔMETRO */}
-                    {!isDelivered && (
-                      <div className={`text-xs font-mono font-bold px-2.5 py-1 rounded-xl border flex items-center gap-1 ${getTimeColor(order.createdAt)}`}>
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{getElapsedTime(order.createdAt)}</span>
-                      </div>
-                    )}
-
-                    {/* BOTÕES DE AÇÃO */}
+                  {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR */}
+                  <div className="flex items-end justify-between md:justify-end gap-2.5 shrink-0">
                     {!isDelivered ? (
-                      <div className="flex items-center gap-2">
-                        {/* BOTÃO SECUNDÁRIO: CHAMAR NA TV (PRONTO) */}
-                        {isPreparing && (
+                      <div className="flex items-end gap-2 sm:gap-2.5">
+                        {/* COLUNA: TEMPO */}
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-[11px] font-semibold text-slate-400">
+                            Tempo
+                          </span>
+                          <div className={`text-xs font-mono font-bold px-2.5 h-[38px] rounded-xl border flex items-center justify-center gap-1.5 ${getTimeColor(order.createdAt)}`}>
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{getElapsedTime(order.createdAt)}</span>
+                          </div>
+                        </div>
+
+                        {/* COLUNA: PRONTO (SINO) */}
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-[11px] font-semibold text-slate-400">
+                            Pronto
+                          </span>
                           <button
                             onClick={() => handleMarkReady(order.id)}
-                            className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-colors flex items-center gap-1 border border-slate-700"
-                            title="Chamar na TV antes de entregar"
+                            className="w-[38px] h-[38px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-xl transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
+                            title="Tocar sino e chamar no painel PEDIDOS"
                           >
-                            <BellRing className="w-3.5 h-3.5 text-amber-400" />
-                            <span className="hidden lg:inline">Chamar TV</span>
+                            <BellRing className="w-4 h-4 animate-bounce" />
                           </button>
-                        )}
+                        </div>
 
-                        {/* BOTÃO PRINCIPAL: APENAS ENTREGAR (SEM DAR OK) */}
-                        <button
-                          onClick={() => handleDeliver(order.id)}
-                          className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-emerald-400 cursor-pointer"
-                        >
-                          <Check className="w-4 h-4 stroke-[3]" />
-                          <span>ENTREGAR</span>
-                        </button>
+                        {/* BOTÃO PRINCIPAL: ENTREGAR */}
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            onClick={() => handleDeliver(order.id)}
+                            className="px-5 h-[38px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-emerald-400 cursor-pointer"
+                            title="Entregar pedido concluído"
+                          >
+                            <Check className="w-4 h-4 stroke-[3]" />
+                            <span>ENTREGAR</span>
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button
@@ -360,7 +370,6 @@ export default function KitchenView({ onNavigate }) {
                         <span>Reabrir</span>
                       </button>
                     )}
-
                   </div>
 
                 </div>

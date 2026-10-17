@@ -20,8 +20,7 @@ export default function DisplayView({ onNavigate }) {
   // Configurações da TV vindas do Storage (definidas pelo Caixa)
   const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
 
-  const prevDeliveredIdsRef = useRef(new Set());
-  const prevReadyIdsRef = useRef(new Set());
+  const prevBellTimestampsRef = useRef(new Map());
   const isFirstLoadRef = useRef(true);
   const deliveredModalTimerRef = useRef(null);
 
@@ -91,26 +90,28 @@ export default function DisplayView({ onNavigate }) {
       const today = new Date().toDateString();
       const todayOrders = allOrders.filter(o => new Date(o.createdAt).toDateString() === today);
 
-      // Detectar novo pedido ENTREGUE pela cozinha para piscar modal no centro da tela com som por 6 seg
-      const deliveredOrders = todayOrders.filter(o => o.status === 'entregue');
-      const readyOrders = todayOrders.filter(o => o.status === 'pronto');
-
+      // SÓ MOSTRAR O MODAL COM O CLIQUE NO SINO (NÃO MOSTRAR AO CLICAR EM ENTREGAR)
       if (!isFirstLoadRef.current) {
-        // Checar pedidos recém entregues
-        const newlyDelivered = deliveredOrders.filter(o => !prevDeliveredIdsRef.current.has(o.id));
-        if (newlyDelivered.length > 0) {
-          triggerDeliveredModal(newlyDelivered[newlyDelivered.length - 1]);
-        } else {
-          // Checar se algum virou pronto
-          const newlyReady = readyOrders.filter(o => !prevReadyIdsRef.current.has(o.id));
-          if (newlyReady.length > 0) {
-            triggerDeliveredModal(newlyReady[newlyReady.length - 1]);
-          }
+        const rungOrders = todayOrders.filter(o => {
+          if (!o.bellRungAt) return false;
+          const prevTime = prevBellTimestampsRef.current.get(o.id) || 0;
+          return o.bellRungAt > prevTime;
+        });
+
+        if (rungOrders.length > 0) {
+          rungOrders.sort((a, b) => (a.bellRungAt || 0) - (b.bellRungAt || 0));
+          const latestRung = rungOrders[rungOrders.length - 1];
+          triggerDeliveredModal(latestRung);
         }
       }
 
-      prevDeliveredIdsRef.current = new Set(deliveredOrders.map(o => o.id));
-      prevReadyIdsRef.current = new Set(readyOrders.map(o => o.id));
+      // Registra os timestamps dos sinos já conhecidos
+      todayOrders.forEach(o => {
+        if (o.bellRungAt) {
+          prevBellTimestampsRef.current.set(o.id, o.bellRungAt);
+        }
+      });
+
       isFirstLoadRef.current = false;
       setOrders(todayOrders);
     });
@@ -130,7 +131,8 @@ export default function DisplayView({ onNavigate }) {
     }
   };
 
-  const preparingOrders = orders.filter(o => o.status === 'em_preparo');
+  // Pedidos em preparação continuam na tela até que sejam realmente entregues
+  const preparingOrders = orders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
   const deliveredOrders = orders.filter(o => o.status === 'entregue').slice(0, 8);
 
   // Helper para formatar o texto do item conforme o padrão solicitado:

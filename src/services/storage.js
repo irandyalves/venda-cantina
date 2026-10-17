@@ -465,6 +465,51 @@ class StorageService {
     return updated;
   }
 
+  // Aciona o sino do pedido para chamar na TV
+  async ringOrderBell(orderId) {
+    const timestamp = Date.now();
+    const localOrders = this.getLocalOrders();
+    const orderToUpdate = localOrders.find(ord => ord.id === orderId || ord.firestoreDocId === orderId);
+    const targetDocId = orderToUpdate?.firestoreDocId || orderToUpdate?.id || orderId;
+
+    const updated = localOrders.map(ord => {
+      if (ord.id === orderId || ord.id === targetDocId || ord.firestoreDocId === targetDocId) {
+        return { 
+          ...ord, 
+          status: 'pronto', 
+          bellRungAt: timestamp, 
+          updatedAt: timestamp 
+        };
+      }
+      return ord;
+    });
+
+    this.notifyOrderSubscribers(updated);
+
+    if (syncChannel) {
+      syncChannel.postMessage({ 
+        type: 'ORDER_BELL_RUNG', 
+        payload: { orderId: targetDocId, bellRungAt: timestamp } 
+      });
+    }
+
+    if (this.isFirebaseReady && this.db) {
+      try {
+        const orderRef = doc(this.db, COLLECTION_ORDERS, targetDocId);
+        await setDoc(orderRef, {
+          status: 'pronto',
+          bellRungAt: timestamp,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        console.log('🔔 Sino acionado no Firestore para pedido:', targetDocId);
+      } catch (err) {
+        console.error('⚠️ Erro ao registrar sino no Firestore:', err);
+      }
+    }
+
+    return updated;
+  }
+
   getLocalOrders() {
     try {
       const raw = localStorage.getItem(LOCAL_ORDERS_KEY);
