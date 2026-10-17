@@ -143,9 +143,9 @@ export default function KitchenView({ onNavigate }) {
 
   const getCategoryIcon = (category) => {
     const cat = (category || '').toLowerCase();
-    if (cat.includes('pizza')) return <Pizza className="w-5 h-5 text-red-400" />;
-    if (cat.includes('acai') || cat.includes('açaí')) return <IceCream className="w-5 h-5 text-purple-400" />;
-    return <UtensilsCrossed className="w-5 h-5 text-amber-400" />;
+    if (cat.includes('pizza')) return <Pizza className="w-4 h-4 text-red-400" />;
+    if (cat.includes('acai') || cat.includes('açaí')) return <IceCream className="w-4 h-4 text-purple-400" />;
+    return <UtensilsCrossed className="w-4 h-4 text-amber-400" />;
   };
 
   const getItemCleanDescription = (order) => {
@@ -281,7 +281,7 @@ export default function KitchenView({ onNavigate }) {
               return (
                 <div
                   key={order.id}
-                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between p-3 rounded-2xl border-2 transition-all shadow-lg gap-3 relative ${
+                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-1.5 px-3 rounded-xl border-2 transition-all shadow-md gap-2 relative ${
                     isDelivered
                       ? 'bg-slate-900/40 border-slate-800 opacity-60'
                       : isNewestHighlight
@@ -293,90 +293,90 @@ export default function KitchenView({ onNavigate }) {
                 >
                   {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
                   {isNewestHighlight && (
-                    <div className="absolute -top-3 left-4 bg-purple-600 border border-purple-400/60 text-white font-black text-[10px] px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-bounce">
-                      <Sparkles className="w-3 h-3 text-purple-200" />
+                    <div className="absolute -top-2.5 left-3 bg-purple-600 border border-purple-400/60 text-white font-black text-[9px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-bounce">
+                      <Sparkles className="w-2.5 h-2.5 text-purple-200" />
                       <span>NOVO PEDIDO CHEGOU!</span>
                     </div>
                   )}
 
-                  {/* BLOCO 1: NÚMERO DA COMANDA + NOME DO CLIENTE */}
-                  <div className="flex items-center gap-2.5 shrink-0 sm:min-w-[130px]">
-                    <div className="p-2 bg-slate-950 rounded-xl border border-slate-800 shrink-0">
+                  {/* BLOCO 1: NÚMERO DA COMANDA + NOME DO CLIENTE (COMPACTADO PARA PUXAR O MEIO PARA A ESQUERDA) */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="p-1.5 bg-slate-950 rounded-lg border border-slate-800 shrink-0">
                       {getCategoryIcon(order.category)}
                     </div>
                     <div>
                       {/* CÓDIGO DA COMANDA */}
-                      <div className="text-xl font-black text-orange-400 font-mono tracking-tight flex items-center gap-1.5">
+                      <div className="text-base sm:text-lg font-black text-orange-400 font-mono tracking-tight flex items-center leading-none">
                         <span>{order.orderNumber}</span>
                       </div>
-                      {/* NOME DO CLIENTE */}
-                      <div className="text-sm font-extrabold text-amber-300 flex items-center gap-1">
-                        <User className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate max-w-[110px]">{order.customerName}</span>
+                      {/* NOME DO CLIENTE REDUZIDO EM 25% (text-[10.5px]) */}
+                      <div className="text-[10.5px] font-bold text-amber-300 flex items-center gap-1 leading-tight mt-0.5">
+                        <User className="w-3 h-3 shrink-0" />
+                        <span className="truncate max-w-[95px]">{order.customerName}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* BLOCO 2: DETALHES DO PRODUTO (LARGURA EXPANDIDA PARA A ESQUERDA) */}
-                  <div className="flex-1 bg-slate-950/60 px-4 py-2 rounded-xl border border-slate-800/80 flex flex-col justify-center gap-1">
+                  <div className="flex-1 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-800/80 flex flex-col justify-center gap-0.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs uppercase font-extrabold text-slate-400 tracking-wider">
+                      <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider leading-none">
                         {order.categoryName}
                       </span>
                       {order.paymentMethod && (
-                        <span className="text-slate-400 font-mono text-xs">
+                        <span className="text-slate-400 font-mono text-[10px] leading-none">
                           {order.paymentMethod}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="bg-orange-500/20 text-orange-300 font-black px-2 py-0.5 rounded-lg border border-orange-500/40 text-xs shrink-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="bg-orange-500/20 text-orange-300 font-black px-1.5 py-0.5 rounded border border-orange-500/40 text-[10px] shrink-0 leading-none">
                         QTE: {String(order.quantity).padStart(2, '0')}
                       </span>
-                      <span className="text-base font-black text-white leading-tight">
+                      <span className="text-sm sm:text-base font-black text-white leading-tight">
                         {getItemCleanDescription(order)}
                       </span>
                     </div>
                   </div>
 
-                  {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR */}
-                  <div className="flex items-end justify-between md:justify-end gap-2.5 shrink-0">
+                  {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR (COMPACTADO EM ALTURA) */}
+                  <div className="flex items-end justify-between md:justify-end gap-1.5 sm:gap-2 shrink-0">
                     {!isDelivered ? (
-                      <div className="flex items-end gap-2 sm:gap-2.5">
+                      <div className="flex items-end gap-1.5 sm:gap-2">
                         {/* COLUNA: TEMPO */}
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-[11px] font-semibold text-slate-400">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] font-semibold text-slate-400 leading-none">
                             Tempo
                           </span>
-                          <div className={`text-xs font-mono font-bold px-2.5 h-[38px] rounded-xl border flex items-center justify-center gap-1.5 ${getTimeColor(order.createdAt)}`}>
-                            <Clock className="w-3.5 h-3.5" />
+                          <div className={`text-[11px] font-mono font-bold px-2 h-[28px] rounded-lg border flex items-center justify-center gap-1 ${getTimeColor(order.createdAt)}`}>
+                            <Clock className="w-3 h-3" />
                             <span>{getElapsedTime(order.createdAt)}</span>
                           </div>
                         </div>
 
                         {/* COLUNA: PRONTO (SINO) */}
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-[11px] font-semibold text-slate-400">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] font-semibold text-slate-400 leading-none">
                             Pronto
                           </span>
                           <button
                             onClick={() => handleMarkReady(order.id)}
-                            className="w-[38px] h-[38px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-xl transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
+                            className="w-[28px] h-[28px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-lg transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
                             title="Tocar sino e chamar no painel PEDIDOS"
                           >
-                            <BellRing className="w-4 h-4 animate-bounce" />
+                            <BellRing className="w-3.5 h-3.5 animate-bounce" />
                           </button>
                         </div>
 
                         {/* BOTÃO PRINCIPAL: ENTREGAR */}
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="flex flex-col items-center gap-0.5">
                           <button
                             onClick={() => handleDeliver(order.id)}
-                            className="px-5 h-[38px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-emerald-400 cursor-pointer"
+                            className="px-3.5 h-[28px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-[11px] rounded-lg transition-all shadow-md flex items-center gap-1 border border-emerald-400 cursor-pointer"
                             title="Entregar pedido concluído"
                           >
-                            <Check className="w-4 h-4 stroke-[3]" />
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
                             <span>ENTREGAR</span>
                           </button>
                         </div>
@@ -384,9 +384,9 @@ export default function KitchenView({ onNavigate }) {
                     ) : (
                       <button
                         onClick={() => handleReopen(order.id)}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold rounded-xl transition-colors flex items-center gap-1"
+                        className="px-2.5 h-[28px] bg-slate-800 hover:bg-slate-700 text-slate-400 text-[11px] font-semibold rounded-lg transition-colors flex items-center gap-1"
                       >
-                        <RotateCcw className="w-3.5 h-3.5" />
+                        <RotateCcw className="w-3 h-3" />
                         <span>Reabrir</span>
                       </button>
                     )}
