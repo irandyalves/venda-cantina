@@ -109,12 +109,21 @@ class AuthService {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // EXORCIZA TENDA E QUADRA DE QUALQUER LISTA RESIDUAL
+          const isLegacyJunk = (e) => {
+            const id = (e.id || '').toUpperCase();
+            const name = (e.name || '').toUpperCase();
+            return id === 'TENDA' || name === 'TENDA' || id === 'QUADRA' || name === 'QUADRA' || id.includes('TENDA');
+          };
+          const cleaned = parsed.filter(e => !isLegacyJunk(e));
+          const hadLegacyJunk = cleaned.length !== parsed.length;
+
           // Garante apenas que os ambientes essenciais do sistema (ADMIN, COZINHA, PÚBLICO) existam
-          const ids = new Set(parsed.map(e => e.id));
+          const ids = new Set(cleaned.map(e => e.id));
           const missingSystemDefaults = DEFAULT_ENVIRONMENTS.filter(d => d.isSystem && !ids.has(d.id));
 
           // NUNCA sobrescreve nomes ou descrições personalizados pelo usuário e remove qualquer menção residual a 'KDS'
-          const updated = parsed.map(env => {
+          const updated = cleaned.map(env => {
             const defaultMatch = DEFAULT_ENVIRONMENTS.find(d => d.id === env.id);
             const rawDesc = env.description !== undefined ? env.description : (defaultMatch?.description || '');
             const cleanDesc = rawDesc.replace(/\bpainel\s+kds\b/gi, 'Painel').replace(/\bkds\b/gi, '').replace(/\s{2,}/g, ' ').trim();
@@ -146,12 +155,16 @@ class AuthService {
             };
           });
 
-          if (missingSystemDefaults.length > 0) {
-            const merged = [...updated, ...missingSystemDefaults];
-            localStorage.setItem(ENVIRONMENTS_STORAGE_KEY, JSON.stringify(merged));
-            return merged;
+          const finalResult = missingSystemDefaults.length > 0 
+            ? [...updated, ...missingSystemDefaults] 
+            : updated;
+
+          if (hadLegacyJunk || missingSystemDefaults.length > 0) {
+            localStorage.setItem(ENVIRONMENTS_STORAGE_KEY, JSON.stringify(finalResult));
+            storageService.broadcastEnvironments(finalResult);
+            storageService.saveEnvironmentsCloud(finalResult);
           }
-          return updated;
+          return finalResult;
         }
       }
     } catch (e) {
@@ -160,6 +173,7 @@ class AuthService {
 
     try {
       localStorage.setItem(ENVIRONMENTS_STORAGE_KEY, JSON.stringify(DEFAULT_ENVIRONMENTS));
+      storageService.saveEnvironmentsCloud(DEFAULT_ENVIRONMENTS);
     } catch (_) {}
     return DEFAULT_ENVIRONMENTS;
   }
@@ -270,9 +284,10 @@ class AuthService {
   getActiveProfile() {
     const saved = localStorage.getItem(ACTIVE_PROFILE_KEY);
     const envs = this.getEnvironments();
-    if (saved && envs.some(e => e.id === saved)) {
+    if (saved && saved !== 'TENDA' && saved !== 'QUADRA' && envs.some(e => e.id === saved)) {
       return saved;
     }
+    localStorage.setItem(ACTIVE_PROFILE_KEY, PERFIS.ADMIN);
     return PERFIS.ADMIN; // Padrão
   }
 

@@ -245,15 +245,27 @@ class StorageService {
   // Processa ambientes recebidos do Firestore e atualiza todos os componentes
   handleCloudEnvironments(cloudEnvs) {
     try {
-      const cloudIds = new Set(cloudEnvs.map(e => e.id));
+      const isLegacyJunk = (e) => {
+        const id = (e?.id || '').toUpperCase();
+        const name = (e?.name || '').toUpperCase();
+        return id === 'TENDA' || name === 'TENDA' || id === 'QUADRA' || name === 'QUADRA' || id.includes('TENDA');
+      };
+      const cleaned = (cloudEnvs || []).filter(e => !isLegacyJunk(e));
+      const hadLegacyJunk = cleaned.length !== (cloudEnvs || []).length;
+
+      const cloudIds = new Set(cleaned.map(e => e.id));
       const missingSystemDefaults = DEFAULT_ENVIRONMENTS.filter(d => d.isSystem && !cloudIds.has(d.id));
-      const fullList = [...cloudEnvs, ...missingSystemDefaults];
+      const fullList = [...cleaned, ...missingSystemDefaults];
 
       localStorage.setItem('cantina_environments', JSON.stringify(fullList));
       window.dispatchEvent(new CustomEvent('cantina_environments_changed', { detail: fullList }));
 
       if (syncChannel) {
         syncChannel.postMessage({ type: 'ENVIRONMENTS_UPDATED', payload: fullList });
+      }
+
+      if (hadLegacyJunk) {
+        this.saveEnvironmentsCloud(fullList);
       }
     } catch (e) {
       console.error('Erro ao processar ambientes da nuvem:', e);

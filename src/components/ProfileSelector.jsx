@@ -48,6 +48,12 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
     };
     document.addEventListener('mousedown', handleClickOutside);
 
+    // Limpeza de segurança caso perfil ativo antigo seja TENDA ou QUADRA
+    const currentActive = authService.getActiveProfile();
+    if (currentActive === 'TENDA' || currentActive === 'QUADRA') {
+      handleSelectProfile(PERFIS.ADMIN);
+    }
+
     return () => {
       unsubscribeAuth();
       window.removeEventListener('cantina_profile_changed', handleProfileChange);
@@ -64,11 +70,12 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
   };
 
   const handleSelectProfile = (profileId) => {
-    setActiveProfile(profileId);
-    authService.setActiveProfile(profileId);
+    const finalId = (profileId === 'TENDA' || profileId === 'QUADRA') ? PERFIS.ADMIN : profileId;
+    setActiveProfile(finalId);
+    authService.setActiveProfile(finalId);
     setIsOpen(false);
     if (onProfileChange) {
-      onProfileChange(profileId);
+      onProfileChange(finalId);
     }
   };
 
@@ -193,8 +200,14 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
 
           {/* LISTA DE TODOS OS AMBIENTES (ADMIN, COZINHA, COZINHA 2, PÚBLICO, ETC) */}
           <div className="py-2 space-y-1 max-h-72 overflow-y-auto">
-            {environments.map((env) => {
-              const isSelected = activeProfile === env.id;
+            {environments
+              .filter(env => {
+                const id = (env?.id || '').toUpperCase();
+                const name = (env?.name || '').toUpperCase();
+                return id !== 'TENDA' && name !== 'TENDA' && id !== 'QUADRA' && name !== 'QUADRA' && !id.includes('TENDA');
+              })
+              .map((env) => {
+                const isSelected = activeProfile === env.id;
 
               return (
                 <button

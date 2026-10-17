@@ -417,7 +417,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       // Feedback visual em Modal Bonito de 2 Segundos
       setToast({
         type: 'success',
-        title: sendToKitchen ? 'Pedido Enviado para a Cozinha!' : 'Venda Concluída (Tenda / Balcão)!',
+        title: sendToKitchen ? 'Pedido Enviado para a Cozinha!' : 'Venda Concluída (Entrega no Balcão)!',
         message: `Comanda ${created.orderNumber} confirmada!`,
         subtext: `Cliente: ${cleanName.toUpperCase()} • ${description} (${qty}x)`
       });

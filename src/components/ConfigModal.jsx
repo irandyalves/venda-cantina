@@ -421,7 +421,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     showToast(updated.soundEnabled ? 'Som da Cozinha ativado!' : 'Som da Cozinha em silêncio/mudo.');
   };
 
-  // --- AÇÕES DE DESTINO DE PRODUÇÃO (COZINHA, COZINHA 2, TENDA, QUADRA, ETC.) ---
+  // --- AÇÕES DE DESTINO DE PRODUÇÃO (COZINHA, COZINHA 2, BALCÃO, ETC.) ---
   const handleChangeItemDestination = (targetId, newDestEnvId, itemName) => {
     const current = storageService.getProductionRouting();
     const isKitchen = newDestEnvId !== 'none';
@@ -440,11 +440,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     storageService.saveProductionRouting(updated);
 
     const envObj = environments.find(e => e.id === newDestEnvId);
-    const destName = envObj ? envObj.name : (isKitchen ? newDestEnvId : 'Tenda / Balcão (Sem Cozinha)');
+    const destName = envObj ? envObj.name : (isKitchen ? newDestEnvId : 'Balcão (Sem Preparo)');
     showToast(
       isKitchen 
         ? `"${itemName}" agora será enviado para: ${destName}!` 
-        : `"${itemName}" agora será entregue direto na Tenda/Balcão.`,
+        : `"${itemName}" agora será entrega direta no Balcão.`,
       'Destino de Preparo',
       'info'
     );
@@ -466,7 +466,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setProductionRouting(updated);
     storageService.saveProductionRouting(updated);
     showToast(
-      newValue ? 'Item será ENVIADO PARA A COZINHA!' : 'Item será PREPARADO NA TENDA (Não vai p/ cozinha).',
+      newValue ? 'Item será ENVIADO PARA A COZINHA!' : 'Item será entregue direto no BALCÃO (Sem envio para preparo).',
       'Destino de Produção',
       'info'
     );
@@ -519,7 +519,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     };
     setProductionRouting(defaultRouting);
     storageService.saveProductionRouting(defaultRouting);
-    showToast('Padrão restaurado: Pizza na Cozinha, Açaí e Batata na Tenda!', 'Destino Restaurado');
+    showToast('Padrão restaurado: Pizza na Cozinha, Açaí e Batata no Balcão!', 'Destino Restaurado');
   };
 
   // --- AÇÕES DE E-MAILS DOS PERFIS ---
@@ -1438,7 +1438,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <h3 className="font-extrabold text-white text-base flex items-center gap-2">
                         Ambientes de Trabalho Cadastrados
                         <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
-                          {environments.length} ambientes
+                          {environments.filter(e => e.id !== 'TENDA' && (e.name||'').toUpperCase() !== 'TENDA' && e.id !== 'QUADRA').length} ambientes
                         </span>
                       </h3>
                       <p className="text-xs text-slate-400">
@@ -1464,7 +1464,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
                 {/* GRID DOS AMBIENTES CADASTRADOS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
-                  {environments.map((env) => {
+                  {environments
+                    .filter(env => {
+                      const id = (env?.id || '').toUpperCase();
+                      const name = (env?.name || '').toUpperCase();
+                      return id !== 'TENDA' && name !== 'TENDA' && id !== 'QUADRA' && name !== 'QUADRA' && !id.includes('TENDA');
+                    })
+                    .map((env) => {
                     const isKitchen = env.type === 'kitchen';
                     const isDisplay = env.type === 'display';
                     const typeLabel = isKitchen ? '👨‍🍳 COZINHA' : isDisplay ? '📺 PAINEL TV' : '💻 CAIXA';
@@ -2444,12 +2450,19 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       ? productionRouting.showOnTV[targetId]
                       : (productionRouting.showOnTV?.[catId] !== undefined ? productionRouting.showOnTV[catId] : (catId === 'pizza'));
 
-                    // Filtra apenas ambientes de preparo (Cozinhas, fogões, tendas de preparo)
-                    // NUNCA exibe telas de público ou admin no destino de preparo
-                    const kitchenEnvironments = environments.filter(env => env.type === 'kitchen' && env.id !== 'PUBLICO' && env.id !== 'ADMIN');
+                    // Filtra apenas ambientes de preparo (Cozinhas, fogões)
+                    // NUNCA exibe telas de público, admin ou itens legados no destino de preparo
+                    const kitchenEnvironments = environments.filter(env => 
+                      env.type === 'kitchen' && 
+                      env.id !== 'PUBLICO' && 
+                      env.id !== 'ADMIN' && 
+                      env.id !== 'TENDA' && 
+                      !env.id.includes('TENDA') && 
+                      (env.name || '').toUpperCase() !== 'TENDA'
+                    );
 
                     const destEnvObj = environments.find(e => e.id === currentDest);
-                    const destDisplayName = destEnvObj ? destEnvObj.name : (currentDest !== 'none' ? currentDest : 'Tenda / Balcão');
+                    const destDisplayName = destEnvObj ? destEnvObj.name : (currentDest !== 'none' ? currentDest : 'Balcão (Sem Preparo)');
 
                     return (
                       <div 
@@ -2475,7 +2488,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             <p className="text-[11px] text-slate-400 truncate mt-0.5">
                               {currentDest !== 'none' 
                                 ? `Preparo em: ${destDisplayName}` 
-                                : 'Venda direta na tenda / balcão (sem fila)'}
+                                : 'Venda direta no caixa (sem envio para preparo)'}
                             </p>
                           </div>
                         </div>
@@ -2507,9 +2520,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   </option>
                                 ))}
                               </optgroup>
-                              <optgroup label="🎪 Direto sem Cozinha">
+                              <optgroup label="📦 Direto sem Cozinha">
                                 <option value="none" className="bg-slate-900 text-emerald-300 font-bold py-1">
-                                  🎪 Tenda / Balcão (Sem Cozinha)
+                                  📦 Balcão (Sem Preparo / Entrega Direta)
                                 </option>
                               </optgroup>
                               <optgroup label="✨ Novo">
@@ -3127,7 +3140,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       ? 'bg-orange-500/15 text-orange-300 border-orange-500/30' 
                       : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                   }`}>
-                    {gearItemData.sendToKitchen ? '🍳 Fila da Cozinha' : '🎪 Tenda / Balcão'}
+                    {gearItemData.sendToKitchen ? '🍳 Fila da Cozinha' : '📦 Balcão (Sem Preparo)'}
                   </span>
                 </div>
 
@@ -3142,7 +3155,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     }`}
                   >
                     <UtensilsCrossed className="w-3.5 h-3.5" />
-                    <span>{gearItemData.sendToKitchen ? '✓ Enviar Cozinha' : '✕ Tenda (Sem Cozinha)'}</span>
+                    <span>{gearItemData.sendToKitchen ? '✓ Enviar Cozinha' : '✕ Balcão (Sem Preparo)'}</span>
                   </button>
 
                   <button
@@ -3500,7 +3513,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     Novo Ambiente de Trabalho
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Cadastre Cozinha 2, Bar, Tenda de Lanches, etc.
+                    Cadastre Cozinha 2, Bar, Pizzaria, etc.
                   </p>
                 </div>
               </div>
@@ -3521,7 +3534,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <input
                   type="text"
                   required
-                  placeholder="Ex: COZINHA 2, TENDA DE LANCHES..."
+                  placeholder="Ex: COZINHA 2, PIZZARIA..."
                   value={newEnvName}
                   onChange={(e) => setNewEnvName(e.target.value.toUpperCase())}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-indigo-400"
