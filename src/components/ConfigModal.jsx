@@ -2506,33 +2506,33 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   handleChangeItemDestination(targetId, val, item.name);
                                 }
                               }}
-                              className={`w-full h-9 px-3 pr-8 rounded-xl text-xs font-black transition-all border outline-none cursor-pointer appearance-none shadow-sm truncate ${
+                              className={`w-full h-10 px-3 pr-8 rounded-xl text-xs font-black transition-all border-2 outline-none cursor-pointer appearance-none shadow-md truncate ${
                                 currentDest !== 'none'
-                                  ? 'bg-orange-950/80 text-orange-200 border-orange-500/60 focus:border-orange-400'
-                                  : 'bg-slate-950/80 text-emerald-300 border-emerald-500/50 hover:text-emerald-200 focus:border-emerald-400'
+                                  ? 'bg-blue-950 text-blue-100 border-blue-500 hover:border-blue-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-400/50'
+                                  : 'bg-slate-950 text-emerald-300 border-emerald-500/80 hover:border-emerald-400 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-400/50'
                               }`}
                               title="Selecione o ambiente de preparo para onde a comanda deste item será enviada"
                             >
-                              <optgroup label="🍳 Fogões / Telas de Preparo">
+                              <optgroup label="🍳 Fogões / Telas de Preparo" className="bg-slate-950 text-slate-300 font-bold">
                                 {kitchenEnvironments.map((env) => (
-                                  <option key={env.id} value={env.id} className="bg-slate-900 text-white font-bold py-1">
+                                  <option key={env.id} value={env.id} className="bg-slate-900 text-white font-bold py-1.5">
                                     🍳 {env.name}
                                   </option>
                                 ))}
                               </optgroup>
-                              <optgroup label="📦 Direto sem Cozinha">
-                                <option value="none" className="bg-slate-900 text-emerald-300 font-bold py-1">
+                              <optgroup label="📦 Direto sem Cozinha" className="bg-slate-950 text-emerald-400 font-bold">
+                                <option value="none" className="bg-slate-900 text-emerald-300 font-bold py-1.5">
                                   📦 Balcão (Sem Preparo / Entrega Direta)
                                 </option>
                               </optgroup>
-                              <optgroup label="✨ Novo">
-                                <option value="__NEW_ENV__" className="bg-slate-900 text-amber-300 font-black py-1">
+                              <optgroup label="✨ Novo" className="bg-slate-950 text-amber-400 font-bold">
+                                <option value="__NEW_ENV__" className="bg-slate-900 text-amber-300 font-black py-1.5">
                                   ✨ + Cadastrar Novo Espaço...
                                 </option>
                               </optgroup>
                             </select>
-                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                              <ChevronDown className="w-3.5 h-3.5" />
+                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-blue-300">
+                              <ChevronDown className="w-4 h-4 stroke-[2.5]" />
                             </div>
                           </div>
                         </div>

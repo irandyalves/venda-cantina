@@ -637,19 +637,19 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             DIRETAMENTE EMBAIXO DO ITEM SELECIONADO!
          ======================================================== */}
       {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA) */}
-      <main className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-2.5">
+      <main className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-6">
 
         {/* ========================================================
             SEÇÃO 1: PIZZA (CLICOU NO SABOR -> ABRE PEDAÇO OU INTEIRO)
            ======================================================== */}
         {pizzaCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="p-1 bg-orange-500/20 text-orange-400 rounded-md border border-orange-500/30">
-                  <Pizza className="w-3.5 h-3.5" />
+            <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-orange-500/20 text-orange-400 rounded-lg border border-orange-500/30">
+                  <Pizza className="w-5 h-5" />
                 </span>
-                <h2 className="text-xs font-black text-white tracking-wide uppercase">
+                <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
                   PIZZA
                 </h2>
               </div>
@@ -695,8 +695,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                         {flavor.description || 'Sabor tradicional'}
                       </div>
                     </div>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className={`text-[9px] font-bold px-1 py-0.2 rounded ${isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-800 text-amber-400'}`}>
+                    <div className="mt-1.5 flex items-center justify-end">
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-slate-950 text-amber-300' : 'bg-slate-800 text-amber-400'}`}>
                         {isSelected ? '✓ Selecionado' : 'Escolher'}
                       </span>
                     </div>
@@ -883,12 +883,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
            ======================================================== */}
         {acaiCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="p-1 bg-purple-500/20 text-purple-400 rounded-md border border-purple-500/30">
-                  <IceCream className="w-3.5 h-3.5" />
+            <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/30">
+                  <IceCream className="w-5 h-5" />
                 </span>
-                <h2 className="text-xs font-black text-white tracking-wide uppercase">
+                <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
                   AÇAÍ
                 </h2>
               </div>
@@ -925,16 +925,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     onClick={() => handleSelectDirectItem(acaiCategory, item)}
                     className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] ${
                       isSelected
-                        ? 'bg-purple-800 text-white border-purple-400 shadow ring-2 ring-purple-400 scale-[1.01]'
+                        ? 'bg-purple-300 text-slate-950 border-purple-200 shadow ring-2 ring-purple-400 scale-[1.01]'
                         : 'bg-slate-900/90 hover:bg-purple-950/70 text-slate-200 border-slate-700 hover:border-purple-500/70'
                     }`}
                   >
                     <div>
                       <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
-                      <div className="text-[10px] text-purple-300 font-mono font-bold mt-0.5">R$ {item.price.toFixed(2)}</div>
+                      <div className={`text-[13px] sm:text-sm font-mono font-black mt-0.5 ${isSelected ? 'text-black' : 'text-purple-300'}`}>
+                        R$ {item.price.toFixed(2)}
+                      </div>
                     </div>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className={`text-[9px] font-bold px-1 py-0.2 rounded ${isSelected ? 'bg-purple-950 text-purple-200 border border-purple-400/40' : 'bg-slate-800 text-purple-400'}`}>
+                    <div className="mt-1.5 flex items-center justify-end">
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-slate-950 text-white' : 'bg-slate-800 text-purple-400'}`}>
                         {isSelected ? '✓ Selecionado' : 'Escolher'}
                       </span>
                     </div>
@@ -1088,12 +1090,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
            ======================================================== */}
         {batataCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="p-1 bg-yellow-500/20 text-yellow-400 rounded-md border border-yellow-500/30">
-                  <UtensilsCrossed className="w-3.5 h-3.5" />
+            <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg border border-yellow-500/30">
+                  <UtensilsCrossed className="w-5 h-5" />
                 </span>
-                <h2 className="text-xs font-black text-white tracking-wide uppercase">
+                <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
                   BATATA
                 </h2>
               </div>
@@ -1130,16 +1132,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     onClick={() => handleSelectDirectItem(batataCategory, item)}
                     className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] ${
                       isSelected
-                        ? 'bg-yellow-500 text-slate-950 border-yellow-300 shadow ring-2 ring-yellow-400 scale-[1.01]'
+                        ? 'bg-yellow-400 text-slate-950 border-yellow-300 shadow ring-2 ring-yellow-400 scale-[1.01]'
                         : 'bg-slate-900/90 hover:bg-yellow-950/70 text-slate-200 border-slate-700 hover:border-yellow-500/70'
                     }`}
                   >
                     <div>
                       <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
-                      <div className="text-[10px] text-yellow-300 font-mono font-bold mt-0.5">R$ {item.price.toFixed(2)}</div>
+                      <div className={`text-[13px] sm:text-sm font-mono font-black mt-0.5 ${isSelected ? 'text-black' : 'text-yellow-400'}`}>
+                        R$ {item.price.toFixed(2)}
+                      </div>
                     </div>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className={`text-[9px] font-bold px-1 py-0.2 rounded ${isSelected ? 'bg-slate-950 text-yellow-300 border border-yellow-400/40' : 'bg-slate-800 text-yellow-400'}`}>
+                    <div className="mt-1.5 flex items-center justify-end">
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-slate-950 text-white' : 'bg-slate-800 text-yellow-400'}`}>
                         {isSelected ? '✓ Selecionado' : 'Escolher'}
                       </span>
                     </div>
@@ -1293,12 +1297,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
            ======================================================== */}
         {otherCategories.map((cat) => (
           <div key={cat.id} className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="p-1 bg-cyan-500/20 text-cyan-400 rounded-md border border-cyan-500/30">
-                  <Utensils className="w-3.5 h-3.5" />
+            <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30">
+                  <Utensils className="w-5 h-5" />
                 </span>
-                <h2 className="text-xs font-black text-white tracking-wide uppercase">
+                <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
                   {cat.name}
                 </h2>
               </div>
@@ -1340,16 +1344,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     onClick={() => handleSelectDirectItem(cat, item)}
                     className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] ${
                       isSelected
-                        ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow ring-2 ring-cyan-400 scale-[1.01]'
+                        ? 'bg-cyan-400 text-slate-950 border-cyan-300 shadow ring-2 ring-cyan-400 scale-[1.01]'
                         : 'bg-slate-900/90 hover:bg-cyan-950/70 text-slate-200 border-slate-700 hover:border-cyan-500/70'
                     }`}
                   >
                     <div>
                       <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
-                      <div className="text-[10px] text-cyan-300 font-mono font-bold mt-0.5">R$ {item.price.toFixed(2)}</div>
+                      <div className={`text-[13px] sm:text-sm font-mono font-black mt-0.5 ${isSelected ? 'text-black' : 'text-cyan-300'}`}>
+                        R$ {item.price.toFixed(2)}
+                      </div>
                     </div>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className={`text-[9px] font-bold px-1 py-0.2 rounded ${isSelected ? 'bg-slate-950 text-cyan-300 border border-cyan-400/40' : 'bg-slate-800 text-cyan-400'}`}>
+                    <div className="mt-1.5 flex items-center justify-end">
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-slate-950 text-white' : 'bg-slate-800 text-cyan-400'}`}>
                         {isSelected ? '✓ Selecionado' : 'Escolher'}
                       </span>
                     </div>
