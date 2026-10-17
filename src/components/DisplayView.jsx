@@ -145,13 +145,13 @@ export default function DisplayView({ onNavigate }) {
     // Se tiver variação explícita (como PEDAÇO ou INTEIRA na pizza)
     if (variationName) {
       return (
-        <div className="flex flex-wrap items-center gap-1.5 text-sm sm:text-base">
+        <div className="flex flex-wrap items-center gap-1 text-xs sm:text-sm">
           <span className="font-black text-slate-200 tracking-wide">{categoryName}</span>
-          <span className="text-emerald-400 font-black bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/50 shadow-sm">
+          <span className="text-emerald-400 font-black bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-500/50 text-[10px] sm:text-xs shadow-sm">
             [{variationName}]
           </span>
           <span className="text-slate-400 font-bold">:</span>
-          <span className="text-purple-300 font-black tracking-wider uppercase drop-shadow-[0_0_10px_rgba(216,180,254,0.7)] text-base sm:text-lg">
+          <span className="text-purple-300 font-black tracking-wider uppercase drop-shadow-[0_0_8px_rgba(216,180,254,0.7)] text-xs sm:text-sm">
             {itemName}
           </span>
         </div>
@@ -160,9 +160,9 @@ export default function DisplayView({ onNavigate }) {
 
     // Se for Açaí ou Batata
     return (
-      <div className="flex flex-wrap items-center gap-1.5 text-sm sm:text-base">
+      <div className="flex flex-wrap items-center gap-1 text-xs sm:text-sm">
         <span className="font-black text-slate-200 tracking-wide">{categoryName}</span>
-        <span className="text-emerald-400 font-black bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/50 shadow-sm">
+        <span className="text-emerald-400 font-black bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-500/50 text-[10px] sm:text-xs shadow-sm">
           [{itemName}]
         </span>
       </div>
@@ -281,57 +281,57 @@ export default function DisplayView({ onNavigate }) {
         }`}>
           
           {/* CABEÇALHO DA SEÇÃO EM PREPARAÇÃO */}
-          <div className="flex items-center justify-between border-b-2 border-amber-500/40 p-5 pl-6 sm:pl-8 pb-4 shrink-0 bg-slate-900/90">
-            <div className="flex items-center gap-3">
-              <span className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl">
-                <Flame className="w-7 h-7 animate-pulse" />
+          <div className="flex items-center justify-between border-b-2 border-amber-500/40 p-2.5 pl-4 sm:pl-6 pb-2 shrink-0 bg-slate-900/90">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-xl">
+                <Flame className="w-5 h-5 animate-pulse" />
               </span>
               <div>
-                <h2 className="text-2xl font-black text-amber-300 uppercase tracking-widest">
+                <h2 className="text-lg sm:text-xl font-black text-amber-300 uppercase tracking-widest leading-tight">
                   EM PREPARAÇÃO
                 </h2>
-                <p className="text-xs text-slate-400">Na cozinha sendo preparado agora</p>
+                <p className="text-[10px] text-slate-400">Na cozinha sendo preparado agora</p>
               </div>
             </div>
 
-            <span className="text-2xl font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-4 py-1 rounded-2xl font-mono mr-2">
+            <span className="text-lg sm:text-xl font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-0.5 rounded-xl font-mono mr-2">
               {preparingOrders.length}
             </span>
           </div>
 
           {/* LISTA DE CARDS: AS LINHAS SUPERIOR E INFERIOR ENCOSTAM NA BORDA DA SEÇÃO (SEM BORDAS ESQ E DIR) */}
-          <div className="flex-1 overflow-y-auto space-y-4 py-2">
+          <div className="flex-1 overflow-y-auto space-y-1.5 py-1">
             {preparingOrders.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-12 px-5">
-                <Clock className="w-14 h-14 mb-2 opacity-40 animate-pulse" />
-                <p className="text-base font-bold text-slate-400">Nenhum pedido em preparo no momento</p>
-                <p className="text-xs text-slate-600 mt-1">Os novos pedidos do caixa aparecerão aqui automaticamente</p>
+              <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-8 px-5">
+                <Clock className="w-10 h-10 mb-2 opacity-40 animate-pulse" />
+                <p className="text-sm font-bold text-slate-400">Nenhum pedido em preparo no momento</p>
+                <p className="text-[10px] text-slate-600 mt-0.5">Os novos pedidos do caixa aparecerão aqui automaticamente</p>
               </div>
             ) : (
               preparingOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="w-full bg-slate-950/90 px-6 sm:px-8 py-4 sm:py-5 border-y-2 border-amber-500/60 border-x-0 rounded-none shadow-xl hover:bg-slate-900/95 transition-all space-y-2 relative"
+                  className="w-full bg-slate-950/90 px-4 sm:px-6 py-2 sm:py-2.5 border-y border-amber-500/60 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all space-y-1 relative"
                 >
-                  {/* LINHA 1: CÓDIGO DA COMANDA COM FONTE DOBRADA + NOME DE QUEM PEDIU EM MAIÚSCULO */}
-                  <div className="flex flex-wrap items-center gap-3 border-b border-slate-800 pb-2">
-                    <span className="w-3.5 h-3.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+                  {/* LINHA 1: CÓDIGO DA COMANDA COM FONTE AJUSTADA + NOME DE QUEM PEDIU EM MAIÚSCULO */}
+                  <div className="flex flex-wrap items-center gap-2 border-b border-slate-800/80 pb-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
                     
-                    {/* P Ped-09 COM FONTE DOBRADA */}
-                    <span className="text-3xl sm:text-4xl md:text-5xl font-black text-amber-400 font-mono tracking-tight">
+                    {/* CÓDIGO DA COMANDA */}
+                    <span className="text-xl sm:text-2xl md:text-3xl font-black text-amber-400 font-mono tracking-tight">
                       {order.orderNumber}
                     </span>
 
-                    <span className="text-2xl font-black text-slate-600 hidden sm:inline">—</span>
+                    <span className="text-base font-black text-slate-600 hidden sm:inline">—</span>
 
                     {/* NOME DE QUEM PEDIU EM MAIÚSCULO */}
-                    <span className="text-xl sm:text-2xl md:text-3xl font-black text-white uppercase tracking-wide">
+                    <span className="text-sm sm:text-base md:text-lg font-black text-white uppercase tracking-wide">
                       {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
                     </span>
                   </div>
 
                   {/* LINHA 2: CATEGORIA + [VARIAÇÃO EM VERDE BOLD] : SABOR (LILÁS BRILHO BOLD) */}
-                  <div className="pt-1">
+                  <div className="pt-0.5">
                     {renderItemDetails(order)}
                   </div>
                 </div>
@@ -344,43 +344,43 @@ export default function DisplayView({ onNavigate }) {
         {tvSettings.showDelivered && (
           <section className="lg:col-span-5 flex flex-col bg-slate-900/85 rounded-r-none rounded-l-3xl border-y-2 border-r-0 border-l-[6px] border-blue-500/50 border-l-blue-400 shadow-[-4px_0_24px_rgba(59,130,246,0.25)] overflow-hidden">
             
-            <div className="flex items-center justify-between border-b-2 border-blue-500/30 p-5 pr-6 sm:pr-8 pb-4 shrink-0 bg-slate-900/90 ml-2">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 bg-blue-500/20 text-blue-400 rounded-xl">
-                  <CheckCircle2 className="w-5 h-5" />
+            <div className="flex items-center justify-between border-b-2 border-blue-500/30 p-2.5 pr-4 sm:pr-6 pb-2 shrink-0 bg-slate-900/90 ml-2">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-blue-500/20 text-blue-400 rounded-xl">
+                  <CheckCircle2 className="w-4 h-4" />
                 </span>
                 <div>
-                  <h2 className="text-lg font-black text-blue-300 uppercase tracking-wider">
+                  <h2 className="text-sm sm:text-base font-black text-blue-300 uppercase tracking-wider leading-tight">
                     ENTREGUES
                   </h2>
                 </div>
               </div>
-              <span className="text-lg font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 px-3 py-0.5 rounded-xl font-mono">
+              <span className="text-sm sm:text-base font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2.5 py-0.2 rounded-xl font-mono">
                 {deliveredOrders.length}
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2 py-2">
+            <div className="flex-1 overflow-y-auto space-y-1 py-1">
               {deliveredOrders.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-8 px-4">
-                  <CheckCircle2 className="w-10 h-10 mb-2 opacity-30" />
-                  <p className="text-xs font-semibold">Nenhum pedido entregue ainda</p>
+                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-6 px-4">
+                  <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-30" />
+                  <p className="text-[10px] font-semibold">Nenhum pedido entregue ainda</p>
                 </div>
               ) : (
                 deliveredOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="w-full bg-slate-950/70 px-5 py-3 border-y border-blue-500/40 border-x-0 rounded-none flex items-center justify-between shadow-sm"
+                    className="w-full bg-slate-950/70 px-4 py-1.5 border-y border-blue-500/40 border-x-0 rounded-none flex items-center justify-between shadow-sm"
                   >
                     <div>
-                      <div className="text-lg font-black text-blue-400 font-mono">
+                      <div className="text-xs sm:text-sm font-black text-blue-400 font-mono">
                         {order.orderNumber}
                       </div>
-                      <div className="text-xs font-bold text-slate-200 uppercase">
+                      <div className="text-[10px] sm:text-[11px] font-bold text-slate-200 uppercase">
                         {order.customerName}
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-blue-300 bg-blue-950/60 px-2 py-0.5 rounded border border-blue-500/30">
+                    <span className="text-[9px] font-bold text-blue-300 bg-blue-950/60 px-1.5 py-0.2 rounded border border-blue-500/30">
                       ✓ Entregue
                     </span>
                   </div>

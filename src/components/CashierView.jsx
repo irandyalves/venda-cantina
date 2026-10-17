@@ -412,27 +412,6 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           - AO ESCOLHER O PRODUTO, O FORMULÁRIO DESCE EM EFEITO CORTINA
             DIRETAMENTE EMBAIXO DO ITEM SELECIONADO!
          ======================================================== */}
-      {!selectedProduct && (
-        <div className="px-3 pt-2.5 shrink-0">
-          <div className="bg-slate-800/60 rounded-xl p-2.5 border border-dashed border-slate-700 text-slate-300 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg">
-                <ShoppingCart className="w-4 h-4" />
-              </span>
-              <div>
-                <span className="font-extrabold text-xs text-white">1º PASSO:</span>{' '}
-                <span className="text-xs text-slate-300">
-                  Clique no produto abaixo (ex: sabor de <strong>Pizza ➔ Pedaço ou Inteiro</strong>, ou <strong>Açaí</strong>, ou <strong>Batata</strong>)
-                </span>
-              </div>
-            </div>
-            <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider bg-slate-900 px-2 py-0.5 rounded border border-slate-700">
-              Aguardando Escolha
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA) */}
       <main className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-2.5">
 
@@ -486,32 +465,17 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
             {selectedPizzaFlavor ? (
               <div 
                 ref={drawerRef}
-                className="mt-2.5 p-2.5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-emerald-500/80 shadow-2xl animate-curtain-down space-y-2"
+                className="mt-2.5 p-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-emerald-500/80 shadow-2xl animate-curtain-down relative pr-9"
               >
-                {/* CABEÇALHO DO SABOR COM BOTÃO X FECHAR */}
-                <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5 px-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg">
-                      <Sparkles className="w-3.5 h-3.5 animate-spin-slow" />
-                    </span>
-                    <span className="text-xs uppercase font-extrabold text-slate-300">
-                      Sabor Selecionado:{' '}
-                      <strong className="text-amber-300 font-black text-sm">
-                        {selectedPizzaFlavor.name}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={cancelSelection}
-                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                    title="Fechar e cancelar escolha"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Fechar</span>
-                  </button>
-                </div>
+                {/* BOTÃO X FECHAR NO CANTO SUPERIOR DIREITO */}
+                <button
+                  type="button"
+                  onClick={cancelSelection}
+                  className="absolute top-2.5 right-2 text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer z-10"
+                  title="Fechar e cancelar escolha"
+                >
+                  <X className="w-4 h-4" />
+                </button>
 
                 {/* EM 1 LINHA APENAS: PEDAÇO/INTEIRA | NOME | QDTE | PAGAMENTO | ENVIAR */}
                 <form 
@@ -719,32 +683,17 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
             {selectedProduct?.category?.id === 'acai' && (
               <div 
                 ref={drawerRef}
-                className="mt-2.5 p-2.5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-purple-500/80 shadow-2xl animate-curtain-down space-y-2"
+                className="mt-2.5 p-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-purple-500/80 shadow-2xl animate-curtain-down relative pr-9"
               >
-                {/* CABEÇALHO DO ITEM COM BOTÃO X FECHAR */}
-                <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5 px-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1 bg-purple-500/20 text-purple-400 rounded-lg">
-                      <Sparkles className="w-3.5 h-3.5 animate-spin-slow" />
-                    </span>
-                    <span className="text-xs uppercase font-extrabold text-slate-300">
-                      Item Selecionado:{' '}
-                      <strong className="text-purple-300 font-black text-sm">
-                        {selectedProduct.item.name}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={cancelSelection}
-                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                    title="Fechar e cancelar escolha"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Fechar</span>
-                  </button>
-                </div>
+                {/* BOTÃO X FECHAR NO CANTO SUPERIOR DIREITO */}
+                <button
+                  type="button"
+                  onClick={cancelSelection}
+                  className="absolute top-2.5 right-2 text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer z-10"
+                  title="Fechar e cancelar escolha"
+                >
+                  <X className="w-4 h-4" />
+                </button>
 
                 {/* EM 1 LINHA APENAS: NOME | QDTE | PAGAMENTO | ENVIAR */}
                 <form 
@@ -919,32 +868,17 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
             {selectedProduct?.category?.id === 'batata' && (
               <div 
                 ref={drawerRef}
-                className="mt-2.5 p-2.5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-yellow-500/80 shadow-2xl animate-curtain-down space-y-2"
+                className="mt-2.5 p-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-yellow-500/80 shadow-2xl animate-curtain-down relative pr-9"
               >
-                {/* CABEÇALHO DO ITEM COM BOTÃO X FECHAR */}
-                <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5 px-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1 bg-yellow-500/20 text-yellow-400 rounded-lg">
-                      <Sparkles className="w-3.5 h-3.5 animate-spin-slow" />
-                    </span>
-                    <span className="text-xs uppercase font-extrabold text-slate-300">
-                      Item Selecionado:{' '}
-                      <strong className="text-yellow-300 font-black text-sm">
-                        {selectedProduct.item.name}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={cancelSelection}
-                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                    title="Fechar e cancelar escolha"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Fechar</span>
-                  </button>
-                </div>
+                {/* BOTÃO X FECHAR NO CANTO SUPERIOR DIREITO */}
+                <button
+                  type="button"
+                  onClick={cancelSelection}
+                  className="absolute top-2.5 right-2 text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer z-10"
+                  title="Fechar e cancelar escolha"
+                >
+                  <X className="w-4 h-4" />
+                </button>
 
                 {/* EM 1 LINHA APENAS: NOME | QDTE | PAGAMENTO | ENVIAR */}
                 <form 
@@ -1119,32 +1053,17 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
             {selectedProduct?.category?.id === cat.id && (
               <div 
                 ref={drawerRef}
-                className="mt-2.5 p-2.5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-cyan-500/80 shadow-2xl animate-curtain-down space-y-2"
+                className="mt-2.5 p-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-cyan-500/80 shadow-2xl animate-curtain-down relative pr-9"
               >
-                {/* CABEÇALHO DO ITEM COM BOTÃO X FECHAR */}
-                <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5 px-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1 bg-cyan-500/20 text-cyan-400 rounded-lg">
-                      <Sparkles className="w-3.5 h-3.5 animate-spin-slow" />
-                    </span>
-                    <span className="text-xs uppercase font-extrabold text-slate-300">
-                      Item Selecionado:{' '}
-                      <strong className="text-cyan-300 font-black text-sm">
-                        {selectedProduct.item.name}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={cancelSelection}
-                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                    title="Fechar e cancelar escolha"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Fechar</span>
-                  </button>
-                </div>
+                {/* BOTÃO X FECHAR NO CANTO SUPERIOR DIREITO */}
+                <button
+                  type="button"
+                  onClick={cancelSelection}
+                  className="absolute top-2.5 right-2 text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer z-10"
+                  title="Fechar e cancelar escolha"
+                >
+                  <X className="w-4 h-4" />
+                </button>
 
                 {/* EM 1 LINHA APENAS: NOME | QDTE | PAGAMENTO | ENVIAR */}
                 <form 
