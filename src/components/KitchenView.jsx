@@ -22,9 +22,20 @@ import ProfileSelector from './ProfileSelector';
 export default function KitchenView({ onNavigate }) {
   const [orders, setOrders] = useState([]);
   const [activeFilter, setActiveFilter] = useState('active'); // 'active', 'entregue', 'all'
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => storageService.getKitchenSettings().soundEnabled);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [isFirebaseOnline, setIsFirebaseOnline] = useState(storageService.isFirebaseReady);
+
+  // Escuta alterações na configuração de som da cozinha (vindas do modal de configurações)
+  useEffect(() => {
+    const handleKitchenSettings = (e) => {
+      if (e.detail?.soundEnabled !== undefined) {
+        setSoundEnabled(e.detail.soundEnabled);
+      }
+    };
+    window.addEventListener('cantina_kitchen_settings_changed', handleKitchenSettings);
+    return () => window.removeEventListener('cantina_kitchen_settings_changed', handleKitchenSettings);
+  }, []);
 
   // Controle do efeito de 10 segundos no novo pedido
   const [newestOrderId, setNewestOrderId] = useState(null);
@@ -180,28 +191,11 @@ export default function KitchenView({ onNavigate }) {
             <h1 className="text-base font-black text-white tracking-wide">
               COZINHA & PRODUÇÃO
             </h1>
-            <p className="text-xs text-slate-400">
-              Fila em tempo real: <strong className="text-orange-400 font-mono">{activeOrders.length} pedidos pendentes</strong>
-            </p>
           </div>
         </div>
 
-        {/* CONTROLES LIMPOS: SOM + SELETOR DE PERFIL */}
+        {/* CONTROLES LIMPOS: SELETOR DE PERFIL */}
         <div className="flex items-center gap-2.5">
-          {/* TOGGLE SOM GERAL */}
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border transition-all ${
-              soundEnabled 
-                ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/60' 
-                : 'bg-rose-950/60 text-rose-300 border-rose-600/60'
-            }`}
-            title="Ligar ou desligar avisos sonoros da cozinha"
-          >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-rose-400" />}
-            <span>{soundEnabled ? 'Som Ativo' : 'Mudo'}</span>
-          </button>
-
           {/* PERFIL NO CANTO SUPERIOR DIREITO */}
           <ProfileSelector 
             onProfileChange={(profile) => {
@@ -249,10 +243,6 @@ export default function KitchenView({ onNavigate }) {
             <Trash2 className="w-3.5 h-3.5" />
             <span>Limpar Fila / Cache</span>
           </button>
-        </div>
-
-        <div className="text-slate-400 text-xs hidden sm:block">
-          Ao finalizar, clique diretamente em <strong className="text-emerald-400">[ENTREGAR]</strong>
         </div>
       </div>
 

@@ -389,6 +389,24 @@ class StorageService {
     window.dispatchEvent(new CustomEvent('cantina_tv_settings_changed', { detail: settings }));
   }
 
+  // --- CONFIGURAÇÕES DA COZINHA (SOM E ALERTAS) ---
+  getKitchenSettings() {
+    try {
+      const raw = localStorage.getItem('cantina_kitchen_settings');
+      return raw ? JSON.parse(raw) : { soundEnabled: true };
+    } catch {
+      return { soundEnabled: true };
+    }
+  }
+
+  saveKitchenSettings(settings) {
+    localStorage.setItem('cantina_kitchen_settings', JSON.stringify(settings));
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'KITCHEN_SETTINGS_UPDATED', payload: settings });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_kitchen_settings_changed', { detail: settings }));
+  }
+
   // --- PEDIDOS (EM TEMPO REAL CLOUD FIRESTORE) ---
 
   async createOrder(orderData) {

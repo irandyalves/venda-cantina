@@ -163,6 +163,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
   // Estado Configurações da TV
   const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
+  const [kitchenSettings, setKitchenSettings] = useState(() => storageService.getKitchenSettings());
 
   // Preços de pizza (Pedaço e Inteira com máscara 0,00)
   const [pedacoPrice, setPedacoPrice] = useState('9,00');
@@ -213,12 +214,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     setEmailRules(authService.getEmailRules());
     setTvSettings(storageService.getTVSettings());
+    setKitchenSettings(storageService.getKitchenSettings());
     setOrders(storageService.getLocalOrders());
   };
 
   if (!isOpen) return null;
 
-  // --- AÇÕES DE CONFIGURAÇÃO DA TV ---
+  // --- AÇÕES DE CONFIGURAÇÃO DA TV E COZINHA ---
   const handleToggleTVSound = () => {
     const updated = { ...tvSettings, soundEnabled: !tvSettings.soundEnabled };
     setTvSettings(updated);
@@ -235,6 +237,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const updated = { ...tvSettings, autoFullscreen: !tvSettings.autoFullscreen };
     setTvSettings(updated);
     storageService.saveTVSettings(updated);
+  };
+
+  const handleToggleKitchenSound = () => {
+    const updated = { ...kitchenSettings, soundEnabled: !kitchenSettings.soundEnabled };
+    setKitchenSettings(updated);
+    storageService.saveKitchenSettings(updated);
+    showToast(updated.soundEnabled ? 'Som da Cozinha ativado!' : 'Som da Cozinha em silêncio/mudo.');
   };
 
   // --- AÇÕES DE E-MAILS DOS PERFIS ---
@@ -597,7 +606,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             }`}
           >
             <Tv className="w-4 h-4" />
-            <span>Configuração TV</span>
+            <span>Telas & Som (TV/Cozinha)</span>
           </button>
 
           <button
@@ -1696,6 +1705,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       }`}
                     >
                       {tvSettings.autoFullscreen ? '✓ Fullscreen Auto' : '✕ Desativado'}
+                    </button>
+                  </div>
+
+                  {/* TOGGLE 4: AVISOS SONOROS NA COZINHA */}
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-sm text-white">Avisos Sonoros da Cozinha</div>
+                      <div className="text-xs text-slate-400 mt-0.5">Toca o alarme sonoro na cozinha a cada novo pedido enviado pelo caixa</div>
+                    </div>
+                    <button
+                      onClick={handleToggleKitchenSound}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                        kitchenSettings.soundEnabled
+                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      {kitchenSettings.soundEnabled ? '✓ Som Ativado' : '✕ Mudo / Desativado'}
                     </button>
                   </div>
 
