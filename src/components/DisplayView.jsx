@@ -248,24 +248,16 @@ export default function DisplayView({ onNavigate }) {
             </div>
 
             {/* 2. NOME DA PESSOA */}
-            <div className="py-3 px-4 border-y-2 border-slate-800/80 bg-slate-900/70 rounded-2xl">
-              <div className="text-xs sm:text-sm font-black uppercase tracking-widest text-amber-300/80 mb-1">
-                NOME DE QUEM COMPROU:
-              </div>
+            <div className="py-4 px-4 border-y-2 border-slate-800/80 bg-slate-900/70 rounded-2xl">
               <div className="text-3xl sm:text-5xl md:text-6xl font-black text-white uppercase tracking-wider drop-shadow-[0_0_25px_rgba(255,255,255,0.7)]">
                 {deliveredModalOrder.customerName ? deliveredModalOrder.customerName.toUpperCase() : 'CLIENTE'}
               </div>
             </div>
 
             {/* 3. O QUE PEDIU */}
-            <div className="space-y-2">
-              <div className="text-xs sm:text-sm font-black uppercase tracking-widest text-slate-400">
-                O QUE PEDIU:
-              </div>
-              <div className="flex items-center justify-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-black text-purple-200 bg-purple-950/80 px-6 py-3 rounded-2xl border-2 border-purple-500/60 shadow-lg drop-shadow-[0_0_20px_rgba(216,180,254,0.7)]">
-                  {renderItemDetails(deliveredModalOrder)}
-                </div>
+            <div className="flex items-center justify-center pt-1">
+              <div className="text-xl sm:text-2xl md:text-3xl font-black text-purple-200 bg-purple-950/80 px-6 py-3.5 rounded-2xl border-2 border-purple-500/60 shadow-lg drop-shadow-[0_0_20px_rgba(216,180,254,0.7)]">
+                {renderItemDetails(deliveredModalOrder)}
               </div>
             </div>
 
