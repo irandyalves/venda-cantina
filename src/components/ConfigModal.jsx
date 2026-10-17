@@ -179,6 +179,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
   // Estado Modal de Zerar Turno e Histórico Arquivado
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showClearQueueModal, setShowClearQueueModal] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [turnoHistory, setTurnoHistory] = useState(() => storageService.getTurnoHistory());
   const [showHistoryList, setShowHistoryList] = useState(false);
@@ -244,6 +245,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           setShowResetModal(false);
           return;
         }
+        if (showClearQueueModal) {
+          setShowClearQueueModal(false);
+          return;
+        }
         if (editingItemId) {
           handleCancelEditItem();
           return;
@@ -254,7 +259,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, cancelConfirmModal.isOpen, showAddItemModal, showGearModal, showResetModal, editingItemId, onClose]);
+  }, [isOpen, cancelConfirmModal.isOpen, showAddItemModal, showGearModal, showResetModal, showClearQueueModal, editingItemId, onClose]);
 
   const loadData = () => {
     const cats = storageService.getProducts();
@@ -816,6 +821,18 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       showToast('Erro ao encerrar turno: ' + (err.message || 'Tente novamente'), 'Erro', 'error');
     } finally {
       setIsResetting(false);
+    }
+  };
+
+  const handleConfirmClearQueue = async () => {
+    try {
+      await storageService.clearAllOrders();
+      setOrders([]);
+      setShowClearQueueModal(false);
+      showToast('Fila de pedidos da Cozinha e Painel TV limpos com sucesso!', 'Fila e Cache Limpos', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao limpar fila: ' + (err.message || 'Tente novamente'), 'Erro', 'error');
     }
   };
 
@@ -2561,6 +2578,28 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     </button>
                   </div>
 
+                  {/* SEÇÃO LIMPEZA DE FILA E CACHE DA COZINHA E PAINEL */}
+                  <div className="bg-slate-900 p-4 rounded-xl border border-rose-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
+                    <div>
+                      <div className="font-bold text-sm text-rose-300 flex items-center gap-1.5">
+                        <Trash2 className="w-4 h-4 text-rose-400" />
+                        <span>Limpar Fila / Cache da Cozinha e Painel TV</span>
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        Apaga todos os pedidos da fila ativa da Cozinha e do Painel TV, limpando o cache local.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowClearQueueModal(true)}
+                      className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer shrink-0 border border-rose-400/50"
+                      title="Apaga os pedidos da fila ativa e limpa o cache"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Limpar Fila / Cache</span>
+                    </button>
+                  </div>
+
                 </div>
               </div>
 
@@ -2658,6 +2697,57 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PERSONALIZADO DE CONFIRMAÇÃO: LIMPAR FILA / CACHE */}
+      {showClearQueueModal && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowClearQueueModal(false);
+          }}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-rose-500/60 w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-5 text-slate-100 relative overflow-hidden cursor-default"
+          >
+            {/* GLOW DECORATIVO */}
+            <div className="absolute -top-16 -right-16 w-36 h-36 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center shadow-lg shadow-rose-950/50">
+                <Trash2 className="w-7 h-7" />
+              </div>
+              <h3 className="text-lg font-black text-white tracking-wide">
+                ATENÇÃO!
+              </h3>
+              <p className="text-xs text-slate-300">
+                Deseja limpar todos os pedidos e o cache da fila da Cozinha e do Painel TV?
+              </p>
+            </div>
+
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-xs text-slate-400 text-center">
+              Todos os pedidos atualmente em preparação ou entregues serão removidos das telas da Cozinha e do Painel.
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowClearQueueModal(false)}
+                className="flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+              >
+                NÃO
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmClearQueue}
+                className="flex-1 py-2.5 px-4 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                SIM
+              </button>
+            </div>
           </div>
         </div>
       )}
