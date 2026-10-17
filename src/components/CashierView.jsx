@@ -26,7 +26,7 @@ import { storageService } from '../services/storage';
 import ProfileSelector from './ProfileSelector';
 import AutoToast from './AutoToast';
 
-export default function CashierView({ onOpenConfig, onNavigate }) {
+export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   // Estado do Caixa
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -417,9 +417,8 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
           </button>
 
           <ProfileSelector 
-            onProfileChange={(profile) => {
-              if (profile === 'COZINHA') onNavigate('kitchen');
-              else if (profile === 'PUBLICO') onNavigate('display');
+            onProfileChange={(profileId) => {
+              if (onNavigate) onNavigate(profileId);
             }}
             onOpenConfig={onOpenConfig}
           />

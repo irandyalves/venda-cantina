@@ -18,7 +18,7 @@ import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
 import ProfileSelector from './ProfileSelector';
 
-export default function KitchenView({ onNavigate }) {
+export default function KitchenView({ environment, onNavigate }) {
   const [orders, setOrders] = useState([]);
   const [activeFilter, setActiveFilter] = useState('active'); // 'active', 'entregue', 'all'
   const [soundEnabled, setSoundEnabled] = useState(() => storageService.getKitchenSettings().soundEnabled);
@@ -216,19 +216,17 @@ export default function KitchenView({ onNavigate }) {
             <UtensilsCrossed className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-base font-black text-white tracking-wide">
-              COZINHA & PRODUÇÃO
+            <h1 className="text-base font-black text-white tracking-wide uppercase">
+              {environment?.name || 'COZINHA & PRODUÇÃO'}
             </h1>
           </div>
         </div>
 
-        {/* CONTROLES LIMPOS: SELETOR DE PERFIL */}
+        {/* CONTROLES LIMPOS: SELETOR DE AMBIENTE */}
         <div className="flex items-center gap-2.5">
-          {/* PERFIL NO CANTO SUPERIOR DIREITO */}
           <ProfileSelector 
-            onProfileChange={(profile) => {
-              if (profile === 'ADMIN') onNavigate('cashier');
-              else if (profile === 'PUBLICO') onNavigate('display');
+            onProfileChange={(profileId) => {
+              if (onNavigate) onNavigate(profileId);
             }}
           />
         </div>

@@ -15,6 +15,7 @@ import { authService, PERFIS } from '../services/auth';
 import AutoToast from './AutoToast';
 
 export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
+  const [environments, setEnvironments] = useState(() => authService.getEnvironments());
   const [activeProfile, setActiveProfile] = useState(authService.getActiveProfile());
   const [currentUser, setCurrentUser] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -33,7 +34,11 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
     const handleProfileChange = (e) => {
       setActiveProfile(e.detail);
     };
+    const handleEnvsChange = (e) => {
+      setEnvironments(e.detail || authService.getEnvironments());
+    };
     window.addEventListener('cantina_profile_changed', handleProfileChange);
+    window.addEventListener('cantina_environments_changed', handleEnvsChange);
 
     // Fecha dropdown ao clicar fora
     const handleClickOutside = (e) => {
@@ -46,16 +51,17 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
     return () => {
       unsubscribeAuth();
       window.removeEventListener('cantina_profile_changed', handleProfileChange);
+      window.removeEventListener('cantina_environments_changed', handleEnvsChange);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
-  const handleSelectProfile = (profile) => {
-    setActiveProfile(profile);
-    authService.setActiveProfile(profile);
+  const handleSelectProfile = (profileId) => {
+    setActiveProfile(profileId);
+    authService.setActiveProfile(profileId);
     setIsOpen(false);
     if (onProfileChange) {
-      onProfileChange(profile);
+      onProfileChange(profileId);
     }
   };
 
@@ -86,41 +92,35 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
     setIsOpen(false);
   };
 
-  // Cores e ícones dos perfis
-  const profileDetails = {
-    [PERFIS.ADMIN]: {
-      label: 'ADMIN',
-      badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-      icon: <ShieldCheck className="w-4 h-4 text-amber-400" />,
-      desc: 'Caixa PDV, Gestão & Fechamento',
-      color: 'text-amber-400'
-    },
-    [PERFIS.COZINHA]: {
-      label: 'COZINHA',
-      badge: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
-      icon: <UtensilsCrossed className="w-4 h-4 text-orange-400" />,
-      desc: 'Painel KDS de Pedidos & Sons',
-      color: 'text-orange-400'
-    },
-    [PERFIS.PUBLICO]: {
-      label: 'PÚBLICO',
-      badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-      icon: <Tv className="w-4 h-4 text-emerald-400" />,
-      desc: 'Painel TV / Chamada de Clientes',
-      color: 'text-emerald-400'
-    }
+  const getEnvIcon = (env) => {
+    if (!env) return <ShieldCheck className="w-4 h-4 text-amber-400" />;
+    if (env.type === 'kitchen') return <UtensilsCrossed className="w-4 h-4 text-orange-400" />;
+    if (env.type === 'display') return <Tv className="w-4 h-4 text-emerald-400" />;
+    return <ShieldCheck className="w-4 h-4 text-amber-400" />;
   };
 
-  const currentDetails = profileDetails[activeProfile] || profileDetails[PERFIS.ADMIN];
+  const getEnvColor = (env) => {
+    if (!env) return 'text-amber-400';
+    if (env.type === 'kitchen') return 'text-orange-400';
+    if (env.type === 'display') return 'text-emerald-400';
+    return 'text-amber-400';
+  };
+
+  const currentEnv = environments.find(e => e.id === activeProfile) || environments[0] || {
+    name: 'ADMIN',
+    shortName: 'ADMIN',
+    type: 'cashier'
+  };
 
   return (
     <div className="relative inline-block text-left" ref={menuRef}>
       
-      {/* BOTÃO DO PERFIL NO CANTO SUPERIOR DIREITO */}
+      {/* BOTÃO DO AMBIENTE NO CANTO SUPERIOR DIREITO */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-xl border border-slate-700 hover:border-slate-500 shadow-md transition-all active:scale-95"
+        className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-xl border border-slate-700 hover:border-slate-500 shadow-md transition-all active:scale-95 cursor-pointer"
+        title="Alternar ambiente de trabalho"
       >
         {/* Foto do usuário se logado com o Google ou ícone do perfil */}
         {currentUser?.photoURL ? (
@@ -130,79 +130,93 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
             className="w-5 h-5 rounded-full border border-amber-400"
           />
         ) : (
-          currentDetails.icon
+          getEnvIcon(currentEnv)
         )}
 
         <div className="flex flex-col text-left">
           <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider leading-none">
-            Perfil
+            Ambiente
           </span>
-          <span className={`text-xs font-black tracking-wide leading-tight ${currentDetails.color}`}>
-            {currentDetails.label}
+          <span className={`text-xs font-black tracking-wide leading-tight ${getEnvColor(currentEnv)}`}>
+            {currentEnv.shortName || currentEnv.name}
           </span>
         </div>
 
         <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* DROPDOWN DE PERFIS E LOGIN GOOGLE */}
+      {/* DROPDOWN DE AMBIENTES E LOGIN GOOGLE */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 origin-top-right rounded-2xl bg-slate-900 border-2 border-slate-700 shadow-2xl p-2 z-50 animate-fadeIn text-slate-100">
+        <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-2xl bg-slate-900 border-2 border-slate-700 shadow-2xl p-2 z-50 animate-fadeIn text-slate-100">
           
           {/* CABEÇALHO DO DROPDOWN */}
-          <div className="px-3 py-2 border-b border-slate-800">
+          <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
             <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-              Escolher Perfil de Acesso
+              Escolher Ambiente de Trabalho
             </div>
-            {currentUser && (
-              <div className="mt-1 flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
-                {currentUser.photoURL ? (
-                  <img src={currentUser.photoURL} className="w-7 h-7 rounded-full" alt="avatar" />
-                ) : (
-                  <User className="w-5 h-5 text-amber-400" />
-                )}
-                <div className="overflow-hidden">
-                  <div className="text-xs font-bold text-white truncate">{currentUser.displayName || 'Usuário Google'}</div>
-                  <div className="text-[10px] text-slate-400 truncate">{currentUser.email}</div>
-                </div>
-              </div>
+            {onOpenConfig && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenConfig('emails');
+                }}
+                className="text-[10px] font-bold text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1 cursor-pointer"
+                title="Configurar Ambientes"
+              >
+                <Settings className="w-3 h-3" />
+                <span>Configurar</span>
+              </button>
             )}
           </div>
 
-          {/* LISTA DOS 3 PERFIS: ADMIN, COZINHA, PÚBLICO */}
-          <div className="py-2 space-y-1">
-            {[PERFIS.ADMIN, PERFIS.COZINHA, PERFIS.PUBLICO].map((perf) => {
-              const item = profileDetails[perf];
-              const isSelected = activeProfile === perf;
+          {currentUser && (
+            <div className="mx-2 mt-2 flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+              {currentUser.photoURL ? (
+                <img src={currentUser.photoURL} className="w-7 h-7 rounded-full" alt="avatar" />
+              ) : (
+                <User className="w-5 h-5 text-amber-400" />
+              )}
+              <div className="overflow-hidden">
+                <div className="text-xs font-bold text-white truncate">{currentUser.displayName || 'Usuário Google'}</div>
+                <div className="text-[10px] text-slate-400 truncate">{currentUser.email}</div>
+              </div>
+            </div>
+          )}
+
+          {/* LISTA DE TODOS OS AMBIENTES (ADMIN, COZINHA, COZINHA 2, PÚBLICO, ETC) */}
+          <div className="py-2 space-y-1 max-h-72 overflow-y-auto">
+            {environments.map((env) => {
+              const isSelected = activeProfile === env.id;
 
               return (
                 <button
-                  key={perf}
-                  onClick={() => handleSelectProfile(perf)}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all ${
+                  key={env.id}
+                  onClick={() => handleSelectProfile(env.id)}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
                     isSelected 
                       ? 'bg-slate-800 border border-slate-600 shadow-md' 
                       : 'hover:bg-slate-800/60 text-slate-300'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
-                      {item.icon}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800 shrink-0">
+                      {getEnvIcon(env)}
                     </div>
-                    <div>
-                      <div className="text-xs font-black text-white flex items-center gap-1.5">
-                        <span>{item.label}</span>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-white flex items-center gap-1.5 truncate">
+                        <span>{env.name}</span>
                         {isSelected && (
-                          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-bold">
+                          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-bold shrink-0">
                             ATIVO
                           </span>
                         )}
                       </div>
-                      <div className="text-[10px] text-slate-400">{item.desc}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{env.description || `Ambiente ${env.name}`}</div>
                     </div>
                   </div>
 
-                  {isSelected && <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />}
+                  {isSelected && <Check className="w-4 h-4 text-emerald-400 stroke-[3] shrink-0" />}
                 </button>
               );
             })}

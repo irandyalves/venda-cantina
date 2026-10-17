@@ -12,7 +12,7 @@ import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
 import ProfileSelector from './ProfileSelector';
 
-export default function DisplayView({ onNavigate }) {
+export default function DisplayView({ environment, onNavigate }) {
   const [orders, setOrders] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [deliveredModalOrder, setDeliveredModalOrder] = useState(null);
@@ -224,9 +224,8 @@ export default function DisplayView({ onNavigate }) {
 
           {/* PERFIL NO CANTO SUPERIOR DIREITO */}
           <ProfileSelector 
-            onProfileChange={(profile) => {
-              if (profile === 'ADMIN') onNavigate('cashier');
-              else if (profile === 'COZINHA') onNavigate('kitchen');
+            onProfileChange={(profileId) => {
+              if (onNavigate) onNavigate(profileId);
             }}
           />
         </div>

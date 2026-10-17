@@ -6,54 +6,99 @@ import ConfigModal from './components/ConfigModal';
 import { authService, PERFIS } from './services/auth';
 
 export default function App() {
-  // Lê a rota inicial pela hash (#caixa, #cozinha, #tv) ou pelo perfil ativo
-  const getInitialView = () => {
-    const hash = window.location.hash.toLowerCase();
-    if (hash.includes('cozinha') || hash.includes('kitchen')) return 'kitchen';
-    if (hash.includes('tv') || hash.includes('display') || hash.includes('painel')) return 'display';
-    if (hash.includes('caixa') || hash.includes('cashier') || hash.includes('admin')) return 'cashier';
+  // Encontra o ambiente inicial pela hash (#caixa, #cozinha, #cozinha-2, #tv) ou pelo perfil ativo
+  const resolveEnvironmentFromHashOrActive = () => {
+    const rawHash = window.location.hash.toLowerCase().replace('#', '').trim();
+    const envs = authService.getEnvironments();
 
-    const activeProfile = authService.getActiveProfile();
-    if (activeProfile === PERFIS.COZINHA) return 'kitchen';
-    if (activeProfile === PERFIS.PUBLICO) return 'display';
-    return 'cashier';
+    if (rawHash) {
+      // 1. Busca correspondência exata de ID ou shortName
+      const exactMatch = envs.find(e => 
+        e.id.toLowerCase() === rawHash || 
+        (e.shortName && e.shortName.toLowerCase().replace(/[\s_]+/g, '-') === rawHash.replace(/[\s_]+/g, '-')) ||
+        (e.shortName && e.shortName.toLowerCase().replace(/[\s-]+/g, '_') === rawHash.replace(/[\s-]+/g, '_'))
+      );
+      if (exactMatch) return exactMatch;
+
+      // 2. Busca por tipo comum na URL
+      if (rawHash.includes('tv') || rawHash.includes('display') || rawHash.includes('painel')) {
+        const dEnv = envs.find(e => e.type === 'display');
+        if (dEnv) return dEnv;
+      }
+      if (rawHash.includes('caixa') || rawHash.includes('cashier') || rawHash.includes('admin')) {
+        const aEnv = envs.find(e => e.type === 'cashier');
+        if (aEnv) return aEnv;
+      }
+      if (rawHash.includes('cozinha') || rawHash.includes('kitchen')) {
+        const kEnv = envs.find(e => e.type === 'kitchen');
+        if (kEnv) return kEnv;
+      }
+    }
+
+    return authService.getActiveEnvironment();
   };
 
-  const [currentView, setCurrentView] = useState(getInitialView);
+  const [activeEnvironment, setActiveEnvironment] = useState(resolveEnvironmentFromHashOrActive);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [configInitialTab, setConfigInitialTab] = useState('products');
 
-  // Sincroniza com a hash da URL e com o evento de perfil
   useEffect(() => {
     const handleHashChange = () => {
-      setCurrentView(getInitialView());
+      const resolved = resolveEnvironmentFromHashOrActive();
+      setActiveEnvironment(resolved);
+      authService.setActiveProfile(resolved.id);
+    };
+
+    const handleEnvironmentChange = (e) => {
+      const env = e.detail;
+      if (env) {
+        setActiveEnvironment(env);
+        const slug = (env.shortName || env.name).toLowerCase().replace(/[\s_]+/g, '-');
+        window.location.hash = slug;
+      }
     };
 
     const handleProfileChange = (e) => {
-      const profile = e.detail;
-      if (profile === PERFIS.ADMIN) {
-        navigateTo('cashier');
-      } else if (profile === PERFIS.COZINHA) {
-        navigateTo('kitchen');
-      } else if (profile === PERFIS.PUBLICO) {
-        navigateTo('display');
+      const profileId = e.detail;
+      const envs = authService.getEnvironments();
+      const matched = envs.find(x => x.id === profileId);
+      if (matched) {
+        setActiveEnvironment(matched);
+        const slug = (matched.shortName || matched.name).toLowerCase().replace(/[\s_]+/g, '-');
+        window.location.hash = slug;
       }
     };
 
     window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('cantina_environment_changed', handleEnvironmentChange);
     window.addEventListener('cantina_profile_changed', handleProfileChange);
 
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('cantina_environment_changed', handleEnvironmentChange);
       window.removeEventListener('cantina_profile_changed', handleProfileChange);
     };
   }, []);
 
-  const navigateTo = (view) => {
-    setCurrentView(view);
-    if (view === 'cashier') window.location.hash = 'caixa';
-    else if (view === 'kitchen') window.location.hash = 'cozinha';
-    else if (view === 'display') window.location.hash = 'tv';
+  const navigateTo = (target) => {
+    const envs = authService.getEnvironments();
+    let targetEnv = null;
+
+    if (typeof target === 'object' && target?.id) {
+      targetEnv = target;
+    } else if (typeof target === 'string') {
+      if (target === 'cashier') targetEnv = envs.find(e => e.type === 'cashier') || envs[0];
+      else if (target === 'kitchen') targetEnv = envs.find(e => e.type === 'kitchen') || envs[1];
+      else if (target === 'display') targetEnv = envs.find(e => e.type === 'display') || envs[2];
+      else targetEnv = envs.find(e => e.id === target || e.shortName.toLowerCase() === target.toLowerCase());
+    }
+
+    if (targetEnv) {
+      authService.setActiveProfile(targetEnv.id);
+      setActiveEnvironment(targetEnv);
+      const slug = (targetEnv.shortName || targetEnv.name).toLowerCase().replace(/[\s_]+/g, '-');
+      window.location.hash = slug;
+    }
   };
 
   const handleOpenConfig = (tab = 'products') => {
@@ -63,26 +108,29 @@ export default function App() {
 
   return (
     <div className="w-full h-full min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {currentView === 'cashier' && (
+      {activeEnvironment.type === 'cashier' && (
         <CashierView 
+          environment={activeEnvironment}
           onOpenConfig={handleOpenConfig} 
           onNavigate={navigateTo}
         />
       )}
 
-      {currentView === 'kitchen' && (
+      {activeEnvironment.type === 'kitchen' && (
         <KitchenView 
+          environment={activeEnvironment}
           onNavigate={navigateTo}
         />
       )}
 
-      {currentView === 'display' && (
+      {activeEnvironment.type === 'display' && (
         <DisplayView 
+          environment={activeEnvironment}
           onNavigate={navigateTo}
         />
       )}
 
-      {/* Modal de Configurações & E-mails (Acessível pela engrenagem ou pelo menu de perfil) */}
+      {/* Modal de Configurações, Cardápio e Ambientes */}
       <ConfigModal 
         isOpen={isConfigOpen} 
         initialTab={configInitialTab}

@@ -30,7 +30,10 @@ import {
   Archive,
   AlertTriangle,
   ChefHat,
-  Store
+  Store,
+  Monitor,
+  FolderPlus,
+  ExternalLink
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -142,10 +145,27 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   });
   const [firebaseStatus, setFirebaseStatus] = useState(null);
 
+  // Estado Ambientes e Perfis
+  const [environments, setEnvironments] = useState(() => authService.getEnvironments());
+  const [showAddEnvModal, setShowAddEnvModal] = useState(false);
+  const [showEditEnvModal, setShowEditEnvModal] = useState(false);
+  const [newEnvName, setNewEnvName] = useState('');
+  const [newEnvShortName, setNewEnvShortName] = useState('');
+  const [newEnvType, setNewEnvType] = useState('kitchen'); // 'kitchen', 'cashier', 'display'
+  const [newEnvDesc, setNewEnvDesc] = useState('');
+  const [editingEnv, setEditingEnv] = useState(null);
+  const [deleteEnvConfirmModal, setDeleteEnvConfirmModal] = useState({ isOpen: false, env: null });
+
   // Estado Perfis e Emails
   const [emailRules, setEmailRules] = useState(authService.getEmailRules());
   const [selectedProfileForEmail, setSelectedProfileForEmail] = useState(PERFIS.ADMIN);
   const [newEmailInput, setNewEmailInput] = useState('');
+
+  // Estado Cadastro de Novas Categorias (Salada, Pão na Chapa, etc.)
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatNameInput, setNewCatNameInput] = useState('');
+  const [newCatPrefixInput, setNewCatPrefixInput] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Prefixos das Senhas (Comandas)
   const [pedacoPrefix, setPedacoPrefix] = useState('Pp-');
@@ -242,6 +262,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           setDeleteItemConfirmModal({ isOpen: false, item: null });
           return;
         }
+        if (deleteEnvConfirmModal.isOpen) {
+          setDeleteEnvConfirmModal({ isOpen: false, env: null });
+          return;
+        }
+        if (showAddEnvModal) {
+          setShowAddEnvModal(false);
+          return;
+        }
+        if (showEditEnvModal) {
+          setShowEditEnvModal(false);
+          return;
+        }
+        if (showAddCategoryModal) {
+          setShowAddCategoryModal(false);
+          return;
+        }
         if (cancelConfirmModal.isOpen) {
           setCancelConfirmModal({ isOpen: false, order: null });
           return;
@@ -272,7 +308,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, cancelConfirmModal.isOpen, showAddItemModal, showGearModal, showResetModal, showClearQueueModal, editingItemId, onClose]);
+  }, [isOpen, cancelConfirmModal.isOpen, deleteItemConfirmModal.isOpen, deleteEnvConfirmModal.isOpen, showAddEnvModal, showEditEnvModal, showAddCategoryModal, showAddItemModal, showGearModal, showResetModal, showClearQueueModal, editingItemId, onClose]);
 
   const loadData = () => {
     const cats = storageService.getProducts();
@@ -325,6 +361,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
 
     setEmailRules(authService.getEmailRules());
+    setEnvironments(authService.getEnvironments());
     setTvSettings(storageService.getTVSettings());
     setKitchenSettings(storageService.getKitchenSettings());
     setProductionRouting(storageService.getProductionRouting());
@@ -437,6 +474,126 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const handleRemoveEmail = (profile, email) => {
     authService.removeEmailFromProfile(profile, email);
     setEmailRules(authService.getEmailRules());
+  };
+
+  // --- AÇÕES DE GESTÃO DE AMBIENTES (CADASTRO E CONFIGURAÇÃO) ---
+  const handleCreateEnvironment = (e) => {
+    if (e) e.preventDefault();
+    const cleanName = newEnvName.trim();
+    if (!cleanName) {
+      showToast('O nome do ambiente é obrigatório (ex: COZINHA 2)!', 'Atenção', 'error');
+      return;
+    }
+    try {
+      const created = authService.addEnvironment({
+        name: cleanName,
+        shortName: newEnvShortName || cleanName,
+        type: newEnvType,
+        description: newEnvDesc.trim()
+      });
+      setEnvironments(authService.getEnvironments());
+      setEmailRules(authService.getEmailRules());
+      setShowAddEnvModal(false);
+      setNewEnvName('');
+      setNewEnvShortName('');
+      setNewEnvType('kitchen');
+      setNewEnvDesc('');
+      showToast(`Ambiente "${created.name}" cadastrado com sucesso!`, 'Ambiente Criado');
+    } catch (err) {
+      showToast(err.message, 'Erro', 'error');
+    }
+  };
+
+  const handleStartEditEnv = (env) => {
+    setEditingEnv({
+      id: env.id,
+      name: env.name || '',
+      shortName: env.shortName || '',
+      type: env.type || 'kitchen',
+      description: env.description || '',
+      isSystem: Boolean(env.isSystem)
+    });
+    setShowEditEnvModal(true);
+  };
+
+  const handleSaveEditEnv = (e) => {
+    if (e) e.preventDefault();
+    if (!editingEnv) return;
+    const cleanName = editingEnv.name.trim();
+    if (!cleanName) {
+      showToast('O nome do ambiente é obrigatório!', 'Atenção', 'error');
+      return;
+    }
+    try {
+      authService.updateEnvironment(editingEnv.id, {
+        name: cleanName,
+        shortName: editingEnv.shortName || cleanName,
+        type: editingEnv.type,
+        description: editingEnv.description.trim()
+      });
+      setEnvironments(authService.getEnvironments());
+      setShowEditEnvModal(false);
+      setEditingEnv(null);
+      showToast(`Ambiente "${cleanName}" atualizado com sucesso!`, 'Ambiente Atualizado');
+    } catch (err) {
+      showToast(err.message, 'Erro', 'error');
+    }
+  };
+
+  const handleOpenDeleteEnvConfirm = (env) => {
+    if (env.isSystem) {
+      showToast('Ambientes padrão do sistema (ADMIN, COZINHA, PÚBLICO) não podem ser excluídos.', 'Aviso', 'info');
+      return;
+    }
+    setDeleteEnvConfirmModal({ isOpen: true, env });
+  };
+
+  const handleConfirmDeleteEnv = () => {
+    const env = deleteEnvConfirmModal.env;
+    if (!env) return;
+    try {
+      authService.deleteEnvironment(env.id);
+      setEnvironments(authService.getEnvironments());
+      setEmailRules(authService.getEmailRules());
+      setDeleteEnvConfirmModal({ isOpen: false, env: null });
+      showToast(`Ambiente "${env.name}" removido com sucesso!`, 'Ambiente Removido');
+    } catch (err) {
+      showToast(err.message, 'Erro', 'error');
+    }
+  };
+
+  // --- AÇÃO DE CADASTRO DE NOVA CATEGORIA (SALADA, PÃO NA CHAPA, ETC.) ---
+  const handleCreateNewCategory = (e) => {
+    if (e) e.preventDefault();
+    const cleanName = newCatNameInput.trim();
+    if (!cleanName) {
+      showToast('Digite o nome da nova categoria (ex: Salada, Pão na Chapa)!', 'Atenção', 'error');
+      return;
+    }
+
+    const catSlug = cleanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '_');
+    if (categories.some(c => c.id === catSlug)) {
+      showToast(`A categoria "${cleanName}" já existe!`, 'Atenção', 'error');
+      return;
+    }
+
+    const cleanPrefix = newCatPrefixInput.trim() || `${cleanName.substring(0, 3).toUpperCase()}-`;
+    const newCat = {
+      id: catSlug,
+      name: cleanName.toUpperCase(),
+      icon: 'Utensils',
+      prefixDefault: cleanPrefix,
+      items: [],
+      variations: []
+    };
+
+    const updated = [...categories, newCat];
+    storageService.saveProducts(updated);
+    setCategories(updated);
+    setShowAddCategoryModal(false);
+    setNewCatNameInput('');
+    setNewCatPrefixInput('');
+    showToast(`Categoria "${newCat.name}" criada com sucesso! Você já pode adicionar itens nela.`, 'Categoria Criada');
   };
 
   // Abrir Modal de Configurações Completas do Item (Engrenagem ⚙️ / Lápis ✏️)
@@ -620,8 +777,21 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       return;
     }
 
+    let finalCatId = newItemCategory;
+    let finalCatName = '';
+
+    if (newItemCategory === '__NEW_CATEGORY__') {
+      const cleanCatName = newCategoryName.trim();
+      if (!cleanCatName) {
+        showToast('Digite o nome da nova categoria (ex: Salada, Pão na Chapa)!', 'Atenção', 'error');
+        return;
+      }
+      finalCatId = cleanCatName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '_');
+      finalCatName = cleanCatName.toUpperCase();
+    }
+
     const priceNum = parseCurrencyMask(newItemPrice);
-    const cleanPrefix = newItemPrefix.trim() || (newItemCategory === 'pizza' ? 'Pp-' : newItemCategory === 'acai' ? 'A-' : newItemCategory === 'batata' ? 'B-' : 'Ped-');
+    const cleanPrefix = newItemPrefix.trim() || (finalCatId === 'pizza' ? 'Pp-' : finalCatId === 'acai' ? 'A-' : finalCatId === 'batata' ? 'B-' : `${finalCatId.substring(0, 3).toUpperCase()}-`);
     const cleanDesc = newItemDesc.trim();
 
     const newItem = {
@@ -633,7 +803,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     };
 
     let updated = [...categories];
-    const catIndex = updated.findIndex(c => c.id === newItemCategory);
+    const catIndex = updated.findIndex(c => c.id === finalCatId);
     if (catIndex >= 0) {
       updated[catIndex] = {
         ...updated[catIndex],
@@ -641,8 +811,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       };
     } else {
       updated.push({
-        id: newItemCategory,
-        name: newItemCategory === 'outros' ? 'OUTROS ITENS' : newItemCategory.toUpperCase(),
+        id: finalCatId,
+        name: finalCatName || finalCatId.toUpperCase(),
         icon: 'Utensils',
         prefixDefault: cleanPrefix,
         items: [newItem],
@@ -657,8 +827,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setNewItemPrice('0,00');
     setNewItemPrefix('Pp-');
     setNewItemCategory('pizza');
+    setNewCategoryName('');
     setNewItemDesc('');
-    showToast(`"${cleanName}" adicionado para venda com sucesso!`, 'Item Cadastrado');
+    showToast(`"${cleanName}" adicionado em "${finalCatName || finalCatId.toUpperCase()}" com sucesso!`, 'Item Cadastrado');
   };
 
   // Atualização direta do prefixo no card (aceita maiúsculo e minúsculo)
@@ -1118,8 +1289,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 : 'text-slate-400 border-transparent hover:text-white'
             }`}
           >
-            <Mail className="w-4 h-4" />
-            <span>Perfis & E-mails</span>
+            <UserCheck className="w-4 h-4" />
+            <span>Ambientes & Acessos</span>
+            <span className="bg-amber-400/20 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-amber-400/30">
+              {environments.length}
+            </span>
           </button>
 
           <button
@@ -1163,18 +1337,125 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
           {/* =========================================================
-              ABA: PERFIS E CADASTRO DE E-MAILS (NOVO)
+              ABA: AMBIENTES DE TRABALHO & ACESSOS
              ========================================================= */}
           {activeTab === 'emails' && (
             <div className="space-y-6">
               
+              {/* PAINEL 1: CADASTRO E GERENCIAMENTO DOS AMBIENTES */}
+              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                      <Store className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-extrabold text-white text-base flex items-center gap-2">
+                        Ambientes de Trabalho Cadastrados
+                        <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                          {environments.length} ambientes
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Gerencie as estações de trabalho (ex: ADMIN, COZINHA, COZINHA 2, PÚBLICO). O e-mail não é obrigatório para usar.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewEnvName('');
+                      setNewEnvShortName('');
+                      setNewEnvType('kitchen');
+                      setNewEnvDesc('');
+                      setShowAddEnvModal(true);
+                    }}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Novo Ambiente (ex: COZINHA 2)</span>
+                  </button>
+                </div>
+
+                {/* GRID DOS AMBIENTES CADASTRADOS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+                  {environments.map((env) => {
+                    const isKitchen = env.type === 'kitchen';
+                    const isDisplay = env.type === 'display';
+                    const typeLabel = isKitchen ? '👨‍🍳 COZINHA (KDS)' : isDisplay ? '📺 PAINEL TV' : '💻 CAIXA (PDV)';
+                    const typeBadgeColor = isKitchen 
+                      ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' 
+                      : isDisplay 
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+
+                    const emailCount = emailRules[env.id]?.length || 0;
+
+                    return (
+                      <div 
+                        key={env.id}
+                        className="bg-slate-900 p-4 rounded-2xl border border-slate-700/80 flex flex-col justify-between space-y-3 hover:border-amber-500/50 transition-colors shadow-sm"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${typeBadgeColor}`}>
+                              {typeLabel}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditEnv(env)}
+                                className="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 rounded-lg transition-colors cursor-pointer"
+                                title="Editar nome e detalhes do ambiente"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              {!env.isSystem && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenDeleteEnvConfirm(env)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer"
+                                  title="Excluir este ambiente"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-black text-white truncate" title={env.name}>
+                              {env.name}
+                            </h4>
+                            <div className="text-[11px] text-slate-400 line-clamp-2 mt-0.5">
+                              {env.description || `Ambiente ${env.name}`}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
+                          <span className="text-slate-400">
+                            {emailCount > 0 ? `${emailCount} e-mail(s)` : 'Acesso livre (sem e-mail)'}
+                          </span>
+                          <span className="font-mono text-[10px] text-amber-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                            #{env.shortName.toLowerCase().replace(/[\s_]+/g, '-')}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* PAINEL 2: VINCULAÇÃO DE E-MAILS GOOGLE AOS AMBIENTES (OPCIONAL) */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-700 pb-3">
                   <UserCheck className="w-5 h-5 text-amber-400" />
                   <div>
-                    <h3 className="font-extrabold text-white text-base">Cadastrar E-mails dos Perfis</h3>
+                    <h3 className="font-extrabold text-white text-base">Vincular E-mails aos Ambientes (Opcional)</h3>
                     <p className="text-xs text-slate-400">
-                      Vincule os e-mails do Google a cada perfil (ADMIN, COZINHA, PÚBLICO). Ao fazer login com o Google, o usuário é direcionado automaticamente para seu perfil!
+                      O e-mail <strong>não é obrigatório</strong>. Qualquer operador pode acessar qualquer ambiente pelo menu superior. Se vincular um e-mail Google, o usuário é direcionado automaticamente ao fazer login!
                     </p>
                   </div>
                 </div>
@@ -1185,22 +1466,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     
                     <div className="sm:col-span-4">
                       <label className="text-xs font-bold text-slate-300 block mb-1">
-                        Escolha o Perfil:
+                        Escolha o Ambiente / Perfil:
                       </label>
                       <select
                         value={selectedProfileForEmail}
                         onChange={(e) => setSelectedProfileForEmail(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400"
+                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400 cursor-pointer"
                       >
-                        <option value={PERFIS.ADMIN}>👑 ADMIN (Caixa & Gestão)</option>
-                        <option value={PERFIS.COZINHA}>👨‍🍳 COZINHA (KDS)</option>
-                        <option value={PERFIS.PUBLICO}>📺 PÚBLICO (Painel TV)</option>
+                        {environments.map((env) => (
+                          <option key={env.id} value={env.id}>
+                            {env.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
                     <div className="sm:col-span-6">
                       <label className="text-xs font-bold text-slate-300 block mb-1">
-                        E-mail Google do Usuário:
+                        E-mail Google do Usuário: (Opcional)
                       </label>
                       <input
                         type="email"
@@ -1215,115 +1498,62 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <div className="sm:col-span-2">
                       <button
                         type="submit"
-                        className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow"
+                        className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer"
                       >
                         <Plus className="w-4 h-4" />
-                        <span>Cadastrar</span>
+                        <span>Vincular</span>
                       </button>
                     </div>
 
                   </div>
                 </form>
 
-                {/* LISTAGEM DOS E-MAILS POR PERFIL */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                  
-                  {/* ADMIN EMAILS */}
-                  <div className="bg-slate-900 p-4 rounded-xl border-2 border-amber-500/40 space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                      <div className="flex items-center gap-1.5 font-black text-sm text-amber-400">
-                        <ShieldCheck className="w-4 h-4" />
-                        <span>ADMIN</span>
-                      </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">
-                        {emailRules.ADMIN?.length || 0} e-mails
-                      </span>
-                    </div>
+                {/* LISTAGEM DOS E-MAILS POR AMBIENTE */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
+                  {environments.map((env) => {
+                    const emails = emailRules[env.id] || [];
+                    const isKitchen = env.type === 'kitchen';
+                    const isDisplay = env.type === 'display';
+                    const borderColor = isKitchen ? 'border-orange-500/40' : isDisplay ? 'border-emerald-500/40' : 'border-amber-500/40';
+                    const textColor = isKitchen ? 'text-orange-400' : isDisplay ? 'text-emerald-400' : 'text-amber-400';
+                    const IconComp = isKitchen ? UtensilsCrossed : isDisplay ? Tv : ShieldCheck;
 
-                    <div className="space-y-1.5 min-h-[100px]">
-                      {emailRules.ADMIN?.length > 0 ? (
-                        emailRules.ADMIN.map((email) => (
-                          <div key={email} className="bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
-                            <span className="text-slate-200 truncate">{email}</span>
-                            <button
-                              onClick={() => handleRemoveEmail(PERFIS.ADMIN, email)}
-                              className="text-slate-500 hover:text-rose-400 p-1"
-                              title="Remover e-mail"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                    return (
+                      <div key={env.id} className={`bg-slate-900 p-4 rounded-xl border-2 ${borderColor} space-y-3`}>
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                          <div className={`flex items-center gap-1.5 font-black text-sm ${textColor}`}>
+                            <IconComp className="w-4 h-4" />
+                            <span className="truncate">{env.shortName || env.name}</span>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-[11px] text-slate-500 italic">Nenhum e-mail cadastrado.</p>
-                      )}
-                    </div>
-                  </div>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 ${textColor}`}>
+                            {emails.length} e-mails
+                          </span>
+                        </div>
 
-                  {/* COZINHA EMAILS */}
-                  <div className="bg-slate-900 p-4 rounded-xl border-2 border-orange-500/40 space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                      <div className="flex items-center gap-1.5 font-black text-sm text-orange-400">
-                        <UtensilsCrossed className="w-4 h-4" />
-                        <span>COZINHA</span>
+                        <div className="space-y-1.5 min-h-[80px]">
+                          {emails.length > 0 ? (
+                            emails.map((email) => (
+                              <div key={email} className="bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+                                <span className="text-slate-200 truncate">{email}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveEmail(env.id, email)}
+                                  className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                                  title="Remover e-mail deste ambiente"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-[11px] text-slate-500 italic">
+                              Nenhum e-mail vinculado (acesso livre para todos).
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300">
-                        {emailRules.COZINHA?.length || 0} e-mails
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5 min-h-[100px]">
-                      {emailRules.COZINHA?.length > 0 ? (
-                        emailRules.COZINHA.map((email) => (
-                          <div key={email} className="bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
-                            <span className="text-slate-200 truncate">{email}</span>
-                            <button
-                              onClick={() => handleRemoveEmail(PERFIS.COZINHA, email)}
-                              className="text-slate-500 hover:text-rose-400 p-1"
-                              title="Remover e-mail"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-[11px] text-slate-500 italic">Nenhum e-mail cadastrado.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* PÚBLICO EMAILS */}
-                  <div className="bg-slate-900 p-4 rounded-xl border-2 border-emerald-500/40 space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                      <div className="flex items-center gap-1.5 font-black text-sm text-emerald-400">
-                        <Tv className="w-4 h-4" />
-                        <span>PÚBLICO</span>
-                      </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-                        {emailRules.PUBLICO?.length || 0} e-mails
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5 min-h-[100px]">
-                      {emailRules.PUBLICO?.length > 0 ? (
-                        emailRules.PUBLICO.map((email) => (
-                          <div key={email} className="bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
-                            <span className="text-slate-200 truncate">{email}</span>
-                            <button
-                              onClick={() => handleRemoveEmail(PERFIS.PUBLICO, email)}
-                              className="text-slate-500 hover:text-rose-400 p-1"
-                              title="Remover e-mail"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-[11px] text-slate-500 italic">Qualquer usuário / acesso público liberado.</p>
-                      )}
-                    </div>
-                  </div>
-
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1373,6 +1603,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     >
                       <Plus className="w-4 h-4" />
                       <span>Adicionar Item para Venda</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewCatNameInput('');
+                        setNewCatPrefixInput('');
+                        setShowAddCategoryModal(true);
+                      }}
+                      className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0 border border-cyan-400/40"
+                      title="Criar nova categoria de itens (ex: Salada, Pão na Chapa, Bebidas, Lanches)"
+                    >
+                      <FolderPlus className="w-4 h-4" />
+                      <span>Nova Categoria</span>
                     </button>
 
                     <button
@@ -2518,16 +2762,46 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       if (newCat === 'acai') setNewItemPrefix('A-');
                       else if (newCat === 'batata') setNewItemPrefix('B-');
                       else if (newCat === 'pizza') setNewItemPrefix('Pp-');
-                      else setNewItemPrefix('Ped-');
+                      else if (newCat === '__NEW_CATEGORY__') {
+                        setNewCategoryName('');
+                        setNewItemPrefix('');
+                      } else {
+                        const matchedCat = categories.find(c => c.id === newCat);
+                        setNewItemPrefix(matchedCat?.prefixDefault || `${newCat.substring(0, 3).toUpperCase()}-`);
+                      }
                     }}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold outline-none focus:border-emerald-400 cursor-pointer"
                   >
-                    <option value="pizza">Pizza</option>
-                    <option value="acai">Açaí</option>
-                    <option value="batata">Batata Frita</option>
-                    <option value="outros">Outros / Bebidas</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                    <option value="__NEW_CATEGORY__">✨ + Criar Nova Categoria... (ex: Salada, Pão na Chapa)</option>
                   </select>
                 </div>
+
+                {newItemCategory === '__NEW_CATEGORY__' && (
+                  <div className="col-span-1 sm:col-span-2 bg-amber-950/20 border border-amber-500/40 rounded-xl p-3 space-y-1.5">
+                    <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                      <span>Nome da Nova Categoria: *</span>
+                      <span className="text-[10px] text-amber-400/80 font-normal">(ex: Salada, Pão na Chapa, Sobremesas)</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: Salada, Pão na Chapa..."
+                      value={newCategoryName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewCategoryName(val);
+                        if (!newItemPrefix || newItemPrefix.endsWith('-')) {
+                          const autoP = val.trim().substring(0, 3).toUpperCase();
+                          if (autoP) setNewItemPrefix(`${autoP}-`);
+                        }
+                      }}
+                      className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-amber-400"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
@@ -2962,6 +3236,361 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={handleConfirmDeleteItem}
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>SIM</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CRIAR NOVA CATEGORIA DE ITENS (SALADA, PÃO NA CHAPA, ETC.) */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-5 max-w-md w-full shadow-2xl shadow-black space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                  <FolderPlus className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-wide uppercase">
+                    Nova Categoria de Itens
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Ex: Salada, Pão na Chapa, Sucos, Sobremesas
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddCategoryModal(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNewCategory} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Nome da Categoria: *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Salada, Pão na Chapa, Sobremesas..."
+                  value={newCatNameInput}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewCatNameInput(val);
+                    if (!newCatPrefixInput || newCatPrefixInput.endsWith('-')) {
+                      const autoP = val.trim().substring(0, 3).toUpperCase();
+                      if (autoP) setNewCatPrefixInput(`${autoP}-`);
+                    }
+                  }}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-emerald-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Prefixo Sugerido para Senhas:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Sal-, Pch-, Beb-"
+                  value={newCatPrefixInput}
+                  onChange={(e) => setNewCatPrefixInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none focus:border-emerald-400"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Identifica os pedidos nos comprovantes e painéis (ex: Sal-01, Pch-01).
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Criar Categoria</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CADASTRAR NOVO AMBIENTE (EX: COZINHA 2) */}
+      {showAddEnvModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-5 max-w-md w-full shadow-2xl shadow-black space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                  <ChefHat className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-wide uppercase">
+                    Novo Ambiente de Trabalho
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Cadastre Cozinha 2, Bar, Tenda de Lanches, etc.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddEnvModal(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateEnvironment} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Nome do Ambiente: *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: COZINHA 2, TENDA DE LANCHES..."
+                  value={newEnvName}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewEnvName(val.toUpperCase());
+                    if (!newEnvShortName) setNewEnvShortName(val.toUpperCase());
+                  }}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-indigo-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Sigla / Identificador:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: COZINHA-2"
+                    value={newEnvShortName}
+                    onChange={(e) => setNewEnvShortName(e.target.value.toUpperCase())}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-amber-300 outline-none focus:border-indigo-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Tipo de Operação: *
+                  </label>
+                  <select
+                    value={newEnvType}
+                    onChange={(e) => setNewEnvType(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-indigo-400 cursor-pointer"
+                  >
+                    <option value="kitchen">🍳 Cozinha / Produção</option>
+                    <option value="cashier">🏪 Caixa / Vendas</option>
+                    <option value="display">📺 Painel TV / Público</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Descrição / Função (Opcional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Preparo de lanches rápidos, churrasco, etc."
+                  value={newEnvDesc}
+                  onChange={(e) => setNewEnvDesc(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-400"
+                />
+              </div>
+
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-400">
+                <p className="font-semibold text-slate-300 mb-0.5">💡 Acesso flexível:</p>
+                O ambiente fica disponível imediatamente na tela de perfis e pode ser acessado direto sem necessidade de e-mail cadastrado.
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddEnvModal(false)}
+                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Cadastrar</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDITAR / CONFIGURAR AMBIENTE (INCLUSIVE O NOME) */}
+      {showEditEnvModal && editingEnv && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-5 max-w-md w-full shadow-2xl shadow-black space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                  <Pencil className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-wide uppercase">
+                    Configurar Ambiente
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Altere o nome, sigla, tipo e descrição do ambiente
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowEditEnvModal(false); setEditingEnv(null); }}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditEnv} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Nome do Ambiente: *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: COZINHA 2 XX"
+                  value={editingEnv.name}
+                  onChange={(e) => setEditingEnv({ ...editingEnv, name: e.target.value.toUpperCase() })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-emerald-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Sigla / Identificador:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: COZINHA-2"
+                    value={editingEnv.shortName}
+                    onChange={(e) => setEditingEnv({ ...editingEnv, shortName: e.target.value.toUpperCase() })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-amber-300 outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Tipo de Operação: *
+                  </label>
+                  <select
+                    value={editingEnv.type}
+                    disabled={editingEnv.isSystem}
+                    onChange={(e) => setEditingEnv({ ...editingEnv, type: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-emerald-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="kitchen">🍳 Cozinha / Produção</option>
+                    <option value="cashier">🏪 Caixa / Vendas</option>
+                    <option value="display">📺 Painel TV / Público</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Descrição / Função (Opcional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Produção de pizzas e lanches..."
+                  value={editingEnv.description}
+                  onChange={(e) => setEditingEnv({ ...editingEnv, description: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => { setShowEditEnvModal(false); setEditingEnv(null); }}
+                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Nome</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRMAR EXCLUSÃO DE AMBIENTE */}
+      {deleteEnvConfirmModal.isOpen && deleteEnvConfirmModal.env && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn">
+          <div className="bg-slate-900 border border-rose-500/50 rounded-3xl p-5 max-w-sm w-full shadow-2xl shadow-black space-y-4">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <span className="p-2.5 bg-rose-500/20 text-rose-400 rounded-2xl border border-rose-500/30">
+                <Trash2 className="w-6 h-6" />
+              </span>
+              <div>
+                <h3 className="text-xl font-black text-rose-400 tracking-wider uppercase">
+                  ATENÇÃO!
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Excluir Ambiente de Trabalho
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-slate-200 leading-relaxed">
+                Tem certeza que deseja excluir o ambiente <strong className="text-rose-400">"{deleteEnvConfirmModal.env.name}"</strong>?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteEnvConfirmModal({ isOpen: false, env: null })}
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <X className="w-4 h-4" />
+                <span>NÃO</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmDeleteEnv}
                 className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-4 h-4" />
