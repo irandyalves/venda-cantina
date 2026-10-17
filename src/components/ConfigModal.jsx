@@ -15,13 +15,18 @@ import {
   UtensilsCrossed,
   Layers,
   KeyRound,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Mail,
+  UserCheck,
+  ShieldCheck,
+  Tv
 } from 'lucide-react';
 import { storageService } from '../services/storage';
+import { authService, PERFIS } from '../services/auth';
 import { DEFAULT_CATEGORIES } from '../data/defaultProducts';
 
-export default function ConfigModal({ isOpen, onClose }) {
-  const [activeTab, setActiveTab] = useState('products'); // 'products', 'firebase', 'reports'
+export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }) {
+  const [activeTab, setActiveTab] = useState(initialTab); // 'products', 'firebase', 'reports', 'emails'
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   
@@ -35,6 +40,11 @@ export default function ConfigModal({ isOpen, onClose }) {
     appId: ''
   });
   const [firebaseStatus, setFirebaseStatus] = useState(null);
+
+  // Estado Perfis e Emails
+  const [emailRules, setEmailRules] = useState(authService.getEmailRules());
+  const [selectedProfileForEmail, setSelectedProfileForEmail] = useState(PERFIS.ADMIN);
+  const [newEmailInput, setNewEmailInput] = useState('');
 
   // Estado Novo Sabor de Pizza
   const [newPizzaFlavor, setNewPizzaFlavor] = useState('');
@@ -54,9 +64,10 @@ export default function ConfigModal({ isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen) {
+      if (initialTab) setActiveTab(initialTab);
       loadData();
     }
-  }, [isOpen]);
+  }, [isOpen, initialTab]);
 
   const loadData = () => {
     const cats = storageService.getProducts();
@@ -73,17 +84,32 @@ export default function ConfigModal({ isOpen, onClose }) {
     const savedFb = storageService.getFirebaseConfig();
     if (savedFb) {
       setFirebaseConfig(savedFb);
-      setFirebaseStatus({ success: true, message: 'Configuração salva encontrada.' });
+      setFirebaseStatus({ success: true, message: 'Configuração conectada ao Firebase.' });
     }
 
+    setEmailRules(authService.getEmailRules());
     setOrders(storageService.getLocalOrders());
   };
 
   if (!isOpen) return null;
 
-  // --- AÇÕES DE PRODUTOS ---
+  // --- AÇÕES DE E-MAILS DOS PERFIS ---
+  const handleAddEmail = (e) => {
+    e.preventDefault();
+    const email = newEmailInput.trim().toLowerCase();
+    if (!email) return;
 
-  // Salvar Preços Globais da Pizza
+    authService.addEmailToProfile(selectedProfileForEmail, email);
+    setEmailRules(authService.getEmailRules());
+    setNewEmailInput('');
+  };
+
+  const handleRemoveEmail = (profile, email) => {
+    authService.removeEmailFromProfile(profile, email);
+    setEmailRules(authService.getEmailRules());
+  };
+
+  // --- AÇÕES DE PRODUTOS ---
   const handleSavePizzaPrices = () => {
     const updated = categories.map(cat => {
       if (cat.id === 'pizza') {
@@ -102,7 +128,6 @@ export default function ConfigModal({ isOpen, onClose }) {
     alert('Preços da Pizza atualizados!');
   };
 
-  // Adicionar Sabor de Pizza
   const handleAddPizzaFlavor = (e) => {
     e.preventDefault();
     if (!newPizzaFlavor.trim()) return;
@@ -125,7 +150,6 @@ export default function ConfigModal({ isOpen, onClose }) {
     setNewPizzaDesc('');
   };
 
-  // Remover Sabor de Pizza
   const handleRemovePizzaFlavor = (id) => {
     const updated = categories.map(cat => {
       if (cat.id === 'pizza') {
@@ -137,7 +161,6 @@ export default function ConfigModal({ isOpen, onClose }) {
     setCategories(updated);
   };
 
-  // Adicionar Item Açaí
   const handleAddAcai = (e) => {
     e.preventDefault();
     if (!newAcaiName.trim() || !newAcaiPrice) return;
@@ -161,7 +184,6 @@ export default function ConfigModal({ isOpen, onClose }) {
     setNewAcaiPrice('');
   };
 
-  // Remover Item Açaí
   const handleRemoveAcai = (id) => {
     const updated = categories.map(cat => {
       if (cat.id === 'acai') {
@@ -173,7 +195,6 @@ export default function ConfigModal({ isOpen, onClose }) {
     setCategories(updated);
   };
 
-  // Adicionar Item Batata
   const handleAddBatata = (e) => {
     e.preventDefault();
     if (!newBatataName.trim() || !newBatataPrice) return;
@@ -197,7 +218,6 @@ export default function ConfigModal({ isOpen, onClose }) {
     setNewBatataPrice('');
   };
 
-  // Remover Item Batata
   const handleRemoveBatata = (id) => {
     const updated = categories.map(cat => {
       if (cat.id === 'batata') {
@@ -209,7 +229,6 @@ export default function ConfigModal({ isOpen, onClose }) {
     setCategories(updated);
   };
 
-  // Restaurar Catálogo Padrão
   const handleResetCatalog = () => {
     if (window.confirm('Tem certeza que deseja restaurar o cardápio padrão com os sabores iniciais?')) {
       storageService.saveProducts(DEFAULT_CATEGORIES);
@@ -270,7 +289,7 @@ export default function ConfigModal({ isOpen, onClose }) {
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 PAINEL DE CONFIGURAÇÕES & GESTÃO ⚙️
               </h2>
-              <p className="text-xs text-slate-400">Controle do Caixa, Cardápio e Conexão Firebase</p>
+              <p className="text-xs text-slate-400">Cardápio, Perfis/E-mails, Firebase e Caixa</p>
             </div>
           </div>
 
@@ -283,10 +302,10 @@ export default function ConfigModal({ isOpen, onClose }) {
         </div>
 
         {/* NAVEGAÇÃO POR ABAS */}
-        <div className="flex border-b border-slate-800 bg-slate-950/60 px-6 gap-2 pt-2 shrink-0">
+        <div className="flex border-b border-slate-800 bg-slate-950/60 px-6 gap-2 pt-2 shrink-0 overflow-x-auto">
           <button
             onClick={() => setActiveTab('products')}
-            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 ${
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
               activeTab === 'products'
                 ? 'bg-slate-800 text-amber-400 border-amber-400'
                 : 'text-slate-400 border-transparent hover:text-white'
@@ -297,8 +316,20 @@ export default function ConfigModal({ isOpen, onClose }) {
           </button>
 
           <button
+            onClick={() => setActiveTab('emails')}
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
+              activeTab === 'emails'
+                ? 'bg-slate-800 text-amber-400 border-amber-400'
+                : 'text-slate-400 border-transparent hover:text-white'
+            }`}
+          >
+            <Mail className="w-4 h-4" />
+            <span>Perfis & E-mails</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('firebase')}
-            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 ${
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
               activeTab === 'firebase'
                 ? 'bg-slate-800 text-amber-400 border-amber-400'
                 : 'text-slate-400 border-transparent hover:text-white'
@@ -310,7 +341,7 @@ export default function ConfigModal({ isOpen, onClose }) {
 
           <button
             onClick={() => setActiveTab('reports')}
-            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 ${
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
               activeTab === 'reports'
                 ? 'bg-slate-800 text-amber-400 border-amber-400'
                 : 'text-slate-400 border-transparent hover:text-white'
@@ -323,6 +354,174 @@ export default function ConfigModal({ isOpen, onClose }) {
 
         {/* CONTEÚDO SCROLLÁVEL */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+          {/* =========================================================
+              ABA: PERFIS E CADASTRO DE E-MAILS (NOVO)
+             ========================================================= */}
+          {activeTab === 'emails' && (
+            <div className="space-y-6">
+              
+              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-700 pb-3">
+                  <UserCheck className="w-5 h-5 text-amber-400" />
+                  <div>
+                    <h3 className="font-extrabold text-white text-base">Cadastrar E-mails dos Perfis</h3>
+                    <p className="text-xs text-slate-400">
+                      Vincule os e-mails do Google a cada perfil (ADMIN, COZINHA, PÚBLICO). Ao fazer login com o Google, o usuário é direcionado automaticamente para seu perfil!
+                    </p>
+                  </div>
+                </div>
+
+                {/* FORMULÁRIO DE CADASTRO DE E-MAIL */}
+                <form onSubmit={handleAddEmail} className="bg-slate-900/90 p-4 rounded-xl border border-slate-700 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    
+                    <div className="sm:col-span-4">
+                      <label className="text-xs font-bold text-slate-300 block mb-1">
+                        Escolha o Perfil:
+                      </label>
+                      <select
+                        value={selectedProfileForEmail}
+                        onChange={(e) => setSelectedProfileForEmail(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400"
+                      >
+                        <option value={PERFIS.ADMIN}>👑 ADMIN (Caixa & Gestão)</option>
+                        <option value={PERFIS.COZINHA}>👨‍🍳 COZINHA (KDS)</option>
+                        <option value={PERFIS.PUBLICO}>📺 PÚBLICO (Painel TV)</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-6">
+                      <label className="text-xs font-bold text-slate-300 block mb-1">
+                        E-mail Google do Usuário:
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="exemplo@gmail.com"
+                        value={newEmailInput}
+                        onChange={(e) => setNewEmailInput(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <button
+                        type="submit"
+                        className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Cadastrar</span>
+                      </button>
+                    </div>
+
+                  </div>
+                </form>
+
+                {/* LISTAGEM DOS E-MAILS POR PERFIL */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  
+                  {/* ADMIN EMAILS */}
+                  <div className="bg-slate-900 p-4 rounded-xl border-2 border-amber-500/40 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <div className="flex items-center gap-1.5 font-black text-sm text-amber-400">
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>ADMIN</span>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                        {emailRules.ADMIN?.length || 0} e-mails
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 min-h-[100px]">
+                      {emailRules.ADMIN?.length > 0 ? (
+                        emailRules.ADMIN.map((email) => (
+                          <div key={email} className="bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+                            <span className="text-slate-200 truncate">{email}</span>
+                            <button
+                              onClick={() => handleRemoveEmail(PERFIS.ADMIN, email)}
+                              className="text-slate-500 hover:text-rose-400 p-1"
+                              title="Remover e-mail"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[11px] text-slate-500 italic">Nenhum e-mail cadastrado.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* COZINHA EMAILS */}
+                  <div className="bg-slate-900 p-4 rounded-xl border-2 border-orange-500/40 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <div className="flex items-center gap-1.5 font-black text-sm text-orange-400">
+                        <UtensilsCrossed className="w-4 h-4" />
+                        <span>COZINHA</span>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300">
+                        {emailRules.COZINHA?.length || 0} e-mails
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 min-h-[100px]">
+                      {emailRules.COZINHA?.length > 0 ? (
+                        emailRules.COZINHA.map((email) => (
+                          <div key={email} className="bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+                            <span className="text-slate-200 truncate">{email}</span>
+                            <button
+                              onClick={() => handleRemoveEmail(PERFIS.COZINHA, email)}
+                              className="text-slate-500 hover:text-rose-400 p-1"
+                              title="Remover e-mail"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[11px] text-slate-500 italic">Nenhum e-mail cadastrado.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* PÚBLICO EMAILS */}
+                  <div className="bg-slate-900 p-4 rounded-xl border-2 border-emerald-500/40 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <div className="flex items-center gap-1.5 font-black text-sm text-emerald-400">
+                        <Tv className="w-4 h-4" />
+                        <span>PÚBLICO</span>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                        {emailRules.PUBLICO?.length || 0} e-mails
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 min-h-[100px]">
+                      {emailRules.PUBLICO?.length > 0 ? (
+                        emailRules.PUBLICO.map((email) => (
+                          <div key={email} className="bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+                            <span className="text-slate-200 truncate">{email}</span>
+                            <button
+                              onClick={() => handleRemoveEmail(PERFIS.PUBLICO, email)}
+                              className="text-slate-500 hover:text-rose-400 p-1"
+                              title="Remover e-mail"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[11px] text-slate-500 italic">Qualquer usuário / acesso público liberado.</p>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          )}
 
           {/* =========================================================
               ABA 1: CARDÁPIO, SABORES E PREÇOS
@@ -544,12 +743,10 @@ export default function ConfigModal({ isOpen, onClose }) {
                 </div>
 
                 <div className="text-xs text-slate-300 leading-relaxed bg-slate-950/70 p-4 rounded-xl border border-slate-800">
-                  <p className="font-bold text-amber-300 mb-1">Como conectar ao seu Firebase:</p>
-                  <ol className="list-decimal list-inside space-y-1 text-slate-400">
-                    <li>Acesse o <strong>Firebase Console</strong> (console.firebase.google.com).</li>
-                    <li>Crie um projeto ou selecione o existente, e ative o <strong>Cloud Firestore</strong> (modo teste).</li>
-                    <li>Vá em <strong>Configurações do Projeto</strong> ➔ <em>Seus Aplicativos (Web)</em> e copie as chaves abaixo.</li>
-                  </ol>
+                  <p className="font-bold text-amber-300 mb-1">Status da Nuvem:</p>
+                  <p className="text-slate-400">
+                    O projeto está conectado ao Firebase <strong>cantina-express-32161</strong> no Firebase Hosting.
+                  </p>
                 </div>
 
                 {firebaseStatus && (
@@ -572,7 +769,6 @@ export default function ConfigModal({ isOpen, onClose }) {
                         required
                         value={firebaseConfig.apiKey}
                         onChange={(e) => setFirebaseConfig({ ...firebaseConfig, apiKey: e.target.value })}
-                        placeholder="AIzaSy..."
                         className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
                       />
                     </div>
@@ -584,7 +780,6 @@ export default function ConfigModal({ isOpen, onClose }) {
                         required
                         value={firebaseConfig.projectId}
                         onChange={(e) => setFirebaseConfig({ ...firebaseConfig, projectId: e.target.value })}
-                        placeholder="minha-cantina-123"
                         className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
                       />
                     </div>
@@ -595,7 +790,6 @@ export default function ConfigModal({ isOpen, onClose }) {
                         type="text"
                         value={firebaseConfig.authDomain}
                         onChange={(e) => setFirebaseConfig({ ...firebaseConfig, authDomain: e.target.value })}
-                        placeholder="minha-cantina-123.firebaseapp.com"
                         className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
                       />
                     </div>
@@ -606,29 +800,6 @@ export default function ConfigModal({ isOpen, onClose }) {
                         type="text"
                         value={firebaseConfig.storageBucket}
                         onChange={(e) => setFirebaseConfig({ ...firebaseConfig, storageBucket: e.target.value })}
-                        placeholder="minha-cantina-123.appspot.com"
-                        className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-bold text-slate-300">Messaging Sender ID</label>
-                      <input
-                        type="text"
-                        value={firebaseConfig.messagingSenderId}
-                        onChange={(e) => setFirebaseConfig({ ...firebaseConfig, messagingSenderId: e.target.value })}
-                        placeholder="1029384756"
-                        className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-bold text-slate-300">App ID</label>
-                      <input
-                        type="text"
-                        value={firebaseConfig.appId}
-                        onChange={(e) => setFirebaseConfig({ ...firebaseConfig, appId: e.target.value })}
-                        placeholder="1:1029384756:web:abcd123"
                         className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
                       />
                     </div>
@@ -640,7 +811,7 @@ export default function ConfigModal({ isOpen, onClose }) {
                       className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg flex items-center gap-2"
                     >
                       <Save className="w-4 h-4" />
-                      <span>Salvar e Conectar ao Firebase</span>
+                      <span>Salvar e Atualizar Firebase</span>
                     </button>
                   </div>
                 </form>

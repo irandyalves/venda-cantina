@@ -17,6 +17,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { storageService } from '../services/storage';
+import ProfileSelector from './ProfileSelector';
 
 export default function CashierView({ onOpenConfig, onNavigate }) {
   // Estado do Caixa
@@ -174,13 +175,22 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
 
           {/* BOTÃO DA ENGRENAGEM (CONFIGURAÇÕES DO CAIXA) */}
           <button 
-            onClick={onOpenConfig}
+            onClick={() => onOpenConfig()}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-all shadow-md hover:shadow-amber-500/20 active:scale-95 border border-amber-500"
             title="Configurações, Cadastro de Produtos e Fechamento de Caixa"
           >
             <Settings className="w-4 h-4 animate-spin-slow" />
-            <span>CONFIGURAÇÕES ⚙️</span>
+            <span className="hidden sm:inline">CONFIGURAÇÕES ⚙️</span>
           </button>
+
+          {/* PERFIL NO CANTO SUPERIOR DIREITO (ADMIN / COZINHA / PÚBLICO) */}
+          <ProfileSelector 
+            onProfileChange={(profile) => {
+              if (profile === 'COZINHA') onNavigate('kitchen');
+              else if (profile === 'PUBLICO') onNavigate('display');
+            }}
+            onOpenConfig={onOpenConfig}
+          />
         </div>
       </header>
 

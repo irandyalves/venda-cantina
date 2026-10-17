@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
+import ProfileSelector from './ProfileSelector';
 
 export default function DisplayView({ onNavigate }) {
   const [orders, setOrders] = useState([]);
@@ -116,6 +117,14 @@ export default function DisplayView({ onNavigate }) {
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Voltar ao Caixa</span>
           </button>
+
+          {/* PERFIL NO CANTO SUPERIOR DIREITO */}
+          <ProfileSelector 
+            onProfileChange={(profile) => {
+              if (profile === 'ADMIN') onNavigate('cashier');
+              else if (profile === 'COZINHA') onNavigate('kitchen');
+            }}
+          />
         </div>
       </header>
 

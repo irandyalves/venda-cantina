@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
+import ProfileSelector from './ProfileSelector';
 
 export default function KitchenView({ onNavigate }) {
   const [orders, setOrders] = useState([]);
@@ -178,6 +179,14 @@ export default function KitchenView({ onNavigate }) {
           >
             Ir à TV
           </button>
+
+          {/* PERFIL NO CANTO SUPERIOR DIREITO */}
+          <ProfileSelector 
+            onProfileChange={(profile) => {
+              if (profile === 'ADMIN') onNavigate('cashier');
+              else if (profile === 'PUBLICO') onNavigate('display');
+            }}
+          />
         </div>
       </header>
 
