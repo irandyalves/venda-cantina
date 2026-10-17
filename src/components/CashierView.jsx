@@ -19,7 +19,8 @@ import {
   ArrowRight,
   ShoppingCart,
   GripHorizontal,
-  Disc
+  Disc,
+  Utensils
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import ProfileSelector from './ProfileSelector';
@@ -334,6 +335,7 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
   const pizzaCategory = categories.find(c => c.id === 'pizza');
   const acaiCategory = categories.find(c => c.id === 'acai');
   const batataCategory = categories.find(c => c.id === 'batata');
+  const otherCategories = categories.filter(c => !['pizza', 'acai', 'batata'].includes(c.id) && c.items && c.items.length > 0);
 
   const isNameFilled = customerName.trim().length > 0;
 
@@ -1166,6 +1168,225 @@ export default function CashierView({ onOpenConfig, onNavigate }) {
 
         </div>
 
+        {/* ========================================================
+            SEÇÃO 3: OUTRAS CATEGORIAS / ITENS ADICIONADOS
+           ======================================================== */}
+        {otherCategories.length > 0 && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
+            {otherCategories.map((cat) => (
+              <div key={cat.id} className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2 border-b border-slate-700/60 pb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="p-1 bg-cyan-500/20 text-cyan-400 rounded-md border border-cyan-500/30">
+                        <Utensils className="w-3.5 h-3.5" />
+                      </span>
+                      <h2 className="text-xs font-black text-white tracking-wide uppercase">
+                        {cat.name} <span className="text-[10px] font-normal text-slate-400 normal-case">— Opções de venda</span>
+                      </h2>
+                    </div>
+                    <span className="text-[10px] font-semibold text-cyan-300 bg-cyan-950/80 px-1.5 py-0.2 rounded-full border border-cyan-500/30 font-mono">
+                      {cat.prefixDefault || 'Ped-XX'}
+                    </span>
+                  </div>
+
+                  {/* 2 COLUNAS: ESQ (ITENS) E DIR (FORMULÁRIO) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-stretch">
+                    {/* COLUNA ESQUERDA: ITENS */}
+                    <div className="sm:col-span-5 flex flex-col gap-1.5 justify-between">
+                      {cat.items.map((item) => {
+                        const isCurrent = selectedProduct?.category?.id === cat.id && selectedProduct?.item?.id === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => handleSelectItem(cat, item)}
+                            className={`p-2 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                              isCurrent
+                                ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow ring-2 ring-cyan-400 font-black scale-[1.01]'
+                                : 'bg-slate-900/90 hover:bg-cyan-950/70 text-slate-200 border-slate-700 hover:border-cyan-500/70'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Utensils className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-slate-950' : 'text-cyan-400'}`} />
+                              <div className="truncate">
+                                <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
+                                <div className="text-[10px] text-cyan-300 font-mono font-bold">R$ {item.price.toFixed(2)}</div>
+                              </div>
+                            </div>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ml-1 ${
+                              isCurrent ? 'bg-slate-950 text-cyan-300 border border-cyan-400/40' : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              {isCurrent ? '✓ Selecionado' : 'Escolher'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* COLUNA DIREITA: FORMULÁRIO 3 LINHAS */}
+                    <div className="sm:col-span-7 flex flex-col justify-between">
+                      {selectedProduct?.category?.id === cat.id ? (
+                        <form onSubmit={handleConfirmAndSend} className="h-full flex flex-col justify-between gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                          {/* LINHA 1: NOME */}
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center justify-between">
+                              <label className={`text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                                isNameFilled ? 'text-emerald-400' : 'text-rose-400'
+                              }`}>
+                                <User className="w-3.5 h-3.5" />
+                                <span>Nome de quem comprou *</span>
+                              </label>
+                              {!isNameFilled ? (
+                                <span className="text-[9px] text-rose-300 font-extrabold bg-rose-950/80 px-1.5 py-0.2 rounded border border-rose-500/60 animate-pulse">
+                                  ⚠️ Obrigatório
+                                </span>
+                              ) : (
+                                <span className="text-[9px] text-emerald-300 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/40">
+                                  ✓ Preenchido
+                                </span>
+                              )}
+                            </div>
+
+                            <div className={`relative ${nameShake ? 'animate-shake' : ''}`}>
+                              <input
+                                ref={nameInputRef}
+                                type="text"
+                                required
+                                placeholder="Digite o nome de quem comprou..."
+                                value={customerName}
+                                onChange={(e) => {
+                                  setCustomerName(e.target.value);
+                                  if (showNameError && e.target.value.trim()) setShowNameError(false);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    if (!customerName.trim()) {
+                                      setNameShake(true);
+                                      setShowNameError(true);
+                                      setTimeout(() => setNameShake(false), 500);
+                                    } else {
+                                      qtyInputRef.current?.focus();
+                                      qtyInputRef.current?.select();
+                                    }
+                                  }
+                                }}
+                                className={`w-full h-9 sm:h-10 bg-slate-950 text-white text-sm font-bold px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs border-2 ${
+                                  !isNameFilled 
+                                    ? 'border-rose-500 glow-required-name' 
+                                    : 'border-emerald-500 ring-2 ring-emerald-500/30'
+                                }`}
+                              />
+                            </div>
+                          </div>
+
+                          {/* LINHA 2: QUANTIDADE E PAGAMENTO */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                                Quantidade
+                              </label>
+                              <div className="h-9 sm:h-10 flex items-center gap-1 bg-slate-950 px-1.5 rounded-xl border border-slate-700">
+                                <button 
+                                  type="button"
+                                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                                  className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <input 
+                                  ref={qtyInputRef}
+                                  type="number"
+                                  min="1"
+                                  max="99"
+                                  value={quantity}
+                                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      paymentSelectRef.current?.focus();
+                                    }
+                                  }}
+                                  className="w-full text-center bg-transparent text-sm font-black text-cyan-300 outline-none"
+                                />
+                                <button 
+                                  type="button"
+                                  onClick={() => setQuantity(q => q + 1)}
+                                  className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block mb-0.5">
+                                Pagamento
+                              </label>
+                              <select
+                                ref={paymentSelectRef}
+                                value={paymentMethod}
+                                onChange={(e) => {
+                                  setPaymentMethod(e.target.value);
+                                  setTimeout(() => submitButtonRef.current?.focus(), 50);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    submitButtonRef.current?.focus();
+                                  }
+                                }}
+                                className="w-full h-9 sm:h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2.5 rounded-xl outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/40 transition-all cursor-pointer"
+                              >
+                                <option value="PIX">PIX</option>
+                                <option value="DINHEIRO">Dinheiro</option>
+                                <option value="DEBITO">Débito</option>
+                                <option value="CREDITO">Crédito</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* LINHA 3: BOTÃO ENVIAR */}
+                          <div>
+                            <button
+                              ref={submitButtonRef}
+                              type="submit"
+                              className="w-full h-10 sm:h-11 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
+                            >
+                              <Send className="w-4 h-4 fill-current" />
+                              <span>ENVIAR PARA COZINHA</span>
+                              <span className="ml-1 bg-slate-950/20 px-2 py-0.5 rounded font-mono text-xs font-black">
+                                Total: R$ {((selectedProduct?.item?.price || 0) * quantity).toFixed(2)}
+                              </span>
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="h-full min-h-[170px] flex flex-col items-center justify-center p-3 text-center bg-slate-950/40 rounded-xl border border-dashed border-slate-700/80 text-slate-400">
+                          <div className="p-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-2">
+                            <Utensils className="w-5 h-5 text-cyan-400" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-200">Escolha a opção de {cat.name}</span>
+                          <span className="text-[10px] text-slate-400 mt-1 max-w-[200px]">
+                            Clique ao lado para preencher o nome e enviar para a cozinha
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {showNameError && selectedProduct?.category?.id === cat.id && (
+                  <div className="mt-2 text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>Por favor, digite o nome de quem comprou para enviar para a cozinha!</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </main>
 
       {/* ========================================================

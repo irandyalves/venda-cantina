@@ -187,6 +187,27 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [pedacoPrice, setPedacoPrice] = useState('9,00');
   const [inteiraPrice, setInteiraPrice] = useState('48,00');
 
+  // Modal de Adicionar Item para Venda
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState('acai');
+  const [newItemPrice, setNewItemPrice] = useState('0,00');
+  const [newItemPrefix, setNewItemPrefix] = useState('A-');
+  const [newItemDesc, setNewItemDesc] = useState('');
+
+  // Modal de Configurações Completas do Item (Engrenagem ⚙️)
+  const [showGearModal, setShowGearModal] = useState(false);
+  const [gearItemData, setGearItemData] = useState({
+    id: '',
+    name: '',
+    price: '0,00',
+    prefix: '',
+    description: '',
+    categoryId: 'acai',
+    isVariation: false,
+    variationId: null
+  });
+
   useEffect(() => {
     if (isOpen) {
       if (initialTab) setActiveTab(initialTab);
@@ -200,6 +221,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
+        if (showAddItemModal) {
+          setShowAddItemModal(false);
+          return;
+        }
+        if (showGearModal) {
+          setShowGearModal(false);
+          return;
+        }
         if (showResetModal) {
           setShowResetModal(false);
           return;
@@ -214,7 +243,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showResetModal, editingItemId, onClose]);
+  }, [isOpen, showAddItemModal, showGearModal, showResetModal, editingItemId, onClose]);
 
   const loadData = () => {
     const cats = storageService.getProducts();
@@ -307,36 +336,105 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
   // --- AÇÕES DE PRODUTOS E PREFIXOS ---
 
-  // Salvar Prefixos Globais das Comandas (Pp-, Pi-, A-, B-)
-  const handleSaveAllPrefixes = () => {
-    const pPed = pedacoPrefix.trim() || 'Pp-';
-    const pInt = inteiraPrefix.trim() || 'Pi-';
-    const aPref = acaiPrefix.trim() || 'A-';
-    const bPref = batataPrefix.trim() || 'B-';
+  // Abrir Modal de Configurações Completas do Item (Engrenagem ⚙️)
+  const handleOpenGearModal = (item) => {
+    setGearItemData({
+      id: item.id,
+      name: item.name || '',
+      price: formatCurrencyMask(item.price || 0),
+      prefix: item.prefix || '',
+      description: item.description || '',
+      categoryId: item.categoryId || 'acai',
+      isVariation: Boolean(item.isVariation),
+      variationId: item.variationId || null
+    });
+    setShowGearModal(true);
+  };
+
+  // Salvar alterações da Engrenagem ⚙️
+  const handleSaveGearModal = (e) => {
+    if (e) e.preventDefault();
+    const cleanName = gearItemData.name.trim();
+    if (!cleanName) {
+      showToast('O nome do item é obrigatório!', 'Atenção', 'error');
+      return;
+    }
+    const priceNum = parseCurrencyMask(gearItemData.price);
+    const cleanPrefix = gearItemData.prefix.trim();
+    const cleanDesc = gearItemData.description.trim();
 
     const updated = categories.map(cat => {
-      if (cat.id === 'pizza') {
+      // Se for variação de pizza (Pedaço ou Inteira)
+      if (gearItemData.isVariation && cat.id === 'pizza') {
         return {
           ...cat,
           variations: (cat.variations || []).map(v => {
-            if (v.id === 'pedaco') return { ...v, prefix: pPed };
-            if (v.id === 'inteira') return { ...v, prefix: pInt };
+            if (v.id === gearItemData.variationId) {
+              return {
+                ...v,
+                name: cleanName.replace(/^Pizza\s+/i, ''),
+                price: priceNum,
+                prefix: cleanPrefix
+              };
+            }
             return v;
           })
         };
       }
-      if (cat.id === 'acai') {
+
+      // Se o item estiver nesta categoria
+      if (cat.id === gearItemData.categoryId) {
         return {
           ...cat,
-          prefixDefault: aPref,
-          items: (cat.items || []).map(it => ({ ...it, prefix: it.prefix || aPref }))
+          items: (cat.items || []).map(it => {
+            if (it.id === gearItemData.id) {
+              return {
+                ...it,
+                name: cleanName,
+                price: priceNum,
+                prefix: cleanPrefix,
+                description: cleanDesc
+              };
+            }
+            return it;
+          })
         };
       }
-      if (cat.id === 'batata') {
+      return cat;
+    });
+
+    if (gearItemData.isVariation) {
+      if (gearItemData.variationId === 'pedaco') {
+        setPedacoPrice(formatCurrencyMask(priceNum));
+        setPedacoPrefix(cleanPrefix);
+      } else if (gearItemData.variationId === 'inteira') {
+        setInteiraPrice(formatCurrencyMask(priceNum));
+        setInteiraPrefix(cleanPrefix);
+      }
+    }
+
+    storageService.saveProducts(updated);
+    setCategories(updated);
+    setShowGearModal(false);
+    showToast(`Configurações de "${cleanName}" salvas com sucesso!`, 'Item Atualizado');
+  };
+
+  // Excluir item a partir da engrenagem ⚙️
+  const handleDeleteGearItem = () => {
+    if (gearItemData.isVariation) {
+      showToast('Itens base de pizza (Pedaço/Inteira) não podem ser excluídos.', 'Aviso', 'info');
+      return;
+    }
+
+    if (!window.confirm(`Deseja realmente excluir "${gearItemData.name}" do cardápio de vendas?`)) {
+      return;
+    }
+
+    const updated = categories.map(cat => {
+      if (cat.id === gearItemData.categoryId) {
         return {
           ...cat,
-          prefixDefault: bPref,
-          items: (cat.items || []).map(it => ({ ...it, prefix: it.prefix || bPref }))
+          items: (cat.items || []).filter(it => it.id !== gearItemData.id)
         };
       }
       return cat;
@@ -344,7 +442,114 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     storageService.saveProducts(updated);
     setCategories(updated);
-    showToast('Prefixos das senhas atualizados com sucesso!', 'Prefixos Salvos');
+    setShowGearModal(false);
+    showToast(`Item "${gearItemData.name}" removido com sucesso!`, 'Item Excluído');
+  };
+
+  // Adicionar novo item para venda
+  const handleAddNewSaleItem = (e) => {
+    if (e) e.preventDefault();
+    const cleanName = newItemName.trim();
+    if (!cleanName) {
+      showToast('O nome do item é obrigatório!', 'Atenção', 'error');
+      return;
+    }
+
+    const priceNum = parseCurrencyMask(newItemPrice);
+    const cleanPrefix = newItemPrefix.trim() || (newItemCategory === 'acai' ? 'A-' : newItemCategory === 'batata' ? 'B-' : 'Ped-');
+    const cleanDesc = newItemDesc.trim();
+
+    const newItem = {
+      id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: cleanName,
+      price: priceNum,
+      prefix: cleanPrefix,
+      description: cleanDesc
+    };
+
+    let updated = [...categories];
+    const catIndex = updated.findIndex(c => c.id === newItemCategory);
+    if (catIndex >= 0) {
+      updated[catIndex] = {
+        ...updated[catIndex],
+        items: [...(updated[catIndex].items || []), newItem]
+      };
+    } else {
+      updated.push({
+        id: newItemCategory,
+        name: newItemCategory === 'outros' ? 'OUTROS ITENS' : newItemCategory.toUpperCase(),
+        icon: 'Utensils',
+        prefixDefault: cleanPrefix,
+        items: [newItem],
+        variations: []
+      });
+    }
+
+    storageService.saveProducts(updated);
+    setCategories(updated);
+    setShowAddItemModal(false);
+    setNewItemName('');
+    setNewItemPrice('0,00');
+    setNewItemPrefix('');
+    setNewItemDesc('');
+    showToast(`"${cleanName}" adicionado para venda com sucesso!`, 'Item Cadastrado');
+  };
+
+  // Atualização direta do prefixo no card (aceita maiúsculo e minúsculo)
+  const handleUpdateItemPrefix = (newPrefix, item) => {
+    if (item.isVariation) {
+      if (item.variationId === 'pedaco') setPedacoPrefix(newPrefix);
+      if (item.variationId === 'inteira') setInteiraPrefix(newPrefix);
+    }
+
+    setCategories(prev => prev.map(cat => {
+      if (item.isVariation && cat.id === 'pizza') {
+        return {
+          ...cat,
+          variations: (cat.variations || []).map(v => v.id === item.variationId ? { ...v, prefix: newPrefix } : v)
+        };
+      }
+      if (cat.id === item.categoryId) {
+        return {
+          ...cat,
+          items: (cat.items || []).map(it => it.id === item.id ? { ...it, prefix: newPrefix } : it)
+        };
+      }
+      return cat;
+    }));
+  };
+
+  // Atualização direta do valor (preço) no card
+  const handleUpdateItemPrice = (newPriceMasked, item) => {
+    const formatted = formatCurrencyMask(newPriceMasked);
+    const num = parseCurrencyMask(formatted);
+
+    if (item.isVariation) {
+      if (item.variationId === 'pedaco') setPedacoPrice(formatted);
+      if (item.variationId === 'inteira') setInteiraPrice(formatted);
+    }
+
+    setCategories(prev => prev.map(cat => {
+      if (item.isVariation && cat.id === 'pizza') {
+        return {
+          ...cat,
+          variations: (cat.variations || []).map(v => v.id === item.variationId ? { ...v, price: num } : v)
+        };
+      }
+      if (cat.id === item.categoryId) {
+        return {
+          ...cat,
+          items: (cat.items || []).map(it => it.id === item.id ? { ...it, price: num } : it)
+        };
+      }
+      return cat;
+    }));
+  };
+
+  // Salvar todos os itens e prefixos
+  const handleSaveAllPrefixes = () => {
+    storageService.saveProducts(categories);
+    showToast('Itens cadastrados para venda e senhas salvos com sucesso!', 'Itens Salvos');
   };
 
   const handleSavePizzaPrices = () => {
@@ -489,51 +694,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     showToast('Opção de Batata removida.');
   };
 
-  // Atualizar preço individualmente (Açaí ou Batata)
-  const handleUpdateItemPrice = (categoryId, itemId, newPrice) => {
-    const priceNum = parsePrice(newPrice);
 
-    const updated = categories.map(cat => {
-      if (cat.id === categoryId) {
-        return {
-          ...cat,
-          items: cat.items.map(item => item.id === itemId ? { ...item, price: priceNum } : item)
-        };
-      }
-      return cat;
-    });
-
-    storageService.saveProducts(updated);
-    setCategories(updated);
-    showToast('Preço do item atualizado com sucesso!');
-  };
-
-  // Atualizar prefixo da senha de um item individualmente
-  const handleUpdateItemPrefix = (categoryId, itemId, newPrefix) => {
-    const cleanPref = (newPrefix || '').trim();
-    const updated = categories.map(cat => {
-      if (cat.id === categoryId) {
-        return {
-          ...cat,
-          items: cat.items.map(item => item.id === itemId ? { ...item, prefix: cleanPref } : item)
-        };
-      }
-      return cat;
-    });
-
-    storageService.saveProducts(updated);
-    setCategories(updated);
-    showToast(`Prefixo da senha alterado para "${cleanPref}"!`, 'Senha Personalizada');
-  };
-
-  const handleResetCatalog = () => {
-    if (window.confirm('Tem certeza que deseja restaurar o cardápio padrão com os sabores e prefixos iniciais?')) {
-      storageService.saveProducts(DEFAULT_CATEGORIES);
-      setCategories(DEFAULT_CATEGORIES);
-      loadData();
-      showToast('Cardápio restaurado com sucesso!', 'Cardápio Padrão');
-    }
-  };
 
   // --- AÇÕES DO FIREBASE ---
   const handleSaveFirebase = (e) => {
@@ -631,6 +792,70 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const acaiCat = categories.find(c => c.id === 'acai');
   const batataCat = categories.find(c => c.id === 'batata');
 
+  // Coleta todos os itens cadastrados para venda (Pizza Pedaço/Inteira, Copos Açaí, Batatas e outros)
+  const allSaleItems = [];
+
+  // Pizza variações (Pedaço e Inteira)
+  if (pizzaCat?.variations) {
+    pizzaCat.variations.forEach(v => {
+      allSaleItems.push({
+        id: v.id,
+        name: `Pizza ${v.name}`,
+        price: v.id === 'pedaco' ? parseCurrencyMask(pedacoPrice) : parseCurrencyMask(inteiraPrice),
+        prefix: v.id === 'pedaco' ? pedacoPrefix : inteiraPrefix,
+        categoryId: 'pizza',
+        isVariation: true,
+        variationId: v.id,
+        description: v.id === 'pedaco' ? 'Fatia individual de pizza' : 'Pizza inteira 8 fatias'
+      });
+    });
+  }
+
+  // Açaí itens
+  if (acaiCat?.items) {
+    acaiCat.items.forEach(it => {
+      allSaleItems.push({
+        id: it.id,
+        name: it.name,
+        price: it.price,
+        prefix: it.prefix || acaiPrefix || 'A-',
+        categoryId: 'acai',
+        isVariation: false,
+        description: it.description || 'Opção de açaí'
+      });
+    });
+  }
+
+  // Batata itens
+  if (batataCat?.items) {
+    batataCat.items.forEach(it => {
+      allSaleItems.push({
+        id: it.id,
+        name: it.name,
+        price: it.price,
+        prefix: it.prefix || batataPrefix || 'B-',
+        categoryId: 'batata',
+        isVariation: false,
+        description: it.description || 'Opção de batata frita'
+      });
+    });
+  }
+
+  // Outras categorias adicionais cadastradas
+  categories.filter(c => !['pizza', 'acai', 'batata'].includes(c.id)).forEach(cat => {
+    (cat.items || []).forEach(it => {
+      allSaleItems.push({
+        id: it.id,
+        name: it.name,
+        price: it.price,
+        prefix: it.prefix || cat.prefixDefault || 'Ped-',
+        categoryId: cat.id,
+        isVariation: false,
+        description: it.description || ''
+      });
+    });
+  });
+
   return (
     <div 
       onClick={(e) => {
@@ -677,7 +902,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>Cardápio & Sabores</span>
+            <span>Cardápio & Vendas</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
+              activeTab === 'history'
+                ? 'bg-slate-800 text-amber-400 border-amber-400'
+                : 'text-slate-400 border-transparent hover:text-white'
+            }`}
+          >
+            <Archive className="w-4 h-4" />
+            <span>Histórico</span>
+            {turnoHistory.length > 0 && (
+              <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                {turnoHistory.length}
+              </span>
+            )}
           </button>
 
           <button
@@ -907,122 +1149,113 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             <div className="space-y-6">
 
               {/* ========================================================
-                  NOVO: PAINEL DE DEFINIÇÃO DOS PREFIXOS DAS SENHAS
+                  PAINEL DE ITENS CADASTRADOS PARA VENDA (LINHAS ATÉ A BORDA ESQ E DIR)
                  ======================================================== */}
-              <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-5 rounded-2xl border-2 border-amber-500/50 shadow-xl space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/80 pb-3">
-                  <div className="flex items-center gap-2">
+              <div className="-mx-6 px-6 py-4 border-y border-amber-500/40 bg-slate-950/70 space-y-4 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/80 pb-3">
+                  <div className="flex items-center gap-2.5">
                     <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
                       <Tag className="w-5 h-5" />
                     </span>
                     <div>
-                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
-                        PREFIXOS DAS SENHAS (COMANDAS)
+                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2 flex-wrap">
+                        ITENS CADASTRADOS PARA VENDA
                         <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                          Personalizável
+                          {allSaleItems.length} itens
                         </span>
                       </h3>
                       <p className="text-xs text-slate-400">
-                        Defina a sigla das senhas geradas no caixa para a cozinha e TV. Ex: Pp-01, Pi-02, A-01, B-01.
+                        Edite senhas e valores diretamente abaixo ou clique na engrenagem ⚙️ para configurações completas.
                       </p>
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleSaveAllPrefixes}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 shrink-0"
-                  >
-                    <Save className="w-4 h-4" /> Salvar Prefixos
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddItemModal(true)}
+                      className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Adicionar Item para Venda</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveAllPrefixes}
+                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Salvar Alterações</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* GRID DOS 4 PREFIXOS PADRÕES */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                  
-                  {/* PIZZA PEDAÇO */}
-                  <div className="bg-slate-950/80 p-3 rounded-xl border border-amber-500/30 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black text-amber-400 uppercase">Pizza Pedaço</span>
-                      <span className="text-[10px] text-slate-500 font-mono">Ex: {pedacoPrefix || 'Pp-'}01</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={pedacoPrefix}
-                        onChange={(e) => setPedacoPrefix(e.target.value)}
-                        placeholder="Pp-"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono font-black text-amber-300 outline-none focus:border-amber-400 uppercase"
-                      />
-                    </div>
-                  </div>
+                {/* GRID DOS ITENS CADASTRADOS PARA VENDA */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {allSaleItems.map((item) => (
+                    <div 
+                      key={`${item.categoryId}_${item.id}`} 
+                      className="bg-slate-900/90 p-3 rounded-xl border border-slate-700/80 space-y-2 hover:border-amber-500/50 transition-colors shadow-sm flex flex-col justify-between"
+                    >
+                      {/* TOPO: NOME E BOTÃO ENGRENAGEM (SEM O 'Ex: xxx') */}
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-xs font-black text-white uppercase truncate" title={item.name}>
+                          {item.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenGearModal(item)}
+                          className="p-1 text-slate-400 hover:text-amber-300 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
+                          title="Configurações completas deste item"
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
 
-                  {/* PIZZA INTEIRA */}
-                  <div className="bg-slate-950/80 p-3 rounded-xl border border-red-500/30 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black text-red-400 uppercase">Pizza Inteira</span>
-                      <span className="text-[10px] text-slate-500 font-mono">Ex: {inteiraPrefix || 'Pi-'}01</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={inteiraPrefix}
-                        onChange={(e) => setInteiraPrefix(e.target.value)}
-                        placeholder="Pi-"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono font-black text-red-300 outline-none focus:border-red-400 uppercase"
-                      />
-                    </div>
-                  </div>
+                      {/* EMBAIXO: PREFIXO SENHA (ACEITA MAIÚSCULO E MINÚSCULO) E VALOR */}
+                      <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-800">
+                        {/* PREFIXO SENHA */}
+                        <div>
+                          <label className="text-[10px] text-slate-400 font-bold block mb-0.5">
+                            Senha (Prefixo)
+                          </label>
+                          <input
+                            type="text"
+                            value={item.prefix || ''}
+                            onChange={(e) => handleUpdateItemPrefix(e.target.value, item)}
+                            placeholder="Pp-"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-amber-300 outline-none focus:border-amber-400"
+                          />
+                        </div>
 
-                  {/* AÇAÍ */}
-                  <div className="bg-slate-950/80 p-3 rounded-xl border border-purple-500/30 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black text-purple-400 uppercase">Açaí (Padrão)</span>
-                      <span className="text-[10px] text-slate-500 font-mono">Ex: {acaiPrefix || 'A-'}01</span>
+                        {/* VALOR */}
+                        <div>
+                          <label className="text-[10px] text-slate-400 font-bold block mb-0.5 text-right">
+                            Valor (R$)
+                          </label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={formatCurrencyMask(item.price)}
+                            onChange={(e) => handleUpdateItemPrice(e.target.value, item)}
+                            placeholder="0,00"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-emerald-400 outline-none focus:border-emerald-400 text-right"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={acaiPrefix}
-                        onChange={(e) => setAcaiPrefix(e.target.value)}
-                        placeholder="A-"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono font-black text-purple-300 outline-none focus:border-purple-400 uppercase"
-                      />
-                    </div>
-                  </div>
-
-                  {/* BATATA FRITA */}
-                  <div className="bg-slate-950/80 p-3 rounded-xl border border-yellow-500/30 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black text-yellow-400 uppercase">Batata (Padrão)</span>
-                      <span className="text-[10px] text-slate-500 font-mono">Ex: {batataPrefix || 'B-'}01</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={batataPrefix}
-                        onChange={(e) => setBatataPrefix(e.target.value)}
-                        placeholder="B-"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono font-black text-yellow-300 outline-none focus:border-yellow-400 uppercase"
-                      />
-                    </div>
-                  </div>
-
+                  ))}
                 </div>
               </div>
               
-              {/* SEÇÃO PIZZA: PREÇOS E SABORES */}
+              {/* SEÇÃO PIZZA: PREÇOS E SABORES (SEM BOTÃO RESTAURAR PADRÕES) */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                   <div className="flex items-center gap-2">
                     <Pizza className="w-5 h-5 text-red-400" />
                     <h3 className="font-extrabold text-white text-base">Configurações de Pizza</h3>
                   </div>
-                  <button
-                    onClick={handleResetCatalog}
-                    className="text-xs text-slate-400 hover:text-rose-300 flex items-center gap-1 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" /> Restaurar Padrões
-                  </button>
                 </div>
 
                 {/* DEFINIR PREÇOS DE PEDAÇO E INTEIRA EM REAIS COM DIGITAÇÃO DIRETA */}
@@ -1563,6 +1796,247 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* =========================================================
+              ABA HISTÓRICO: TURNOS ENCERRADOS, AUDITORIA E COMANDAS
+             ========================================================= */}
+          {activeTab === 'history' && (
+            <div className="space-y-6">
+              
+              {/* CABEÇALHO DO HISTÓRICO COM ZERAR / FECHAR TURNO */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-4 sm:p-5 rounded-2xl border-2 border-amber-500/50 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                    <Archive className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
+                      CENTRAL DE HISTÓRICO & AUDITORIA
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Cópias completas de turnos arquivados, comandas de hoje e auditoria de vendas excluídas.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOpenResetModal}
+                  className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-black text-xs rounded-xl border border-rose-500/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shrink-0"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Zerar / Fechar Turno</span>
+                </button>
+              </div>
+
+              {/* SEÇÃO 1: TURNOS ARQUIVADOS NO HISTÓRICO (CÓPIAS SALVAS) */}
+              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Archive className="w-5 h-5 text-amber-400" />
+                    <div>
+                      <h4 className="font-extrabold text-white text-base">
+                        Cópias Salvas de Turnos Arquivados
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        Cada vez que o caixa é zerado, uma cópia completa com todos os pedidos é preservada aqui.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-500/40">
+                    {turnoHistory.length} turno(s) arquivado(s)
+                  </span>
+                </div>
+
+                {turnoHistory.length === 0 ? (
+                  <div className="py-6 text-center text-slate-500 text-xs italic">
+                    Nenhum turno anterior arquivado ainda. Ao clicar em "Zerar / Fechar Turno", uma cópia será guardada aqui automaticamente.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                    {turnoHistory.map((hist) => (
+                      <div key={hist.id} className="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-amber-300">
+                              {hist.event?.name || 'Cantina Geral'}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                              📅 {hist.archivedAtFormatted || new Date(hist.archivedAt).toLocaleString('pt-BR')}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            {hist.totalOrders} pedidos arquivados • PIX: R$ {(hist.paymentBreakdown?.pix || 0).toFixed(2)} • Dinheiro: R$ {(hist.paymentBreakdown?.dinheiro || 0).toFixed(2)} • Cartões: R$ {((hist.paymentBreakdown?.debito || 0) + (hist.paymentBreakdown?.credito || 0)).toFixed(2)}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-[10px] font-bold text-slate-500 uppercase">Faturamento do Turno</div>
+                          <div className="text-sm font-black text-emerald-400 font-mono">
+                            R$ {(hist.totalRevenue || 0).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SEÇÃO 2: HISTÓRICO E AUDITORIA DE TODAS AS VENDAS DE HOJE */}
+              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700 pb-3">
+                  <div>
+                    <h4 className="font-extrabold text-white text-base">
+                      Histórico de Vendas de Hoje (Auditoria)
+                    </h4>
+                    <p className="text-xs text-slate-400">
+                      Visualize todos os pedidos do turno atual. Vendas excluídas ficam esmaecidas com [EXCLUÍDO] e não somam no faturamento.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-slate-400 font-bold">Total Faturado: </span>
+                    <span className="text-sm font-black text-emerald-400 font-mono">R$ {totalGeral.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* CARDS TOTALIZADORES */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">Total Geral</div>
+                    <div className="text-base font-black text-emerald-400 font-mono">R$ {totalGeral.toFixed(2)}</div>
+                    <div className="text-[9px] text-slate-400">{activeOrders.length} ativas</div>
+                  </div>
+                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <div className="text-[10px] font-bold text-emerald-400 uppercase">PIX</div>
+                    <div className="text-sm font-black text-white font-mono">R$ {totalPix.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <div className="text-[10px] font-bold text-teal-400 uppercase">Dinheiro</div>
+                    <div className="text-sm font-black text-white font-mono">R$ {totalDinheiro.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <div className="text-[10px] font-bold text-blue-400 uppercase">Cartões</div>
+                    <div className="text-sm font-black text-white font-mono">R$ {(totalDebito + totalCredito).toFixed(2)}</div>
+                  </div>
+                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <div className="text-[10px] font-bold text-rose-400 uppercase">Excluídas</div>
+                    <div className="text-sm font-black text-rose-300 font-mono">{todayOrders.length - activeOrders.length}</div>
+                  </div>
+                </div>
+
+                {/* TABELA COMPLETA COM STATUS, EXCLUÍDOS EM ESMAECIDO E RESTAURAR */}
+                <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-2">
+                  <div className="max-h-80 overflow-y-auto">
+                    <table className="w-full text-left text-xs text-slate-300">
+                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider z-10">
+                        <tr>
+                          <th className="p-2.5">Comanda</th>
+                          <th className="p-2.5">Cliente</th>
+                          <th className="p-2.5">Item</th>
+                          <th className="p-2.5">Qtde</th>
+                          <th className="p-2.5">Pagamento</th>
+                          <th className="p-2.5 text-right">Valor</th>
+                          <th className="p-2.5 text-center">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {todayOrders.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" className="p-4 text-center text-slate-500 italic">
+                              Nenhuma venda registrada no turno atual.
+                            </td>
+                          </tr>
+                        ) : (
+                          todayOrders.map((ord) => {
+                            const isCancelled = ord.status === 'cancelado';
+                            return (
+                              <tr 
+                                key={ord.id} 
+                                className={`transition-colors ${
+                                  isCancelled 
+                                    ? 'opacity-40 bg-slate-950/80 text-slate-500 line-through select-none' 
+                                    : 'hover:bg-slate-800/40'
+                                }`}
+                              >
+                                <td className="p-2.5 font-mono font-bold text-orange-400">{ord.orderNumber}</td>
+                                <td className="p-2.5 font-bold text-white">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className={isCancelled ? 'line-through text-slate-400' : ''}>
+                                      {ord.customerName}
+                                    </span>
+                                    {isCancelled && (
+                                      <span className="no-underline text-[9px] font-black uppercase tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1.5 py-0.5 rounded shadow-sm inline-block">
+                                        EXCLUÍDO
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-2.5">{ord.fullDescription || ord.itemName}</td>
+                                <td className="p-2.5">{ord.quantity}x</td>
+                                <td className="p-2.5">{ord.paymentMethod}</td>
+                                <td className={`p-2.5 text-right font-bold ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
+                                  R$ {Number(ord.totalPrice).toFixed(2)}
+                                </td>
+                                <td className="p-2.5 text-center no-underline">
+                                  {isCancelled ? (
+                                    <button
+                                      onClick={() => handleRestoreOrder(ord.id)}
+                                      className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[11px] rounded-lg border border-slate-700 inline-flex items-center gap-1 shadow-sm no-underline cursor-pointer"
+                                      title="Restaurar venda de volta ao faturamento do caixa"
+                                    >
+                                      <RotateCcw className="w-3 h-3" /> Restaurar
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleCancelOrder(ord.id)}
+                                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                      title="Excluir venda do faturamento (permanece no histórico esmaecida)"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO 3: HISTÓRICO DE EVENTOS REALIZADOS */}
+              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-700 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-amber-400" />
+                    <h4 className="font-extrabold text-white text-sm">
+                      Histórico de Eventos da Cantina
+                    </h4>
+                  </div>
+                  <span className="text-xs text-slate-400 font-mono">
+                    {eventsList.length} evento(s)
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {eventsList.map(evt => (
+                    <div key={evt.id} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-white">{evt.name}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{evt.date || 'Hoje'}</div>
+                      </div>
+                      {currentEvent?.id === evt.id && (
+                        <span className="text-[9px] bg-amber-400/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-400/30">
+                          Ativo
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -2153,6 +2627,282 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ADICIONAR ITEM PARA VENDA */}
+      {showAddItemModal && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddItemModal(false);
+          }}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-emerald-500/50 w-full max-w-lg rounded-3xl shadow-2xl p-6 space-y-4 text-slate-100 relative cursor-default"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                  <Plus className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-white">
+                    Adicionar Item para Venda 🛒
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Cadastre um novo produto com nome, prefixo de senha e valor.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddItemModal(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddNewSaleItem} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Nome do Item: *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Copo Açaí 400ml, Refrigerante Lata, Pastel de Queijo..."
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-emerald-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Categoria: *
+                  </label>
+                  <select
+                    value={newItemCategory}
+                    onChange={(e) => {
+                      setNewItemCategory(e.target.value);
+                      if (e.target.value === 'acai') setNewItemPrefix('A-');
+                      else if (e.target.value === 'batata') setNewItemPrefix('B-');
+                      else if (e.target.value === 'pizza') setNewItemPrefix('Pp-');
+                      else setNewItemPrefix('Ped-');
+                    }}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold outline-none focus:border-emerald-400 cursor-pointer"
+                  >
+                    <option value="acai">Açaí</option>
+                    <option value="batata">Batata Frita</option>
+                    <option value="pizza">Pizza</option>
+                    <option value="outros">Outros / Bebidas</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Prefixo Senha: * <span className="text-[10px] text-slate-400 font-normal">(Maiúsculo/Minúsculo)</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Pp-, Pi-, A-, B-, Ref-"
+                    value={newItemPrefix}
+                    onChange={(e) => setNewItemPrefix(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Preço de Venda (R$): *
+                  </label>
+                  <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-emerald-400">
+                    <span className="text-xs font-bold text-emerald-400 mr-1.5">R$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      required
+                      placeholder="0,00"
+                      value={newItemPrice}
+                      onChange={(e) => setNewItemPrice(formatCurrencyMask(e.target.value))}
+                      className="w-full bg-transparent text-sm font-mono font-bold text-white outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Descrição / Detalhes:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Opcional (ex: 350ml gelada)"
+                    value={newItemDesc}
+                    onChange={(e) => setNewItemDesc(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddItemModal(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Salvar e Adicionar ao Cardápio</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIGURAÇÕES COMPLETAS DO ITEM (ENGRENAGEM ⚙️) */}
+      {showGearModal && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowGearModal(false);
+          }}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-amber-500/50 w-full max-w-lg rounded-3xl shadow-2xl p-6 space-y-4 text-slate-100 relative cursor-default"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl">
+                  <Settings className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-white">
+                    Configurações Completas do Item ⚙️
+                  </h3>
+                  <p className="text-xs text-slate-400 truncate max-w-xs sm:max-w-md">
+                    {gearItemData.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGearModal(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveGearModal} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Nome do Item: *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={gearItemData.name}
+                  onChange={(e) => setGearItemData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Prefixo da Senha / Comanda: * <span className="text-[10px] text-slate-400 font-normal">(Maiúsculo/Minúsculo)</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Pp-, Pi-, A-, B-"
+                    value={gearItemData.prefix}
+                    onChange={(e) => setGearItemData(prev => ({ ...prev, prefix: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Preço de Venda (R$): *
+                  </label>
+                  <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-amber-400">
+                    <span className="text-xs font-bold text-emerald-400 mr-1.5">R$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      required
+                      placeholder="0,00"
+                      value={gearItemData.price}
+                      onChange={(e) => setGearItemData(prev => ({ ...prev, price: formatCurrencyMask(e.target.value) }))}
+                      className="w-full bg-transparent text-sm font-mono font-bold text-white outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Descrição / Ingredientes:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Descrição opcional do produto"
+                  value={gearItemData.description}
+                  onChange={(e) => setGearItemData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2.5 pt-3 border-t border-slate-800">
+                {!gearItemData.isVariation ? (
+                  <button
+                    type="button"
+                    onClick={handleDeleteGearItem}
+                    className="px-3.5 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/80 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Excluir Item</span>
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-slate-500 italic">
+                    Item base da cantina
+                  </span>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowGearModal(false)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Salvar Configurações</span>
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}
