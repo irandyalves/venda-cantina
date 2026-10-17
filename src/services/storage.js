@@ -19,6 +19,7 @@ const FIREBASE_CONFIG_KEY = 'cantina_firebase_config';
 const LOCAL_ORDERS_KEY = 'cantina_local_orders';
 const LOCAL_PRODUCTS_KEY = 'cantina_local_products';
 const LOCAL_COUNTERS_KEY = 'cantina_local_counters';
+const TV_SETTINGS_KEY = 'cantina_tv_settings';
 const COLLECTION_ORDERS = 'cantina_pedidos';
 
 // Configuração padrão com o banco Cloud Firestore ATIVO na conta do usuário
@@ -156,6 +157,30 @@ class StorageService {
     if (syncChannel) {
       syncChannel.postMessage({ type: 'PRODUCTS_UPDATED', payload: categories });
     }
+  }
+
+  // --- CONFIGURAÇÕES DE EXIBIÇÃO DA TV ---
+
+  getTVSettings() {
+    try {
+      const raw = localStorage.getItem(TV_SETTINGS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {
+      console.error('Erro ao ler configurações da TV:', e);
+    }
+    return {
+      soundEnabled: true,
+      showDelivered: true,
+      autoFullscreen: false
+    };
+  }
+
+  saveTVSettings(settings) {
+    localStorage.setItem(TV_SETTINGS_KEY, JSON.stringify(settings));
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'TV_SETTINGS_UPDATED', payload: settings });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_tv_settings_changed', { detail: settings }));
   }
 
   // --- PEDIDOS (EM TEMPO REAL CLOUD FIRESTORE) ---

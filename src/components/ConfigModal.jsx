@@ -58,6 +58,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [newBatataName, setNewBatataName] = useState('');
   const [newBatataPrice, setNewBatataPrice] = useState('');
 
+  // Estado Configurações da TV
+  const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
+
   // Preços de pizza (Pedaço e Inteira)
   const [pedacoPrice, setPedacoPrice] = useState(9);
   const [inteiraPrice, setInteiraPrice] = useState(48);
@@ -88,10 +91,30 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
 
     setEmailRules(authService.getEmailRules());
+    setTvSettings(storageService.getTVSettings());
     setOrders(storageService.getLocalOrders());
   };
 
   if (!isOpen) return null;
+
+  // --- AÇÕES DE CONFIGURAÇÃO DA TV ---
+  const handleToggleTVSound = () => {
+    const updated = { ...tvSettings, soundEnabled: !tvSettings.soundEnabled };
+    setTvSettings(updated);
+    storageService.saveTVSettings(updated);
+  };
+
+  const handleToggleTVDelivered = () => {
+    const updated = { ...tvSettings, showDelivered: !tvSettings.showDelivered };
+    setTvSettings(updated);
+    storageService.saveTVSettings(updated);
+  };
+
+  const handleToggleTVFullscreen = () => {
+    const updated = { ...tvSettings, autoFullscreen: !tvSettings.autoFullscreen };
+    setTvSettings(updated);
+    storageService.saveTVSettings(updated);
+  };
 
   // --- AÇÕES DE E-MAILS DOS PERFIS ---
   const handleAddEmail = (e) => {
@@ -356,6 +379,18 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           >
             <Cloud className="w-4 h-4" />
             <span>Conexão Firebase</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('tv')}
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
+              activeTab === 'tv'
+                ? 'bg-slate-800 text-amber-400 border-amber-400'
+                : 'text-slate-400 border-transparent hover:text-white'
+            }`}
+          >
+            <Tv className="w-4 h-4" />
+            <span>Configuração TV</span>
           </button>
 
           <button
@@ -940,6 +975,83 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
+              </div>
+
+            </div>
+          )}
+
+          {/* =========================================================
+              ABA 4: CONFIGURAÇÃO DO PAINEL TV
+             ========================================================= */}
+          {activeTab === 'tv' && (
+            <div className="space-y-6">
+              
+              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <div className="flex items-center gap-2.5 border-b border-slate-700 pb-3">
+                  <Tv className="w-5 h-5 text-amber-400" />
+                  <div>
+                    <h3 className="font-extrabold text-white text-base">Configuração de Exibição do Painel TV</h3>
+                    <p className="text-xs text-slate-400">Defina aqui o que a TV do público irá exibir e como irá se comportar</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  
+                  {/* TOGGLE 1: SOM NA TV */}
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-sm text-white">Alarme Sonoro de Chamada na TV</div>
+                      <div className="text-xs text-slate-400 mt-0.5">Toca o Ding-Dong sonoro na TV quando a cozinha marcar um pedido como pronto</div>
+                    </div>
+                    <button
+                      onClick={handleToggleTVSound}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                        tvSettings.soundEnabled
+                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      {tvSettings.soundEnabled ? '✓ Som Ativado' : '✕ Mudo / Desativado'}
+                    </button>
+                  </div>
+
+                  {/* TOGGLE 2: EXIBIR PEDIDOS ENTREGUES */}
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-sm text-white">Exibir Coluna de Pedidos Entregues</div>
+                      <div className="text-xs text-slate-400 mt-0.5">Mostra a lista com os últimos pedidos retirados. Se desmarcar, a TV fica 100% focada em EM PREPARAÇÃO</div>
+                    </div>
+                    <button
+                      onClick={handleToggleTVDelivered}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                        tvSettings.showDelivered
+                          ? 'bg-blue-600 text-white border-blue-400 shadow-lg'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      {tvSettings.showDelivered ? '✓ Exibir Entregues' : '✕ Apenas Em Preparação'}
+                    </button>
+                  </div>
+
+                  {/* TOGGLE 3: ABRIR EM TELA CHEIA AUTOMATICAMENTE */}
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-sm text-white">Abrir Automaticamente em Tela Cheia</div>
+                      <div className="text-xs text-slate-400 mt-0.5">Tenta colocar a TV em fullscreen automaticamente ao carregar a página</div>
+                    </div>
+                    <button
+                      onClick={handleToggleTVFullscreen}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                        tvSettings.autoFullscreen
+                          ? 'bg-purple-600 text-white border-purple-400 shadow-lg'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      {tvSettings.autoFullscreen ? '✓ Fullscreen Auto' : '✕ Desativado'}
+                    </button>
+                  </div>
+
+                </div>
               </div>
 
             </div>
