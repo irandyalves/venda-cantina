@@ -272,6 +272,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     item: null
   });
 
+  // Estado e lógica de ordenação da tabela de fechamento de caixa
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' | 'desc'
+
   useEffect(() => {
     if (isOpen) {
       if (initialTab) setActiveTab(initialTab);
@@ -380,7 +384,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, cancelConfirmModal.isOpen, deleteItemConfirmModal.isOpen, deleteEnvConfirmModal.isOpen, showAddEnvModal, showEditEnvModal, showAddCategoryModal, showAddItemModal, showGearModal, showResetModal, showClearQueueModal, editingItemId, onClose]);
 
-  const loadData = () => {
+  function loadData() {
     const cats = storageService.getProducts();
     // Normalizar caso o banco local tenha o antigo 'PP-' ou 'PI-' em maiúsculo
     const normalizedCats = cats.map(cat => {
@@ -1239,10 +1243,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     return new Date(o.createdAt).toLocaleDateString('pt-BR') === reportDateFilter;
   });
 
-  // Estado e lógica de ordenação da tabela de fechamento de caixa
-  const [sortField, setSortField] = useState('createdAt');
-  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' | 'desc'
-
+  // Lógica de ordenação da tabela de fechamento de caixa
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
