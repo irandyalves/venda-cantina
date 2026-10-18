@@ -20,12 +20,12 @@ import ProfileSelector from './ProfileSelector';
 
 export default function KitchenView({ environment, onNavigate }) {
   const [orders, setOrders] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('active'); // 'active', 'entregue', 'all'
+  const [activeFilter, setActiveFilter] = useState('active'); // 'active' (Espera), 'entregue'
   const [soundEnabled, setSoundEnabled] = useState(() => storageService.getKitchenSettings().soundEnabled);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [isFirebaseOnline, setIsFirebaseOnline] = useState(storageService.isFirebaseReady);
 
-  // Escuta alterações na configuração de som da cozinha (vindas do modal de configurações)
+  // Escuta alterações na configuração de som e roteamento da cozinha
   const [productionRouting, setProductionRouting] = useState(() => storageService.getProductionRouting());
 
   useEffect(() => {
@@ -61,11 +61,25 @@ export default function KitchenView({ environment, onNavigate }) {
 
     const currentEnvId = environment?.id || 'COZINHA';
 
+    // Se o pedido tiver multi-itens, checa se qualquer item pertence a esta cozinha
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      return order.items.some(it => {
+        if (it.targetEnvironment && it.targetEnvironment !== 'none') {
+          return it.targetEnvironment === currentEnvId;
+        }
+        if (it.sendToKitchen === false) return false;
+        const cat = String(it.categoryId || it.category || '').toLowerCase();
+        if (currentEnvId.includes('COZINHA') || currentEnvId.includes('PIZZA')) {
+          return cat.includes('pizza');
+        }
+        return true;
+      });
+    }
+
     if (order.targetEnvironment) {
       return order.targetEnvironment === currentEnvId;
     }
 
-    // Fallbacks para pedidos legados sem targetEnvironment gravado
     if (order.sendToKitchen === true) {
       return currentEnvId === 'COZINHA';
     }
@@ -92,7 +106,7 @@ export default function KitchenView({ environment, onNavigate }) {
       return currentEnvId === 'COZINHA';
     }
 
-    return cat.includes('pizza') && currentEnvId === 'COZINHA';
+    return cat.includes('pizza') && (currentEnvId.includes('COZINHA') || currentEnvId.includes('PIZZA'));
   };
 
   // Relógio para atualizar cronômetros dos pedidos a cada segundo
@@ -107,29 +121,25 @@ export default function KitchenView({ environment, onNavigate }) {
       // Identificar novos pedidos para tocar o som e ativar o efeito de 10 segundos
       if (!isFirstLoadRef.current) {
         allOrders.forEach((order) => {
-          // Itens de tenda/balcão (ex: Açaí, Batata) não tocam som e não entram na fila da cozinha
           if (!isOrderForKitchen(order)) return;
 
           if (!knownOrderIdsRef.current.has(order.id) && order.status === 'em_preparo') {
             knownOrderIdsRef.current.add(order.id);
 
-            // Toca som específico: Pizza, Batata ou Açaí
             if (soundEnabled) {
               soundService.playCategorySound(order.category || order.orderNumber);
             }
 
-            // ATIVA O EFEITO DE 10 SEGUNDOS (SUBSTITUI SE JÁ TIVER OUTRO)
             if (newestTimerRef.current) {
               clearTimeout(newestTimerRef.current);
             }
             setNewestOrderId(order.id);
             newestTimerRef.current = setTimeout(() => {
               setNewestOrderId(null);
-            }, 10000); // 10 segundos
+            }, 10000);
           }
         });
       } else {
-        // Na primeira carga, memoriza os existentes sem apitar
         allOrders.forEach(o => knownOrderIdsRef.current.add(o.id));
         isFirstLoadRef.current = false;
       }
@@ -148,18 +158,13 @@ export default function KitchenView({ environment, onNavigate }) {
     };
   }, [soundEnabled, productionRouting]);
 
-  // AÇÃO DE ENTREGAR (GARANTINDO CONCLUSÃO IMEDIATA)
+  // AÇÃO DE ENTREGAR
   const handleDeliver = async (orderId) => {
     try {
-      // Se for o que estava com o efeito, limpa
       if (newestOrderId === orderId) {
         setNewestOrderId(null);
       }
-
-      // Atualiza no estado local de imediato para sumir na hora da fila
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'entregue', updatedAt: Date.now() } : o));
-
-      // Atualiza no Cloud Firestore
       await storageService.updateOrderStatus(orderId, 'entregue');
     } catch (err) {
       console.error('Erro ao entregar pedido:', err);
@@ -179,16 +184,14 @@ export default function KitchenView({ environment, onNavigate }) {
     await storageService.updateOrderStatus(orderId, 'em_preparo');
   };
 
-  // Filtragem dos pedidos da COZINHA (ignora itens feitos na tenda)
+  // Filtragem dos pedidos da COZINHA
   const kitchenOrders = orders.filter(isOrderForKitchen);
   const activeOrders = kitchenOrders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
   const deliveredOrders = kitchenOrders.filter(o => o.status === 'entregue');
 
   const displayedOrders = activeFilter === 'active'
     ? activeOrders
-    : activeFilter === 'entregue'
-      ? deliveredOrders
-      : kitchenOrders;
+    : deliveredOrders;
 
   // Formatação de tempo decorrido
   const getElapsedTime = (timestamp) => {
@@ -213,29 +216,40 @@ export default function KitchenView({ environment, onNavigate }) {
     return <UtensilsCrossed className="w-4 h-4 text-amber-400" />;
   };
 
-  const getItemCleanDescription = (order) => {
-    const isPizza = order.category === 'pizza' || order.categoryName?.toUpperCase() === 'PIZZA';
-    if (isPizza) {
-      const varName = (order.variationName || '').toUpperCase();
-      if (varName && order.itemName) {
-        return `${varName}: ${order.itemName}`;
-      }
-      if (order.fullDescription) {
-        return order.fullDescription.replace(/^pizza\s+/i, '');
-      }
-      return order.itemName;
+  // Normalização de itens para exibição no card
+  const getOrderItems = (order) => {
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      return order.items;
     }
+    return [{
+      description: order.fullDescription || order.itemName || 'Item',
+      quantity: order.quantity || 1,
+      categoryId: order.category || order.categoryName || 'outros',
+      unitPrice: order.unitPrice || order.totalPrice || 0
+    }];
+  };
 
-    if (order.fullDescription) {
-      return order.fullDescription.replace(/^(açaí|acai|batata)\s+/i, '');
+  // Cores de fundo e borda para cada categoria de item
+  const getItemBadgeStyle = (categoryId, desc = '') => {
+    const cat = String(categoryId || '').toLowerCase();
+    const d = String(desc || '').toLowerCase();
+
+    if (cat.includes('batata') || d.includes('batata') || d.includes('cone') || d.includes('cheddar')) {
+      return 'bg-yellow-950/70 border border-yellow-500/50 text-yellow-200';
     }
-    return order.itemName;
+    if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai') || d.includes('copo') || d.includes('tigela')) {
+      return 'bg-purple-950/70 border border-purple-500/50 text-purple-200';
+    }
+    if (cat.includes('pizza') || d.includes('pizza') || d.includes('pedaço') || d.includes('inteira') || d.includes('marguerita') || d.includes('calabresa')) {
+      return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
+    }
+    return 'bg-cyan-950/70 border border-cyan-500/50 text-cyan-200';
   };
 
   return (
     <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-100 font-sans overflow-hidden">
       
-      {/* CABEÇALHO DA COZINHA */}
+      {/* CABEÇALHO DA COZINHA (COM BOTÕES ESPERA E ENTREGUES NO CABEÇALHO) */}
       <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between shrink-0 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-tr from-orange-500 to-amber-600 rounded-xl shadow-lg">
@@ -248,8 +262,32 @@ export default function KitchenView({ environment, onNavigate }) {
           </div>
         </div>
 
-        {/* CONTROLES LIMPOS: SELETOR DE AMBIENTE */}
-        <div className="flex items-center gap-2.5">
+        {/* BOTÕES: FILA EM LINHA PASSA PARA ESPERA E ENTREGUES NO CABEÇALHO */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setActiveFilter('active')}
+              className={`px-3 py-1.5 rounded-lg font-black text-xs transition-all cursor-pointer ${
+                activeFilter === 'active'
+                  ? 'bg-orange-500 text-slate-950 shadow-md ring-2 ring-orange-400/50'
+                  : 'bg-slate-850 text-slate-400 hover:text-white'
+              }`}
+            >
+              🔥 Espera ({activeOrders.length})
+            </button>
+
+            <button
+              onClick={() => setActiveFilter('entregue')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                activeFilter === 'entregue'
+                  ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400/50'
+                  : 'bg-slate-850 text-slate-400 hover:text-white'
+              }`}
+            >
+              ✓ Entregues ({deliveredOrders.length})
+            </button>
+          </div>
+
           <ProfileSelector 
             onProfileChange={(profileId) => {
               if (onNavigate) onNavigate(profileId);
@@ -258,33 +296,6 @@ export default function KitchenView({ environment, onNavigate }) {
         </div>
       </header>
 
-      {/* BARRA DE FILTROS */}
-      <div className="bg-slate-900/60 border-b border-slate-800/80 px-4 py-1.5 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveFilter('active')}
-            className={`px-3 py-1 rounded-lg font-black transition-all ${
-              activeFilter === 'active'
-                ? 'bg-orange-500 text-slate-950 shadow-md'
-                : 'bg-slate-800 text-slate-400 hover:text-white'
-            }`}
-          >
-            🔥 Fila em Linhas ({activeOrders.length})
-          </button>
-
-          <button
-            onClick={() => setActiveFilter('entregue')}
-            className={`px-3 py-1 rounded-lg font-bold transition-all ${
-              activeFilter === 'entregue'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-400 hover:text-white'
-            }`}
-          >
-            ✓ Entregues ({deliveredOrders.length})
-          </button>
-        </div>
-      </div>
-
       {/* ========================================================
           LISTA DOS PEDIDOS EM FORMATO DE LINHAS (ROW CARDS)
          ======================================================== */}
@@ -292,25 +303,26 @@ export default function KitchenView({ environment, onNavigate }) {
         {displayedOrders.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center text-slate-500">
             <Flame className="w-14 h-14 text-slate-700 mb-2 animate-pulse" />
-            <h2 className="text-xl font-bold text-slate-400">Nenhum pedido pendente na cozinha!</h2>
+            <h2 className="text-xl font-bold text-slate-400">
+              {activeFilter === 'active' ? 'Nenhum pedido em espera!' : 'Nenhum pedido entregue nesta sessão!'}
+            </h2>
             <p className="text-xs text-slate-500 mt-1">
-              Assim que o caixa confirmar uma venda, ela surgirá aqui com o efeito de 10 segundos e o aviso sonoro.
+              Assim que o caixa confirmar uma venda, ela surgirá aqui com aviso sonoro e destaque imediato.
             </p>
           </div>
         ) : (
-          <div className="space-y-2 max-w-6xl mx-auto">
+          <div className="space-y-2.5 max-w-6xl mx-auto">
             {displayedOrders.map((order) => {
               const isReady = order.status === 'pronto';
               const isDelivered = order.status === 'entregue';
               const isPreparing = order.status === 'em_preparo';
-              
-              // Verifica se este pedido é o mais novo que está com o efeito de 10 segundos
               const isNewestHighlight = newestOrderId === order.id && !isDelivered;
+              const itemsList = getOrderItems(order);
 
               return (
                 <div
                   key={order.id}
-                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-1.5 px-3 rounded-xl border-2 transition-all shadow-md gap-2 relative ${
+                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-2 px-3 rounded-xl border-2 transition-all shadow-md gap-2.5 relative ${
                     isDelivered
                       ? 'bg-slate-900/40 border-slate-800 opacity-60'
                       : isNewestHighlight
@@ -328,101 +340,76 @@ export default function KitchenView({ environment, onNavigate }) {
                     </div>
                   )}
 
-                  {/* BLOCO 1: NÚMERO DA COMANDA + NOME DO CLIENTE (COMPACTADO PARA PUXAR O MEIO PARA A ESQUERDA) */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  {/* BLOCO 1: SENHA ÚNICA GERAL + NOME DO CLIENTE */}
+                  <div className="flex items-center gap-2.5 shrink-0">
                     <div className="p-1.5 bg-slate-950 rounded-lg border border-slate-800 shrink-0">
                       {getCategoryIcon(order.category)}
                     </div>
                     <div>
-                      {/* CÓDIGO DA COMANDA */}
-                      <div className="text-base sm:text-lg font-black text-orange-400 font-mono tracking-tight flex items-center leading-none">
+                      {/* CÓDIGO DA SENHA ÚNICA */}
+                      <div className="text-lg sm:text-xl font-black text-orange-400 font-mono tracking-tight flex items-center leading-none">
                         <span>{order.orderNumber}</span>
                       </div>
-                      {/* NOME DO CLIENTE REDUZIDO EM 25% (text-[10.5px]) */}
-                      <div className="text-[10.5px] font-bold text-amber-300 flex items-center gap-1 leading-tight mt-0.5">
-                        <User className="w-3 h-3 shrink-0" />
-                        <span className="truncate max-w-[95px]">{order.customerName}</span>
+                      {/* NOME DO CLIENTE */}
+                      <div className="text-xs font-black text-white flex items-center gap-1 leading-tight mt-0.5">
+                        <User className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="uppercase truncate max-w-[130px]">{order.customerName}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* BLOCO 2: DETALHES DO PRODUTO (LARGURA EXPANDIDA PARA A ESQUERDA) */}
-                  <div className="flex-1 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-800/80 flex flex-col justify-center gap-0.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider leading-none">
-                          {order.categoryName}
+                  {/* BLOCO 2: TODOS OS PEDIDOS DO CLIENTE NO MESMO CARD (01 Cone | 01 Copo 500ml | 01 Pedaço...) */}
+                  <div className="flex-1 bg-slate-950/70 p-2 rounded-xl border border-slate-800/80 flex items-center gap-2 flex-wrap min-h-[42px]">
+                    {itemsList.map((it, idx) => (
+                      <span
+                        key={idx}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
+                      >
+                        <span className="font-black text-orange-400 font-mono text-[13px]">
+                          {String(it.quantity).padStart(2, '0')}
                         </span>
-                        {order.targetEnvironment && order.targetEnvironment !== 'none' && order.targetEnvironment !== 'COZINHA' && (
-                          <span className="text-[9px] font-extrabold px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded uppercase tracking-wider leading-none">
-                            📍 {order.targetEnvironment.replace('_', ' ')}
-                          </span>
-                        )}
-                      </div>
-                      {order.paymentMethod && (
-                        <span className="text-slate-400 font-mono text-[10px] leading-none">
-                          {order.paymentMethod}
+                        <span className="font-bold text-white">
+                          {it.description || it.name || it.itemName}
                         </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="bg-orange-500/20 text-orange-300 font-black px-1.5 py-0.5 rounded border border-orange-500/40 text-[10px] shrink-0 leading-none">
-                        QTE: {String(order.quantity).padStart(2, '0')}
                       </span>
-                      <span className="text-sm sm:text-base font-black text-white leading-tight">
-                        {getItemCleanDescription(order)}
-                      </span>
-                    </div>
+                    ))}
                   </div>
 
-                  {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR (COMPACTADO EM ALTURA) */}
-                  <div className="flex items-end justify-between md:justify-end gap-1.5 sm:gap-2 shrink-0">
+                  {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR */}
+                  <div className="flex items-center justify-between md:justify-end gap-1.5 sm:gap-2 shrink-0">
                     {!isDelivered ? (
-                      <div className="flex items-end gap-1.5 sm:gap-2">
-                        {/* COLUNA: TEMPO */}
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-[10px] font-semibold text-slate-400 leading-none">
-                            Tempo
-                          </span>
-                          <div className={`text-[11px] font-mono font-bold px-2 h-[28px] rounded-lg border flex items-center justify-center gap-1 ${getTimeColor(order.createdAt)}`}>
-                            <Clock className="w-3 h-3" />
-                            <span>{getElapsedTime(order.createdAt)}</span>
-                          </div>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        {/* TEMPO */}
+                        <div className={`text-[11px] font-mono font-bold px-2.5 h-[32px] rounded-lg border flex items-center justify-center gap-1 ${getTimeColor(order.createdAt)}`}>
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{getElapsedTime(order.createdAt)}</span>
                         </div>
 
-                        {/* COLUNA: PRONTO (SINO) */}
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-[10px] font-semibold text-slate-400 leading-none">
-                            Pronto
-                          </span>
-                          <button
-                            onClick={() => handleMarkReady(order.id)}
-                            className="w-[28px] h-[28px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-lg transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
-                            title="Tocar sino e chamar no painel PEDIDOS"
-                          >
-                            <BellRing className="w-3.5 h-3.5 animate-bounce" />
-                          </button>
-                        </div>
+                        {/* PRONTO (SINO) */}
+                        <button
+                          onClick={() => handleMarkReady(order.id)}
+                          className="w-[32px] h-[32px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-lg transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
+                          title="Tocar sino e chamar no painel PEDIDOS"
+                        >
+                          <BellRing className="w-4 h-4 animate-bounce" />
+                        </button>
 
-                        {/* BOTÃO PRINCIPAL: ENTREGAR */}
-                        <div className="flex flex-col items-center gap-0.5">
-                          <button
-                            onClick={() => handleDeliver(order.id)}
-                            className="px-3.5 h-[28px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-[11px] rounded-lg transition-all shadow-md flex items-center gap-1 border border-emerald-400 cursor-pointer"
-                            title="Entregar pedido concluído"
-                          >
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>ENTREGAR</span>
-                          </button>
-                        </div>
+                        {/* ENTREGAR */}
+                        <button
+                          onClick={() => handleDeliver(order.id)}
+                          className="px-3.5 h-[32px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs rounded-lg transition-all shadow-md flex items-center gap-1.5 border border-emerald-400 cursor-pointer"
+                          title="Entregar pedido concluído"
+                        >
+                          <Check className="w-4 h-4 stroke-[3]" />
+                          <span>ENTREGAR</span>
+                        </button>
                       </div>
                     ) : (
                       <button
                         onClick={() => handleReopen(order.id)}
-                        className="px-2.5 h-[28px] bg-slate-800 hover:bg-slate-700 text-slate-400 text-[11px] font-semibold rounded-lg transition-colors flex items-center gap-1"
+                        className="px-3 h-[32px] bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        <RotateCcw className="w-3 h-3" />
+                        <RotateCcw className="w-3.5 h-3.5" />
                         <span>Reabrir</span>
                       </button>
                     )}

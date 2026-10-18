@@ -352,7 +352,37 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     return matches.reduce((sum, i) => sum + i.quantity, 0);
   };
 
-  // Finalizar a comanda do cliente e criar todos os pedidos
+
+  // Cores de fundo e borda para cada categoria de item (identados no rodapé)
+  const getItemBadgeStyle = (categoryId, desc = '') => {
+    const cat = String(categoryId || '').toLowerCase();
+    const d = String(desc || '').toLowerCase();
+
+    if (cat.includes('batata') || d.includes('batata') || d.includes('cone') || d.includes('cheddar')) {
+      return 'bg-yellow-950/70 border border-yellow-500/50 text-yellow-200';
+    }
+    if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai') || d.includes('copo') || d.includes('tigela')) {
+      return 'bg-purple-950/70 border border-purple-500/50 text-purple-200';
+    }
+    if (cat.includes('pizza') || d.includes('pizza') || d.includes('pedaço') || d.includes('inteira') || d.includes('marguerita') || d.includes('calabresa')) {
+      return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
+    }
+    return 'bg-cyan-950/70 border border-cyan-500/50 text-cyan-200';
+  };
+
+  const getOrderItems = (order) => {
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      return order.items;
+    }
+    return [{
+      description: order.fullDescription || order.itemName || 'Item',
+      quantity: order.quantity || 1,
+      categoryId: order.category || order.categoryName || 'outros',
+      unitPrice: order.unitPrice || order.totalPrice || 0
+    }];
+  };
+
+  // Finalizar a comanda do cliente: A SENHA É ÚNICA PARA TODA A COMPRA!
   const handleFinalizeCart = async (e) => {
     if (e) e.preventDefault();
 
@@ -379,9 +409,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
     try {
       const routing = storageService.getProductionRouting();
-      const createdOrders = [];
+      
+      // A SENHA É ÚNICA: Assume a primeira senha (prefixo do 1º item)
+      const primaryOrderNumber = storageService.getNextOrderNumber(cart[0].prefix);
 
-      for (const cartItem of cart) {
+      const orderItems = cart.map((cartItem) => {
         const { category, item, variation, description, prefix, unitPrice, quantity: qty } = cartItem;
         const targetId = variation ? variation.id : item.id;
         const catId = category.id;
@@ -404,53 +436,51 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           targetEnvironment = sendToKitchen ? 'COZINHA' : 'none';
         }
 
-        if (targetEnvironment === 'none') {
-          sendToKitchen = false;
-        } else {
-          sendToKitchen = true;
-        }
-
-        let showOnTV = true;
-        if (routing.showOnTV?.[targetId] !== undefined) {
-          showOnTV = routing.showOnTV[targetId];
-        } else if (routing.showOnTV?.[catId] !== undefined) {
-          showOnTV = routing.showOnTV[catId];
-        } else {
-          showOnTV = catId === 'pizza';
-        }
-
-        const orderNumber = storageService.getNextOrderNumber(prefix);
-        const totalPrice = unitPrice * qty;
-
-        const newOrder = {
-          orderNumber,
-          customerName: cleanName,
-          category: category.id,
+        return {
+          cartItemId: cartItem.cartItemId,
+          categoryId: category.id,
           categoryName: category.name,
           itemId: item.id,
           itemName: item.name,
           variationId: variation ? variation.id : null,
           variationName: variation ? variation.name : null,
-          fullDescription: description,
+          description,
+          prefix,
           quantity: qty,
           unitPrice,
-          totalPrice,
-          paymentMethod,
+          totalPrice: unitPrice * qty,
           sendToKitchen,
-          targetEnvironment,
-          showOnTV,
-          status: sendToKitchen ? 'em_preparo' : 'entregue'
+          targetEnvironment
         };
+      });
 
-        const created = await storageService.createOrder(newOrder);
-        createdOrders.push(created);
-      }
+      const newOrder = {
+        orderNumber: primaryOrderNumber, // SENHA ÚNICA
+        customerName: cleanName,
+        paymentMethod,
+        items: orderItems,
+        category: cart[0].category.id,
+        categoryName: cart[0].category.name,
+        itemId: cart[0].item.id,
+        itemName: cart[0].item.name,
+        fullDescription: orderItems.map(it => `${String(it.quantity).padStart(2, '0')} ${it.description}`).join(' | '),
+        quantity: cartItemCount,
+        unitPrice: cart[0].unitPrice,
+        totalPrice: cartTotal,
+        paymentMethod,
+        sendToKitchen: true,
+        targetEnvironment: 'COZINHA',
+        showOnTV: true,
+        status: 'em_preparo'
+      };
+
+      const created = await storageService.createOrder(newOrder);
 
       setToast({
         type: 'success',
         title: `Venda de ${cleanName.toUpperCase()} Concluída!`,
-        message: `${createdOrders.length} pedido(s) gerado(s) com sucesso!`,
-        subtext: `Total: R$ ${cartTotal.toFixed(2)} (${paymentMethod}) • Comandas: ${createdOrders.map(o => o.orderNumber).join(', ')}`
+        message: `Comanda ${created.orderNumber} gerada com ${orderItems.length} item(ns)!`,
+        subtext: `Total: R$ ${cartTotal.toFixed(2)} (${paymentMethod})`
       });
 
       // Limpar tudo para o próximo cliente
@@ -471,7 +501,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     }
   };
 
-  // AÇÕES RÁPIDAS: ADICIONAR E EXCLUIR ITEM DIRETAMENTE NA CATEGORIA (BOTÕES + E -)
+    // AÇÕES RÁPIDAS: ADICIONAR E EXCLUIR ITEM DIRETAMENTE NA CATEGORIA (BOTÕES + E -)
   const handleOpenQuickAdd = (category) => {
     if (!category) return;
     setQuickAddModal({ isOpen: true, category });
@@ -581,6 +611,59 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const otherCategories = categories.filter(c => !['pizza', 'acai', 'batata'].includes(c.id));
 
   const isNameFilled = customerName.trim().length > 0;
+
+
+  // Renderizador de card do rodapé com SENHA ÚNICA e itens identados
+  const renderFooterCard = (order, isDelivered = false) => {
+    const style = getOrderCategoryStyle(order);
+    const items = getOrderItems(order);
+
+    return (
+      <div 
+        key={order.id}
+        className={`px-2.5 py-1.5 rounded-lg border ${style.border} ${style.bg} transition-all shadow-sm text-xs flex flex-col gap-1`}
+      >
+        {/* CABEÇALHO DO CARD: SENHA ÚNICA GERAL + NOME DO CLIENTE */}
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1 shrink-0">
+              {style.icon}
+              <span className={`font-mono font-black text-[11px] px-1.5 py-0.2 rounded border ${style.badgeColor}`}>
+                {order.orderNumber}
+              </span>
+            </div>
+
+            <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+
+            <span className="text-[11px] font-black text-white uppercase truncate" title={order.customerName}>
+              {order.customerName}
+            </span>
+          </div>
+
+          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+            R$ {(Number(order.totalPrice) || 0).toFixed(2)}
+          </span>
+        </div>
+
+        {/* DEMAIS ITENS IDENTADOS COM QUANTIDADE BOLD EM LARANJA E FUNDO CORRESPONDENTE */}
+        <div className="flex items-center gap-1.5 flex-wrap pl-2.5 border-l-2 border-amber-500/40 mt-0.5">
+          {items.map((it, idx) => (
+            <span
+              key={idx}
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
+            >
+              <strong className="text-orange-400 font-mono font-black text-[11px]">
+                {String(it.quantity).padStart(2, '0')}
+              </strong>
+              <span className="text-slate-100 font-bold">
+                {it.description || it.name || it.itemName}
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden text-xs">
@@ -1233,36 +1316,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   Nenhum pedido em preparo
                 </div>
               ) : (
-                preparingList.map((order) => {
-                  const style = getOrderCategoryStyle(order);
-                  const itemText = getItemSummary(order);
-                  return (
-                    <div 
-                      key={order.id}
-                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${style.border} ${style.bg} transition-all shadow-sm text-xs`}
-                    >
-                      <div className="flex items-center gap-1 shrink-0">
-                        {style.icon}
-                        <span className={`font-mono font-black text-[11px] px-1.5 py-0.2 rounded border ${style.badgeColor}`}>
-                          {order.orderNumber}
-                        </span>
-                      </div>
-
-                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
-
-                      <span className="text-[11px] font-black text-white uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
-                        {order.customerName}
-                      </span>
-
-                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
-
-                      <span className={`text-[11px] font-medium truncate flex-1 ${style.textColor}`} title={itemText}>
-                        {order.quantity > 1 && <strong className="text-amber-400 font-mono mr-1">({order.quantity}x)</strong>}
-                        {itemText}
-                      </span>
-                    </div>
-                  );
-                })
+                preparingList.map(order => renderFooterCard(order, false))
               )}
             </div>
           </div>
@@ -1287,36 +1341,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   Nenhum pedido pronto
                 </div>
               ) : (
-                readyList.map((order) => {
-                  const style = getOrderCategoryStyle(order);
-                  const itemText = getItemSummary(order);
-                  return (
-                    <div 
-                      key={order.id}
-                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${style.border} ${style.bg} transition-all shadow-sm text-xs`}
-                    >
-                      <div className="flex items-center gap-1 shrink-0">
-                        {style.icon}
-                        <span className={`font-mono font-black text-[11px] px-1.5 py-0.2 rounded border ${style.badgeColor}`}>
-                          {order.orderNumber}
-                        </span>
-                      </div>
-
-                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
-
-                      <span className="text-[11px] font-black text-white uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
-                        {order.customerName}
-                      </span>
-
-                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
-
-                      <span className={`text-[11px] font-medium truncate flex-1 ${style.textColor}`} title={itemText}>
-                        {order.quantity > 1 && <strong className="text-amber-400 font-mono mr-1">({order.quantity}x)</strong>}
-                        {itemText}
-                      </span>
-                    </div>
-                  );
-                })
+                readyList.map(order => renderFooterCard(order, false))
               )}
             </div>
           </div>
@@ -1341,35 +1366,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   Nenhum pedido entregue
                 </div>
               ) : (
-                deliveredList.map((order) => {
-                  const style = getOrderCategoryStyle(order);
-                  const itemText = getItemSummary(order);
-                  return (
-                    <div 
-                      key={order.id}
-                      className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-800/80 bg-slate-950/40 text-slate-400 text-xs"
-                    >
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className="font-mono font-bold text-[10px] text-slate-400">
-                          {order.orderNumber}
-                        </span>
-                      </div>
-
-                      <span className="text-slate-700 select-none text-[10px]">|</span>
-
-                      <span className="text-[11px] font-bold text-slate-300 uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
-                        {order.customerName}
-                      </span>
-
-                      <span className="text-slate-700 select-none text-[10px]">|</span>
-
-                      <span className="text-[11px] text-slate-400 truncate flex-1" title={itemText}>
-                        {order.quantity > 1 && <span className="font-mono mr-1">({order.quantity}x)</span>}
-                        {itemText}
-                      </span>
-                    </div>
-                  );
-                })
+                deliveredList.map(order => renderFooterCard(order, true))
               )}
             </div>
           </div>

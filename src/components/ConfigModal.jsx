@@ -2664,8 +2664,33 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   )}
                                 </div>
                               </td>
-                              <td className="py-1 px-2.5">{ord.fullDescription || ord.itemName}</td>
-                              <td className="py-1 px-2.5 text-center font-bold text-amber-300">{ord.quantity}x</td>
+                              <td className="py-1 px-2.5">
+                                {ord.items && ord.items.length > 1 ? (
+                                  <div className="space-y-1 py-0.5">
+                                    {ord.items.map((it, idx) => (
+                                      <div key={idx} className="flex items-center gap-1.5 text-slate-200">
+                                        <span className="font-mono font-black text-orange-400 bg-orange-950/60 border border-orange-500/30 px-1 py-0.2 rounded text-[10px]">
+                                          {String(it.quantity || 1).padStart(2, '0')}x
+                                        </span>
+                                        <span className="font-medium">{it.description}</span>
+                                        {it.unitPrice > 0 && (
+                                          <span className="text-[10px] text-slate-400 font-mono">
+                                            (R$ {Number(it.unitPrice).toFixed(2)})
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span>{ord.fullDescription || ord.itemName}</span>
+                                )}
+                              </td>
+                              <td className="py-1 px-2.5 text-center font-bold text-amber-300">
+                                {ord.items && ord.items.length > 1 
+                                  ? `${ord.items.reduce((s, it) => s + (Number(it.quantity) || 1), 0)} itens`
+                                  : `${ord.quantity}x`
+                                }
+                              </td>
                               <td className="py-1 px-2.5">{ord.paymentMethod}</td>
                               <td className={`py-1 px-2.5 text-right font-bold ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
                                 R$ {Number(ord.totalPrice).toFixed(2)}
