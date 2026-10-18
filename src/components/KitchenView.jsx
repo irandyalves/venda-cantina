@@ -376,7 +376,7 @@ export default function KitchenView({ environment, onNavigate }) {
     if (cat.includes('batata') || d.includes('batata') || d.includes('cone') || d.includes('cheddar')) {
       return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
     }
-    if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai') || d.includes('copo') || d.includes('tigela')) {
+    if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai')) {
       return 'bg-purple-950/70 border border-purple-500/50 text-purple-200';
     }
     if (cat.includes('pizza') || d.includes('pizza') || d.includes('pedaço') || d.includes('inteira') || d.includes('marguerita') || d.includes('calabresa')) {

@@ -1198,6 +1198,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const handleSaveAllPrefixes = () => {
     storageService.saveProducts(categories);
     showToast('Itens cadastrados para venda e senhas salvos com sucesso!', 'Itens Salvos');
+    if (onClose) onClose();
   };
 
   const handleSavePizzaPrices = () => {
@@ -2169,9 +2170,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           {allSaleItems.length} itens
                         </span>
                       </h3>
-                      <p className="text-xs text-slate-400">
-                        Edite senhas e valores abaixo, clique no lápis verde ✏️ para editar ou na lixeira 🗑️ para excluir.
-                      </p>
                     </div>
                   </div>
 

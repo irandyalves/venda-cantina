@@ -319,6 +319,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     });
   };
 
+  const isValidColorHex = (c) => {
+    if (!c || typeof c !== 'string') return false;
+    const s = c.trim().toLowerCase();
+    return s.startsWith('#') || s.startsWith('rgb');
+  };
+
   // Cores de fundo e borda para cada categoria de item (identados no rodapé)
   const getItemBadgeStyle = (categoryId, desc = '') => {
     const cat = String(categoryId || '').toLowerCase();
@@ -327,7 +333,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     if (cat.includes('batata') || d.includes('batata') || d.includes('cone') || d.includes('cheddar')) {
       return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
     }
-    if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai') || d.includes('copo') || d.includes('tigela')) {
+    if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai')) {
       return 'bg-purple-950/70 border border-purple-500/50 text-purple-200';
     }
     if (cat.includes('pizza') || d.includes('pizza') || d.includes('pedaço') || d.includes('inteira') || d.includes('marguerita') || d.includes('calabresa')) {
@@ -338,6 +344,24 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   // Cores de fundo e texto para os chips do carrinho de compras
   const getCartItemStyle = (cItem) => {
+    const customColor = (isValidColorHex(cItem.color) && cItem.color) ||
+      (isValidColorHex(cItem.item?.color) && cItem.item?.color) ||
+      (isValidColorHex(cItem.category?.color) && cItem.category?.color);
+
+    if (customColor) {
+      return {
+        chip: '',
+        style: {
+          backgroundColor: `${customColor}22`,
+          borderColor: `${customColor}80`,
+          color: '#ffffff'
+        },
+        priceStyle: {
+          color: customColor
+        }
+      };
+    }
+
     const cat = String(cItem.category?.id || cItem.categoryId || '').toLowerCase();
     const desc = String(cItem.description || '').toLowerCase();
 
@@ -347,7 +371,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         price: 'text-orange-300'
       };
     }
-    if (cat.includes('acai') || cat.includes('açaí') || desc.includes('açaí') || desc.includes('acai') || desc.includes('copo') || desc.includes('tigela')) {
+    if (cat.includes('acai') || cat.includes('açaí') || desc.includes('açaí') || desc.includes('acai')) {
       return {
         chip: 'bg-purple-950/80 border-purple-500/60 text-purple-200',
         price: 'text-purple-300'
@@ -423,12 +447,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   const totalFaturado = todayOrders.filter(o => o.status !== 'cancelado').reduce((acc, curr) => acc + (Number(curr.totalPrice) || 0), 0);
 
-  const isValidColorHex = (c) => {
-    if (!c || typeof c !== 'string') return false;
-    const s = c.trim().toLowerCase();
-    return s.startsWith('#') || s.startsWith('rgb');
-  };
-
   // Resolução inteligente da cor do item para os mini cards e pedidos
   const getOrderItemColor = (order) => {
     if (isValidColorHex(order.color)) return order.color;
@@ -458,6 +476,17 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         for (const cat of categories) {
           const it = (cat.items || []).find(x => x.name?.toLowerCase() === itemName?.toLowerCase());
           if (isValidColorHex(it?.color)) return it.color;
+        }
+      }
+      // Busca ampla por descrição ou nome nos itens cadastrados
+      const searchDesc = (itemName || firstItem?.description || order.fullDescription || '').toLowerCase();
+      if (searchDesc) {
+        for (const cat of categories) {
+          const it = (cat.items || []).find(x => x.name && (searchDesc.includes(x.name.toLowerCase()) || x.name.toLowerCase().includes(searchDesc)));
+          if (isValidColorHex(it?.color)) return it.color;
+          if (cat.name && searchDesc.includes(cat.name.toLowerCase()) && isValidColorHex(cat.color)) {
+            return cat.color;
+          }
         }
       }
       for (const cat of categories) {
@@ -1291,12 +1320,16 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 return (
                   <div
                     key={cItem.cartItemId}
-                    className={`animate-cart-item-birth border px-2.5 py-1 rounded-xl flex items-center gap-2 shrink-0 shadow-sm transition-all text-xs ${itemStyle.chip}`}
+                    style={itemStyle.style}
+                    className={`animate-cart-item-birth border px-2.5 py-1 rounded-xl flex items-center gap-2 shrink-0 shadow-sm transition-all text-xs ${itemStyle.chip || ''}`}
                   >
                     <span className="font-bold text-white whitespace-nowrap">
                       {cItem.description}
                     </span>
-                    <span className={`font-black font-mono ${itemStyle.price}`}>
+                    <span 
+                      style={itemStyle.priceStyle}
+                      className={`font-black font-mono ${itemStyle.price || ''}`}
+                    >
                       {formatPrice(cItem.unitPrice * cItem.quantity, showCurrencySymbol)}
                     </span>
 
