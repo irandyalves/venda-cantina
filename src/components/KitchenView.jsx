@@ -275,10 +275,10 @@ export default function KitchenView({ environment, onNavigate }) {
     : deliveredOrders;
 
   // Formatação de tempo decorrido no formato 0:00:00 (limite máximo de 9h, sem m e s)
-  const getElapsedTime = (timestamp) => {
-    if (!timestamp) return '0:00:00';
+  const getElapsedTimeParts = (timestamp) => {
+    if (!timestamp) return { h: '0', m: '00', s: '00', hours: 0, text: '0:00:00' };
     const diffMs = currentTime - timestamp;
-    if (diffMs < 0) return '0:00:00';
+    if (diffMs < 0) return { h: '0', m: '00', s: '00', hours: 0, text: '0:00:00' };
     const totalSec = Math.floor(diffMs / 1000);
     // Limite máximo de 9 horas (9:59:59)
     const maxSec = 9 * 3600 + 59 * 60 + 59;
@@ -291,8 +291,16 @@ export default function KitchenView({ environment, onNavigate }) {
     const mStr = String(minutes).padStart(2, '0');
     const sStr = String(seconds).padStart(2, '0');
 
-    return `${hours}:${mStr}:${sStr}`;
+    return {
+      h: String(hours),
+      m: mStr,
+      s: sStr,
+      hours,
+      text: `${hours}:${mStr}:${sStr}`
+    };
   };
+
+  const getElapsedTime = (timestamp) => getElapsedTimeParts(timestamp).text;
 
   // Classificação de tempo por faixas configuradas: Verde -> Azul -> Amarelo -> Laranja -> Vermelho
   const getOrderTimeStatus = (order) => {
@@ -516,14 +524,36 @@ export default function KitchenView({ environment, onNavigate }) {
                   <div className="flex items-center justify-between md:justify-end gap-1.5 shrink-0">
                     {!isDelivered ? (
                       <div className="flex items-center gap-1.5">
-                        {/* TEMPO BASEADO NAS CORES CONFIGURADAS (LARGURA FIXA E FORMATO 0:00:00) */}
-                        <div 
-                          className={`w-[78px] h-[22px] pl-1.5 pr-1.5 rounded-lg border flex items-center justify-between font-mono font-bold text-[10px] tabular-nums transition-all shadow-sm shrink-0 select-none ${timeStatus.classes}`}
-                          title={`Tempo em preparo: ${getElapsedTime(order.createdAt)}`}
-                        >
-                          <Clock className="w-2.5 h-2.5 shrink-0" />
-                          <span className="leading-none">{getElapsedTime(order.createdAt)}</span>
-                        </div>
+                        {/* TEMPO BASEADO NAS CORES CONFIGURADAS (FORMATO 0:00:00 COM DESTAQUE DINÂMICO) */}
+                        {(() => {
+                          const timeParts = getElapsedTimeParts(order.createdAt);
+                          const isOneHourOrMore = timeParts.hours >= 1;
+
+                          return (
+                            <div 
+                              className={`w-[78px] h-[22px] pl-1.5 pr-1.5 rounded-lg border flex items-center justify-between font-mono text-[10px] tabular-nums transition-all shadow-sm shrink-0 select-none ${timeStatus.classes}`}
+                              title={`Tempo em preparo: ${timeParts.text}`}
+                            >
+                              <Clock className="w-2.5 h-2.5 shrink-0" />
+                              <div className="leading-none flex items-baseline tracking-tight">
+                                {/* HORA (Recebe BOLD e 10% maior quando completar 1h ou mais) */}
+                                <span className={isOneHourOrMore ? 'font-black text-[11px]' : 'font-medium opacity-85 text-[10px]'}>
+                                  {timeParts.h}
+                                </span>
+                                <span className="opacity-60 text-[9px] mx-[0.5px]">:</span>
+                                {/* MINUTOS (Recebe BOLD e 10% maior enquanto for menos de 1h) */}
+                                <span className={!isOneHourOrMore ? 'font-black text-[11px]' : 'font-medium opacity-85 text-[10px]'}>
+                                  {timeParts.m}
+                                </span>
+                                <span className="opacity-60 text-[9px] mx-[0.5px]">:</span>
+                                {/* SEGUNDOS */}
+                                <span className="font-normal opacity-70 text-[10px]">
+                                  {timeParts.s}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {/* PRONTO (SINO) */}
                         <button
