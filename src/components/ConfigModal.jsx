@@ -46,7 +46,8 @@ import {
   Search,
   Upload,
   Image as ImageIcon,
-  Eraser
+  Eraser,
+  Filter
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -223,6 +224,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [newCatPrefixInput, setNewCatPrefixInput] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [deleteCatConfirmModal, setDeleteCatConfirmModal] = useState({ isOpen: false, category: null });
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
 
   // Prefixos das Senhas (Comandas)
   const [pedacoPrefix, setPedacoPrefix] = useState('Pp-');
@@ -1766,6 +1768,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     });
   });
 
+  const filteredSaleItems = selectedCategoryFilter === 'all'
+    ? allSaleItems
+    : allSaleItems.filter(item => item.categoryId === selectedCategoryFilter);
+
   return (
     <div 
       onClick={(e) => {
@@ -2211,63 +2217,126 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
-                {/* CATEGORIAS CADASTRADAS COM BOTÃO DE EXCLUIR PARA CATEGORIAS PERSONALIZADAS */}
-                <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1">
-                      Categorias:
+                {/* CATEGORIAS CADASTRADAS: FILTROS INTERATIVOS COM CHIPS MODERNOS */}
+                <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-800 shadow-inner flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+                      <Filter className="w-3.5 h-3.5 text-amber-400" />
+                      Filtrar:
                     </span>
+
+                    {/* BOTÃO TODAS */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategoryFilter('all')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        selectedCategoryFilter === 'all'
+                          ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 ring-2 ring-amber-400'
+                          : 'bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800'
+                      }`}
+                    >
+                      <span>TODAS</span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                        selectedCategoryFilter === 'all'
+                          ? 'bg-slate-950/30 text-slate-950 font-bold'
+                          : 'bg-slate-900 text-amber-400 border border-slate-800'
+                      }`}>
+                        {allSaleItems.length}
+                      </span>
+                    </button>
+
+                    {/* CATEGORIAS ESPECÍFICAS */}
                     {categories.map((c) => {
                       const isSystem = ['pizza', 'acai', 'batata'].includes(c.id);
                       const count = c.id === 'pizza' ? (c.variations?.length || 0) : (c.items?.length || 0);
+                      const isSelected = selectedCategoryFilter === c.id;
                       return (
-                        <div 
-                          key={c.id} 
-                          className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 text-xs shadow-sm"
+                        <div
+                          key={c.id}
+                          onClick={() => setSelectedCategoryFilter(c.id)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                            isSelected
+                              ? 'bg-slate-800 text-white border-amber-400 ring-2 ring-amber-400/30 shadow-md'
+                              : 'bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800'
+                          }`}
                         >
-                          <span className="font-bold text-white uppercase text-[11px]">{c.name}</span>
-                          <span className="text-[10px] font-mono text-amber-400 bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">
-                            {count} {count === 1 ? 'item' : 'itens'}
+                          <span className="uppercase text-[11px] font-black">{c.name}</span>
+                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                            isSelected
+                              ? 'bg-amber-400 text-slate-950 font-black'
+                              : 'bg-slate-900 text-slate-400 border border-slate-800'
+                          }`}>
+                            {count}
                           </span>
                           {!isSystem && (
                             <button
                               type="button"
-                              onClick={() => setDeleteCatConfirmModal({ isOpen: true, category: c })}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteCatConfirmModal({ isOpen: true, category: c });
+                              }}
                               className="text-slate-400 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer ml-0.5"
                               title={`Excluir categoria "${c.name}"`}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3 h-3" />
                             </button>
                           )}
                         </div>
                       );
                     })}
                   </div>
+
+                  {selectedCategoryFilter !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategoryFilter('all')}
+                      className="text-[11px] text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer shrink-0"
+                    >
+                      Mostrar Todas ({allSaleItems.length})
+                    </button>
+                  )}
                 </div>
 
                 {/* GRID DOS ITENS CADASTRADOS PARA VENDA */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {allSaleItems.map((item) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                  {filteredSaleItems.map((item) => (
                     <div 
                       key={`${item.categoryId}_${item.id}`} 
-                      className="bg-slate-900/90 p-3 rounded-xl border border-slate-700/80 border-l-4 space-y-2 hover:border-amber-500/50 transition-colors shadow-sm flex flex-col justify-between relative"
+                      className="bg-slate-900/95 hover:bg-slate-900 p-3.5 rounded-2xl border border-slate-700/80 hover:border-slate-600 border-l-4 space-y-3 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group"
                       style={{ borderLeftColor: item.color || '#eab308' }}
                     >
-                      {/* TOPO: NOME, CATEGORIA EM LARANJA E BOTÕES (INCLUINDO ÍCONE DE COR) */}
-                      <div className="flex items-start justify-between gap-1.5">
-                        <div className="flex items-center gap-2 min-w-0 pr-1">
-                          <ProductIcon2D item={item} category={{ id: item.categoryId }} className="w-8 h-8 shrink-0" />
+                      {/* TOPO: ÍCONE 2D GRANDE, NOME, CATEGORIA E BOTÕES DE AÇÃO */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0 pr-1">
+                          {/* ÍCONE 2D EM CONTAINER DESTACADO */}
+                          <div className="w-12 h-12 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-center shrink-0 p-1 group-hover:scale-105 transition-transform">
+                            <ProductIcon2D item={item} category={{ id: item.categoryId }} className="w-10 h-10 object-contain" />
+                          </div>
+
                           <div className="min-w-0">
-                            <span className="text-xs font-black text-white uppercase truncate block" title={item.name}>
-                              {item.name}
-                            </span>
-                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wide truncate block mt-0.5">
+                            {/* BADGE DA CATEGORIA COM COR DINÂMICA */}
+                            <span 
+                              className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border font-mono inline-block truncate max-w-full"
+                              style={{ 
+                                color: item.color || '#f59e0b', 
+                                borderColor: `${item.color || '#f59e0b'}50`, 
+                                backgroundColor: `${item.color || '#f59e0b'}18` 
+                              }}
+                            >
                               {item.categoryName}
                             </span>
+                            <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wide truncate block mt-0.5" title={item.name}>
+                              {item.name}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 truncate block mt-0.5">
+                              {item.description || 'Disponível no caixa'}
+                            </p>
                           </div>
                         </div>
+
+                        {/* BOTÕES DE AÇÃO: COR, EDITAR E EXCLUIR */}
                         <div className="flex items-center gap-1 shrink-0 pt-0.5 relative">
-                          {/* BOTÃO DE COR: BOLINHA COLORIDA / ÍCONE DE COR */}
+                          {/* BOTÃO DE COR: BOLINHA COLORIDA */}
                           <div className="relative">
                             <button
                               type="button"
@@ -2275,16 +2344,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                 e.stopPropagation();
                                 setColorPickerItemId(colorPickerItemId === item.id ? null : item.id);
                               }}
-                              className="w-6 h-6 rounded-lg border border-slate-700 hover:border-slate-500 flex items-center justify-center transition-all cursor-pointer p-0.5 hover:scale-110 bg-slate-950"
-                              title="Alterar cor deste item (A cor atual já vem marcada)"
+                              className="w-7 h-7 rounded-lg border border-slate-700 hover:border-slate-500 flex items-center justify-center transition-all cursor-pointer p-0.5 hover:scale-110 bg-slate-950"
+                              title="Alterar cor deste item"
                             >
                               <span 
-                                className="w-3.5 h-3.5 rounded-full shadow-xs border border-white/40 block shrink-0" 
+                                className="w-4 h-4 rounded-full shadow-xs border border-white/40 block shrink-0" 
                                 style={{ backgroundColor: item.color || '#eab308' }}
                               />
                             </button>
 
-                            {/* POPOVER COM AS 24 CORES (A COR ATUAL JÁ VEM MARCADA) */}
+                            {/* POPOVER COM AS 24 CORES */}
                             {colorPickerItemId === item.id && (
                               <div 
                                 className="absolute right-0 top-full mt-1.5 z-50 bg-slate-950/98 backdrop-blur-md border border-slate-700 rounded-2xl p-2.5 shadow-2xl w-60 animate-fadeIn"
@@ -2298,7 +2367,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   <button
                                     type="button"
                                     onClick={() => setColorPickerItemId(null)}
-                                    className="text-slate-400 hover:text-white p-0.5"
+                                    className="text-slate-400 hover:text-white p-0.5 cursor-pointer"
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
@@ -2331,12 +2400,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             )}
                           </div>
 
-                          {/* LÁPIS VERDE */}
+                          {/* LÁPIS VERDE (EDIÇÃO AVANÇADA / ÍCONE 2D / PRESETS) */}
                           <button
                             type="button"
                             onClick={() => handleOpenGearModal(item)}
-                            className="p-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 rounded-lg transition-colors cursor-pointer"
-                            title="Editar configurações deste item"
+                            className="w-7 h-7 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 border border-slate-700 hover:border-emerald-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950"
+                            title="Editar nome, foto ou ícone deste item"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -2345,7 +2414,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           <button
                             type="button"
                             onClick={() => handleOpenDeleteItemConfirm(item)}
-                            className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer"
+                            className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950"
                             title="Excluir item do cardápio"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -2353,11 +2422,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </div>
                       </div>
 
-                      {/* EMBAIXO: PREFIXO SENHA (ACEITA MAIÚSCULO E MINÚSCULO) E VALOR */}
-                      <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-800">
+                      {/* EMBAIXO: INPUTS ELEGANTES DE SENHA E VALOR */}
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
                         {/* PREFIXO SENHA */}
-                        <div>
-                          <label className="text-[10px] text-slate-400 font-bold block mb-0.5">
+                        <div className="bg-slate-950/80 p-2 rounded-xl border border-slate-800 focus-within:border-amber-500/60 transition-colors">
+                          <label className="text-[9px] text-slate-400 font-black uppercase tracking-wider block mb-1">
                             Senha (Prefixo)
                           </label>
                           <input
@@ -2365,13 +2434,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             value={item.prefix || ''}
                             onChange={(e) => handleUpdateItemPrefix(e.target.value, item)}
                             placeholder="Pp-"
-                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-amber-300 outline-none focus:border-amber-400"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-black text-amber-300 outline-none focus:border-amber-400 transition-colors"
                           />
                         </div>
 
                         {/* VALOR */}
-                        <div>
-                          <label className="text-[10px] text-slate-400 font-bold block mb-0.5 text-right">
+                        <div className="bg-slate-950/80 p-2 rounded-xl border border-slate-800 focus-within:border-emerald-500/60 transition-colors">
+                          <label className="text-[9px] text-slate-400 font-black uppercase tracking-wider block mb-1 text-right">
                             {showCurrencySymbol ? 'Valor (R$)' : 'Valor'}
                           </label>
                           <input
@@ -2380,12 +2449,32 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             value={formatCurrencyMask(item.price)}
                             onChange={(e) => handleUpdateItemPrice(e.target.value, item)}
                             placeholder="0,00"
-                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-emerald-400 outline-none focus:border-emerald-400 text-right"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-black text-emerald-400 outline-none focus:border-emerald-400 text-right transition-colors"
                           />
                         </div>
                       </div>
                     </div>
                   ))}
+
+                  {/* ESTADO VAZIO CASO NÃO HAJA ITENS NA CATEGORIA FILTRADA */}
+                  {filteredSaleItems.length === 0 && (
+                    <div className="col-span-full py-12 text-center bg-slate-900/40 rounded-2xl border border-dashed border-slate-800 flex flex-col items-center justify-center p-6">
+                      <Tag className="w-10 h-10 text-slate-600 mb-2" />
+                      <p className="text-slate-300 text-sm font-bold">Nenhum item cadastrado nesta categoria.</p>
+                      <p className="text-slate-500 text-xs mt-1">Clique abaixo para adicionar um item diretamente aqui.</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewItemCategory(selectedCategoryFilter === 'all' ? 'pizza' : selectedCategoryFilter);
+                          setShowAddItemModal(true);
+                        }}
+                        className="mt-4 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl cursor-pointer transition-all shadow-md flex items-center gap-1.5"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Adicionar Item Nesta Categoria</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 

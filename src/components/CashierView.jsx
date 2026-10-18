@@ -1271,104 +1271,76 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
             </div>
 
-            {/* CARDS VISUAIS COM ÍCONES 2D DOS SABORES DE PIZZA */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+            {/* CARDS VISUAIS HORIZONTAIS COM ÍCONES 2D GRANDES (+30%) E BOTÕES DIRETOS FATIA/INTEIRA */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {pizzaCategory.items.map((flavor) => {
-                const isSelected = selectedPizzaFlavor?.id === flavor.id;
                 const inCartQty = getItemCartQuantity(flavor.id);
+                const pedacoVar = pizzaCategory.variations?.find(v => v.id === 'pedaco') || pizzaCategory.variations?.[0] || { id: 'pedaco', price: 9 };
+                const inteiraVar = pizzaCategory.variations?.find(v => v.id === 'inteira') || pizzaCategory.variations?.[1] || { id: 'inteira', price: 48 };
+
                 return (
                   <div
                     key={flavor.id}
-                    className="relative"
-                    onMouseEnter={handleFlavorMouseEnter}
-                    onMouseLeave={handleFlavorMouseLeave}
+                    className="p-3 rounded-2xl bg-slate-900/90 hover:bg-yellow-950/20 border border-slate-700/80 hover:border-yellow-500/60 transition-all shadow-sm flex flex-col justify-between relative group min-h-[148px]"
                   >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleFlavorMouseEnter();
-                        setSelectedPizzaFlavor(isSelected ? null : flavor);
-                      }}
-                      className={`w-full p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] group relative ${
-                        isSelected
-                          ? 'bg-yellow-500/20 text-white border-yellow-400 shadow-xl ring-2 ring-yellow-400/50 scale-[1.02]'
-                          : 'bg-slate-900/90 hover:bg-yellow-950/40 text-slate-200 border-slate-700/80 hover:border-yellow-500/60 shadow-sm'
-                      }`}
-                    >
-                      {/* Badge de Quantidade no topo direito */}
-                      {inCartQty > 0 && (
-                        <span className="absolute top-2 right-2 text-[10px] font-black bg-emerald-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
-                          ✓ {inCartQty}x
-                        </span>
-                      )}
-
-                      {/* Arte 2D / Ícone do Sabor de Pizza */}
-                      <div className="my-1 transition-transform group-hover:scale-110 duration-200">
-                        <ProductIcon2D item={flavor} category={pizzaCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
-                      </div>
-
-                      {/* Título e Descrição */}
-                      <div className="w-full">
-                        <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
-                          {flavor.name}
-                        </div>
-                        <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5 px-0.5">
-                          {flavor.description || 'Sabor tradicional'}
-                        </div>
-                      </div>
-
-                      {/* Botão de Ação / Escolher */}
-                      <div className="mt-2 w-full">
-                        <span className={`w-full py-1 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider block transition-colors ${
-                          isSelected 
-                            ? 'bg-yellow-400 text-slate-950 shadow' 
-                            : 'bg-slate-800 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-slate-950'
-                        }`}>
-                          {isSelected ? '▲ Fechar' : '🍕 Escolher'}
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* CORTINA SUAVE REVELADA EMBAIXO DO CARD SELECIONADO */}
-                    {isSelected && (
-                      <div 
-                        className="absolute top-full left-0 right-0 sm:-left-[4%] sm:w-[108%] min-w-[175px] pt-1.5 z-40 animate-curtain-down"
-                        onMouseEnter={handleFlavorMouseEnter}
-                        onMouseLeave={handleFlavorMouseLeave}
-                      >
-                        <div className="bg-black/95 border-2 border-yellow-400/80 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.95)] p-2.5 flex flex-col gap-2 backdrop-blur-md">
-                          <div className="text-[10px] font-black uppercase tracking-wider text-yellow-400 text-center pb-1 border-b border-zinc-800">
-                            Adicionar à Comanda
-                          </div>
-                          {pizzaCategory.variations.map((variation) => {
-                            const isPedaco = variation.id === 'pedaco';
-                            const label = isPedaco ? 'Fatia / Pedaço' : 'Pizza Inteira';
-                            const iconPreset = isPedaco ? 'pizza-pedaco' : 'pizza-inteira';
-                            return (
-                              <button
-                                key={variation.id}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (closeFlavorTimerRef.current) clearTimeout(closeFlavorTimerRef.current);
-                                  handleAddPizzaToCart(flavor, variation);
-                                  setSelectedPizzaFlavor(null);
-                                }}
-                                className="w-full py-2 px-2.5 bg-zinc-900 hover:bg-yellow-500 hover:text-slate-950 text-white border border-zinc-700/80 hover:border-yellow-400 rounded-xl flex items-center justify-between font-black text-xs shadow transition-all cursor-pointer active:scale-95 group/btn"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <ProductIcon2D overrideKey={iconPreset} className="w-6 h-6 shrink-0" />
-                                  <span>{label}</span>
-                                </div>
-                                <span className="font-mono font-black text-white group-hover/btn:text-slate-950 bg-black/50 group-hover/btn:bg-black/20 px-2 py-0.5 rounded-lg border border-white/10 text-xs">
-                                  {formatPrice(variation.price, showCurrencySymbol)}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
+                    {/* Badge de Quantidade no topo direito */}
+                    {inCartQty > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 text-[10px] font-black bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full shadow-lg shrink-0 z-10 animate-cart-item-birth border border-emerald-300/60">
+                        ✓ {inCartQty}x
+                      </span>
                     )}
+
+                    {/* CORPO DO CARD: ÍCONE GRANDE À ESQUERDA (+30%) + TEXTOS À DIREITA */}
+                    <div className="flex items-center gap-3">
+                      {/* Ícone 2D Grande (+30%) */}
+                      <div className="w-18 h-18 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center p-1 bg-slate-950/70 rounded-2xl border border-slate-800 shadow-inner group-hover:scale-105 transition-transform">
+                        <ProductIcon2D item={flavor} category={pizzaCategory} className="w-16 h-16 sm:w-18 sm:h-18" />
+                      </div>
+
+                      {/* Informações: Categoria, Sabor e Descrição */}
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                          PIZZA
+                        </span>
+                        <h3 className="font-black text-xs sm:text-sm text-white uppercase tracking-wide truncate mt-0.5 leading-snug" title={flavor.name}>
+                          {flavor.name}
+                        </h3>
+                        <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                          {flavor.description || 'Sabor tradicional'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* BOTÕES DIRETOS FATIA E INTEIRA NA BASE DO CARD (1 TOQUE DIRETO) */}
+                    <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-slate-800/80">
+                      <button
+                        type="button"
+                        onClick={() => handleAddPizzaToCart(flavor, pedacoVar)}
+                        className="py-1.5 px-2 bg-slate-950 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/40 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center cursor-pointer shadow-xs active:scale-95 group/btn"
+                        title={`Adicionar Fatia de ${flavor.name} à comanda`}
+                      >
+                        <span className="text-[9px] uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 font-bold">
+                          🍕 Fatia
+                        </span>
+                        <span className="font-mono font-black text-[11px]">
+                          {formatPrice(pedacoVar.price, showCurrencySymbol)}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAddPizzaToCart(flavor, inteiraVar)}
+                        className="py-1.5 px-2 bg-slate-950 hover:bg-yellow-400 hover:text-slate-950 text-yellow-300 border border-yellow-500/40 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center cursor-pointer shadow-xs active:scale-95 group/btn"
+                        title={`Adicionar Pizza Inteira de ${flavor.name} à comanda`}
+                      >
+                        <span className="text-[9px] uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 font-bold">
+                          🍕 Inteira
+                        </span>
+                        <span className="font-mono font-black text-[11px]">
+                          {formatPrice(inteiraVar.price, showCurrencySymbol)}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 );
               })}
