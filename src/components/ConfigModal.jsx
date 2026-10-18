@@ -1346,29 +1346,45 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-slate-900 border-2 border-slate-700 w-full max-w-6xl max-h-[96vh] rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 font-sans cursor-default my-0"
+        className="bg-slate-900 border-2 border-slate-700 w-[98vw] max-w-7xl h-[95vh] rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 font-sans cursor-default my-0"
       >
         
         {/* CABEÇALHO DO MODAL */}
-        <div className="bg-slate-800/90 px-6 py-4 border-b border-slate-700 flex items-center justify-between shrink-0">
+        <div className="bg-slate-800/90 px-6 py-3 border-b border-slate-700 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl">
-              <Settings className="w-6 h-6 animate-spin-slow" />
+              <Settings className="w-5 h-5 animate-spin-slow" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                PAINEL DE CONFIGURAÇÕES & GESTÃO ⚙️
-              </h2>
-              <p className="text-xs text-slate-400">Cardápio, Perfis/E-mails, Firebase e Caixa</p>
-            </div>
+            <h2 className="text-lg font-bold text-white tracking-wide">
+              CONFIGURAÇÕES
+            </h2>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('reports');
+                setShowNewEventForm(prev => !prev);
+              }}
+              className={`px-3.5 py-1.5 font-black text-xs rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer ${
+                showNewEventForm && activeTab === 'reports'
+                  ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300'
+                  : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+              }`}
+              title="Cadastrar um novo evento para a cantina"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Criar Novo Evento</span>
+            </button>
+
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* NAVEGAÇÃO POR ABAS */}
@@ -2196,110 +2212,76 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               ABA 3: FECHAMENTO DE CAIXA E RESUMO DO DIA
              ========================================================= */}
           {activeTab === 'reports' && (
-            <div className="space-y-6">
+            <div className="space-y-3 flex flex-col flex-1 min-h-0">
               
-              {/* SEÇÃO 1: GESTÃO DO EVENTO ATIVO */}
-              <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-4 sm:p-5 rounded-2xl border-2 border-amber-500/50 shadow-xl space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/80 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
-                      <Calendar className="w-5 h-5" />
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
-                          EVENTO ATIVO:
-                        </h3>
-                        <span className="text-xs font-black bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full shadow">
-                          {currentEvent?.name || 'Cantina Geral'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Data: <span className="text-slate-200 font-medium">{currentEvent?.date || new Date().toISOString().split('T')[0]}</span> • Vendas do caixa são vinculadas ao evento ativo.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {eventsList.length > 1 && (
-                      <select
-                        value={currentEvent?.id || ''}
-                        onChange={(e) => handleSelectEvent(e.target.value)}
-                        className="bg-slate-800 border border-slate-600 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-bold outline-none focus:border-amber-400 cursor-pointer"
-                        title="Alternar entre eventos já cadastrados"
-                      >
-                        {eventsList.map(evt => (
-                          <option key={evt.id} value={evt.id}>
-                            {evt.name} ({evt.date || 'Hoje'})
-                          </option>
-                        ))}
-                      </select>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => setShowNewEventForm(!showNewEventForm)}
-                      className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow flex items-center gap-1.5 shrink-0 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>{showNewEventForm ? 'Fechar' : 'Criar Novo Evento'}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* FORMULÁRIO PARA CRIAR NOVO EVENTO */}
-                {showNewEventForm && (
-                  <form onSubmit={handleCreateEvent} className="bg-slate-950/90 p-4 rounded-xl border border-amber-500/40 space-y-3 animate-fadeIn">
+              {/* FORMULÁRIO CORTINA: CADASTRAR NOVO EVENTO DA CANTINA (PRINT 2) */}
+              <div
+                className={`transition-all duration-500 ease-in-out overflow-hidden shrink-0 ${
+                  showNewEventForm
+                    ? 'max-h-80 opacity-100 scale-100 mb-2'
+                    : 'max-h-0 opacity-0 scale-95 pointer-events-none mb-0'
+                }`}
+              >
+                <form onSubmit={handleCreateEvent} className="bg-slate-950/95 p-4 rounded-xl border border-amber-500/50 space-y-3 shadow-2xl">
+                  <div className="flex items-center justify-between">
                     <div className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
                       <CalendarPlus className="w-4 h-4" />
                       <span>Cadastrar Novo Evento da Cantina</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewEventForm(false)}
+                      className="text-slate-400 hover:text-white p-1 rounded-lg text-xs cursor-pointer"
+                      title="Fechar"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                      <div className="sm:col-span-7">
-                        <label className="text-[11px] font-bold text-slate-300 block mb-1">
-                          Nome do Evento:
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ex: Festa Junina 2026, Festival da Pizza, Encontro Especial..."
-                          value={newEventName}
-                          onChange={(e) => setNewEventName(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400"
-                        />
-                      </div>
-
-                      <div className="sm:col-span-3">
-                        <label className="text-[11px] font-bold text-slate-300 block mb-1">
-                          Data do Evento:
-                        </label>
-                        <input
-                          type="date"
-                          required
-                          value={newEventDate}
-                          onChange={(e) => setNewEventDate(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none focus:border-amber-400"
-                        />
-                      </div>
-
-                      <div className="sm:col-span-2 flex items-center gap-2">
-                        <button
-                          type="submit"
-                          className="w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1 transition-all shadow cursor-pointer"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span>Salvar</span>
-                        </button>
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    <div className="sm:col-span-7">
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Nome do Evento:
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: Festa Junina 2026, Festival da Pizza, Encontro Especial..."
+                        value={newEventName}
+                        onChange={(e) => setNewEventName(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400"
+                      />
                     </div>
-                  </form>
-                )}
+
+                    <div className="sm:col-span-3">
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Data do Evento:
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={newEventDate}
+                        onChange={(e) => setNewEventDate(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2 flex items-center gap-2">
+                      <button
+                        type="submit"
+                        className="w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1 transition-all shadow cursor-pointer"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Salvar</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
 
-              {/* SEÇÃO 2: RESUMO DE VENDAS */}
-              <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-700/80 pb-3">
+              {/* SEÇÃO: RESUMO DE VENDAS */}
+              <div className="bg-slate-800/60 p-3 sm:p-4 rounded-2xl border border-slate-700 flex flex-col flex-1 min-h-0">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 border-b border-slate-700/80 pb-2.5 shrink-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-extrabold text-white text-base shrink-0">
                       Resumo de vendas
@@ -2319,11 +2301,25 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         ))}
                       </select>
                     )}
+                    {eventsList.length > 1 && (
+                      <select
+                        value={currentEvent?.id || ''}
+                        onChange={(e) => handleSelectEvent(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-amber-300 font-bold outline-none focus:border-amber-400 cursor-pointer"
+                        title="Alternar entre eventos cadastrados"
+                      >
+                        {eventsList.map(evt => (
+                          <option key={evt.id} value={evt.id}>
+                            Evento: {evt.name} ({evt.date || 'Hoje'})
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
 
                   {/* CARDS COM TOTALIZADORES NA FRENTE DO TÍTULO */}
-                  <div className="flex items-center gap-2 flex-wrap flex-1 justify-start">
-                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                  <div className="flex items-center gap-2 flex-wrap flex-1 justify-start lg:justify-center">
+                    <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-slate-400 uppercase leading-none">Total Geral</div>
                       <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">R$ {totalGeral.toFixed(2)}</div>
                       <div className="text-[8px] text-slate-500 leading-none">
@@ -2336,22 +2332,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </div>
                     </div>
 
-                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                    <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-emerald-400 uppercase leading-none">PIX</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalPix.toFixed(2)}</div>
                     </div>
 
-                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                    <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-teal-400 uppercase leading-none">Dinheiro</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalDinheiro.toFixed(2)}</div>
                     </div>
 
-                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                    <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-blue-400 uppercase leading-none">Débito</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalDebito.toFixed(2)}</div>
                     </div>
 
-                    <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 shrink-0">
+                    <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-indigo-400 uppercase leading-none">Crédito</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalCredito.toFixed(2)}</div>
                     </div>
@@ -2361,29 +2357,29 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <button
                     type="button"
                     onClick={handleOpenResetModal}
-                    className="p-2.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95 shrink-0"
+                    className="p-2 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95 shrink-0"
                     title="Zerar / Fechar Turno"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* TABELA DE PEDIDOS COM HISTÓRICO ESMAECIDO E EXCLUSÃO DE VENDAS */}
-                <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-4">
-                  <div className="max-h-72 overflow-y-auto">
+                {/* TABELA DE PEDIDOS COMPACTA E MAXIMIZADA PARA ~40 REGISTROS */}
+                <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-3 flex-1 flex flex-col min-h-0 bg-slate-950/40">
+                  <div className="overflow-y-auto flex-1 min-h-[460px] max-h-[calc(95vh-230px)]">
                     <table className="w-full text-left text-xs text-slate-300">
-                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider z-10">
+                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider z-10 shadow-sm">
                         <tr>
-                          <th className="p-2.5">Comanda</th>
-                          <th className="p-2.5">Cliente</th>
-                          <th className="p-2.5">Item</th>
-                          <th className="p-2.5">Qtde</th>
-                          <th className="p-2.5">Pagamento</th>
-                          <th className="p-2.5 text-right">Valor</th>
-                          <th className="p-2.5 text-center">Ações</th>
+                          <th className="py-1.5 px-2.5">Comanda</th>
+                          <th className="py-1.5 px-2.5">Cliente</th>
+                          <th className="py-1.5 px-2.5">Item</th>
+                          <th className="py-1.5 px-2.5 text-center">Qtde</th>
+                          <th className="py-1.5 px-2.5">Pagamento</th>
+                          <th className="py-1.5 px-2.5 text-right">Valor</th>
+                          <th className="py-1.5 px-2.5 text-center">Ações</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800">
+                      <tbody className="divide-y divide-slate-800/70 text-[11px] sm:text-xs">
                         {displayedOrders.map((ord) => {
                           const isCancelled = ord.status === 'cancelado';
                           return (
@@ -2392,41 +2388,41 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                               className={`transition-colors ${
                                 isCancelled 
                                   ? 'opacity-40 bg-slate-950/80 text-slate-500 line-through select-none' 
-                                  : 'hover:bg-slate-800/40'
+                                  : 'hover:bg-slate-800/50'
                               }`}
                             >
-                              <td className="p-2.5 font-mono font-bold text-orange-400">{ord.orderNumber}</td>
-                              <td className="p-2.5 font-bold text-white">
+                              <td className="py-1 px-2.5 font-mono font-bold text-orange-400">{ord.orderNumber}</td>
+                              <td className="py-1 px-2.5 font-bold text-white">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className={isCancelled ? 'line-through text-slate-400' : ''}>
                                     {ord.customerName}
                                   </span>
                                   {isCancelled && (
-                                    <span className="no-underline text-[9px] font-black uppercase tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1.5 py-0.5 rounded shadow-sm inline-block">
+                                    <span className="no-underline text-[8px] font-black uppercase tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1 py-0.2 rounded shadow-sm inline-block">
                                       EXCLUÍDO
                                     </span>
                                   )}
                                 </div>
                               </td>
-                              <td className="p-2.5">{ord.fullDescription || ord.itemName}</td>
-                              <td className="p-2.5">{ord.quantity}x</td>
-                              <td className="p-2.5">{ord.paymentMethod}</td>
-                              <td className={`p-2.5 text-right font-bold ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
+                              <td className="py-1 px-2.5">{ord.fullDescription || ord.itemName}</td>
+                              <td className="py-1 px-2.5 text-center font-bold text-amber-300">{ord.quantity}x</td>
+                              <td className="py-1 px-2.5">{ord.paymentMethod}</td>
+                              <td className={`py-1 px-2.5 text-right font-bold ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
                                 R$ {Number(ord.totalPrice).toFixed(2)}
                               </td>
-                              <td className="p-2.5 text-center no-underline">
+                              <td className="py-1 px-2.5 text-center no-underline">
                                 {isCancelled ? (
                                   <button
                                     onClick={() => handleRestoreOrder(ord.id)}
-                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[11px] rounded-lg border border-slate-700 inline-flex items-center gap-1 shadow-sm no-underline cursor-pointer"
+                                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[10px] rounded-md border border-slate-700 inline-flex items-center gap-1 shadow-sm no-underline cursor-pointer"
                                     title="Restaurar venda de volta ao faturamento do caixa"
                                   >
-                                    <RotateCcw className="w-3 h-3" /> Restaurar
+                                    <RotateCcw className="w-2.5 h-2.5" /> Restaurar
                                   </button>
                                 ) : (
                                   <button
                                     onClick={() => handleOpenCancelConfirm(ord)}
-                                    className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                    className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors inline-flex items-center gap-1 cursor-pointer"
                                     title="Excluir venda do faturamento (permanece no histórico esmaecida)"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
