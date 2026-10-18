@@ -1008,82 +1008,86 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 const isSelected = selectedPizzaFlavor?.id === flavor.id;
                 const inCartQty = getItemCartQuantity(flavor.id);
                 return (
-                  <button
+                  <div
                     key={flavor.id}
-                    onClick={() => setSelectedPizzaFlavor(flavor)}
-                    className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] group ${
-                      isSelected
-                        ? 'bg-yellow-500 text-slate-950 border-yellow-300 shadow ring-2 ring-yellow-400 scale-[1.01]'
-                        : 'bg-slate-900/90 hover:bg-yellow-950/70 text-slate-200 border-slate-700 hover:border-yellow-500/70'
-                    }`}
+                    className="relative"
+                    onMouseLeave={() => {
+                      if (selectedPizzaFlavor?.id === flavor.id) {
+                        setSelectedPizzaFlavor(null);
+                      }
+                    }}
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="font-extrabold text-xs leading-tight">{flavor.name}</div>
-                        {inCartQty > 0 && (
-                          <span className="text-[9px] font-black bg-emerald-500 text-slate-950 px-1 rounded-full shadow shrink-0">
-                            ✓ {inCartQty}x
-                          </span>
-                        )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPizzaFlavor(isSelected ? null : flavor)}
+                      className={`w-full p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] group ${
+                        isSelected
+                          ? 'bg-yellow-500 text-slate-950 border-yellow-300 shadow ring-2 ring-yellow-400 scale-[1.01]'
+                          : 'bg-slate-900/90 hover:bg-yellow-950/70 text-slate-200 border-slate-700 hover:border-yellow-500/70'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="font-extrabold text-xs leading-tight">{flavor.name}</div>
+                          {inCartQty > 0 && (
+                            <span className="text-[9px] font-black bg-emerald-500 text-slate-950 px-1 rounded-full shadow shrink-0">
+                              ✓ {inCartQty}x
+                            </span>
+                          )}
+                        </div>
+                        <div className={`text-[9px] line-clamp-1 mt-0.5 ${isSelected ? 'text-slate-900 font-medium' : 'text-slate-400 group-hover:text-yellow-200/80'}`}>
+                          {flavor.description || 'Sabor tradicional'}
+                        </div>
                       </div>
-                      <div className={`text-[9px] line-clamp-1 mt-0.5 ${isSelected ? 'text-slate-900 font-medium' : 'text-slate-400 group-hover:text-yellow-200/80'}`}>
-                        {flavor.description || 'Sabor tradicional'}
+                      <div className="mt-1.5 flex items-center justify-end">
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded transition-colors ${
+                          isSelected 
+                            ? 'bg-slate-950 text-yellow-300' 
+                            : 'bg-slate-800 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-slate-950'
+                        }`}>
+                          {isSelected ? '✓ Opções' : 'Escolher'}
+                        </span>
                       </div>
-                    </div>
-                    <div className="mt-1.5 flex items-center justify-end">
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded transition-colors ${
-                        isSelected 
-                          ? 'bg-slate-950 text-yellow-300' 
-                          : 'bg-slate-800 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-slate-950'
-                      }`}>
-                        {isSelected ? '✓ Selecionado' : 'Escolher'}
-                      </span>
-                    </div>
-                  </button>
+                    </button>
+
+                    {/* CORTINA SUAVE REVELADA APENAS EMBAIXO DO CARD SELECIONADO (SOBREPÕE CARDS ABAIXO) */}
+                    {isSelected && (
+                      <div 
+                        className="absolute top-full left-0 right-0 sm:-left-[4%] sm:w-[108%] min-w-[150px] mt-1 bg-black border border-zinc-700 rounded-xl shadow-[0_16px_36px_rgba(0,0,0,0.95)] p-2 z-40 animate-curtain-down flex flex-col gap-1.5"
+                      >
+                        <div className="text-[10px] text-zinc-400 font-black uppercase tracking-wider text-center border-b border-zinc-800 pb-1 truncate">
+                          {flavor.name}
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          {pizzaCategory.variations.map((variation) => {
+                            const isPedaco = variation.id === 'pedaco';
+                            const label = isPedaco ? 'Fatia' : (variation.name.charAt(0).toUpperCase() + variation.name.slice(1).toLowerCase());
+                            return (
+                              <button
+                                key={variation.id}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddPizzaToCart(flavor, variation);
+                                  setSelectedPizzaFlavor(null);
+                                }}
+                                className="w-full py-1.5 px-2.5 bg-black hover:bg-zinc-900 active:bg-zinc-800 text-white border border-zinc-700/80 hover:border-zinc-500 rounded-lg flex items-center justify-between font-bold text-xs shadow transition-all cursor-pointer active:scale-95 group/btn"
+                              >
+                                <span className="group-hover/btn:text-yellow-300 transition-colors">{label}</span>
+                                <span className="font-mono font-bold text-zinc-100 bg-zinc-800/90 px-1.5 py-0.5 rounded border border-zinc-700 text-[11px]">
+                                  {formatPrice(variation.price, showCurrencySymbol)}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
-
-            {/* CORTINA SUAVE DE VARIAÇÕES (FUNDO PRETO, FONTE BRANCA) */}
-            {selectedPizzaFlavor && (
-              <div className="mt-2.5 p-3 bg-black rounded-xl border border-zinc-800 shadow-2xl flex items-center justify-between flex-wrap gap-2.5 animate-curtain-down">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs text-zinc-300 font-medium">
-                    Opções para <strong className="text-white font-bold">{selectedPizzaFlavor.name}</strong>:
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {pizzaCategory.variations.map((variation) => {
-                    const isPedaco = variation.id === 'pedaco';
-                    const label = isPedaco ? 'Fatia' : (variation.name.charAt(0).toUpperCase() + variation.name.slice(1).toLowerCase());
-                    return (
-                      <button
-                        key={variation.id}
-                        type="button"
-                        onClick={() => handleAddPizzaToCart(selectedPizzaFlavor, variation)}
-                        className="h-9 px-4 rounded-lg bg-black hover:bg-zinc-900 active:bg-zinc-800 text-white border border-zinc-700/90 hover:border-zinc-500 flex items-center gap-2.5 transition-all cursor-pointer font-bold text-xs shadow-md active:scale-95"
-                      >
-                        <span>{label}</span>
-                        <span className="font-mono font-bold text-zinc-100 bg-zinc-800/80 px-2 py-0.5 rounded border border-zinc-700">
-                          {formatPrice(variation.price, showCurrencySymbol)}
-                        </span>
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPizzaFlavor(null)}
-                    className="h-9 w-9 flex items-center justify-center text-zinc-400 hover:text-white bg-black hover:bg-zinc-900 rounded-lg border border-zinc-800 transition-colors cursor-pointer"
-                    title="Fechar seleção"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
