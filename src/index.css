@@ -265,4 +265,28 @@ input[type="number"] {
   animation: cart-item-birth 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Animação vibrante que pisca o botão verde ao passar o mouse sobre o card */
+@keyframes card-green-blink {
+  0%, 100% {
+    background-color: #10b981;
+    color: #020617;
+    border-color: #34d399;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.7);
+  }
+  50% {
+    background-color: #047857;
+    color: #ffffff;
+    border-color: #a7f3d0;
+    box-shadow: 0 0 28px rgba(16, 185, 129, 0.95), inset 0 0 8px rgba(52, 211, 153, 0.35);
+  }
+}
+
+.group:hover .card-btn-blink {
+  animation: card-green-blink 0.52s infinite ease-in-out !important;
+}
+
+.group:hover .card-btn-blink * {
+  color: inherit !important;
+}
+
 

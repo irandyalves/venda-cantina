@@ -1573,13 +1573,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     <button
                       type="button"
                       onClick={() => handleAddItemToCart(category, item)}
-                      className="w-full h-10 sm:h-11 px-3.5 bg-slate-950/90 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 border-t border-b border-l-0 border-r-0 border-emerald-500/30 hover:border-emerald-400 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] group/btn"
-                      title={`Adicionar ${item.name} à comanda`}
+                      className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-950/90 text-emerald-400 border-t border-b border-l-0 border-r-0 border-emerald-500/30 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-btn-blink"
+                      title={`Clique para adicionar ${item.name} à comanda`}
                     >
-                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 shrink-0">
-                        INCLUIR
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 shrink-0">
+                        CLIQUE PARA ADICIONAR!
                       </span>
-                      <span className="font-mono font-black text-xs sm:text-sm group-hover/btn:text-slate-950">
+                      <span className="font-mono font-black text-xs sm:text-sm text-emerald-400 shrink-0">
                         {formatPrice(item.price, showCurrencySymbol)}
                       </span>
                     </button>
