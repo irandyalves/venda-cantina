@@ -1377,230 +1377,74 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         )}
 
         {/* ========================================================
-            SEÇÃO 2: AÇAÍ (CLICOU NO ITEM -> ADICIONA DIRETO À COMANDA)
+            GRID DINÂMICO AUTO-FLOW: AÇAÍ, BATATA E DEMAIS CATEGORIAS
+            (Quando houver espaço livre à direita, as seções fluem lado a lado)
            ======================================================== */}
-        {acaiCategory && (
-          <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/30">
-                  <IceCream className="w-5 h-5" />
-                </span>
-                <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                  AÇAÍ
-                </h2>
-                <span className="text-[10px] text-slate-400 hidden sm:inline">
-                  (Clique para adicionar diretamente à comanda)
-                </span>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
+          {/* SEÇÃO 2: AÇAÍ */}
+          {acaiCategory && (
+            <div className={`bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md ${
+              (acaiCategory.items?.length || 0) >= 5 ? 'col-span-1 md:col-span-2 lg:col-span-3' : 'col-span-1'
+            }`}>
+              <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/30">
+                    <IceCream className="w-5 h-5" />
+                  </span>
+                  <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
+                    AÇAÍ
+                  </h2>
+                  <span className="text-[10px] text-slate-400 hidden sm:inline">
+                    (Clique para adicionar diretamente à comanda)
+                  </span>
+                </div>
 
-              {/* BOTÕES + E - PARA AÇAÍ */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleOpenQuickAdd(acaiCategory)}
-                  title="Adicionar nova opção de Açaí (ex: Copo 500ml)"
-                  className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOpenQuickDelete(acaiCategory)}
-                  title="Excluir opção de Açaí"
-                  className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                >
-                  <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-              </div>
-            </div>
-
-            {/* CARDS VISUAIS DE AÇAÍ */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-              {acaiCategory.items.map((item) => {
-                const inCartQty = getItemCartQuantity(item.id);
-                return (
+                {/* BOTÕES + E - PARA AÇAÍ */}
+                <div className="flex items-center gap-1.5">
                   <button
-                    key={item.id}
                     type="button"
-                    onClick={() => handleAddItemToCart(acaiCategory, item)}
-                    className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-purple-950/40 text-slate-200 border-slate-700/80 hover:border-purple-500/70 shadow-sm active:scale-95 group relative"
+                    onClick={() => handleOpenQuickAdd(acaiCategory)}
+                    title="Adicionar nova opção de Açaí (ex: Copo 500ml)"
+                    className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                   >
-                    {inCartQty > 0 && (
-                      <span className="absolute top-2 right-2 text-[10px] font-black bg-purple-500 text-white px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
-                        ✓ {inCartQty}x
-                      </span>
-                    )}
-
-                    <div className="my-1 transition-transform group-hover:scale-110 duration-200">
-                      <ProductIcon2D item={item} category={acaiCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
-                    </div>
-
-                    <div className="w-full">
-                      <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
-                        {item.name}
-                      </div>
-                    </div>
-
-                    <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-purple-500/30">
-                      <span className="text-xs sm:text-sm font-mono font-black text-purple-300">
-                        {formatPrice(item.price, showCurrencySymbol)}
-                      </span>
-                      <span className="text-[10px] font-black text-purple-300 group-hover:text-white uppercase tracking-wider">
-                        + Incluir
-                      </span>
-                    </div>
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
                   </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================
-            SEÇÃO 3: BATATA FRITA (CLICOU NO ITEM -> ADICIONA DIRETO À COMANDA)
-           ======================================================== */}
-        {batataCategory && (
-          <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-orange-500/20 text-orange-400 rounded-lg border border-orange-500/30">
-                  <UtensilsCrossed className="w-5 h-5" />
-                </span>
-                <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                  BATATA FRITA
-                </h2>
-                <span className="text-[10px] text-slate-400 hidden sm:inline">
-                  (Clique para adicionar diretamente à comanda)
-                </span>
-              </div>
-
-              {/* BOTÕES + E - PARA BATATA */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleOpenQuickAdd(batataCategory)}
-                  title="Adicionar nova opção de Batata"
-                  className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOpenQuickDelete(batataCategory)}
-                  title="Excluir opção de Batata"
-                  className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                >
-                  <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-              </div>
-            </div>
-
-            {/* CARDS VISUAIS DE BATATA */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-              {batataCategory.items.map((item) => {
-                const inCartQty = getItemCartQuantity(item.id);
-                return (
                   <button
-                    key={item.id}
                     type="button"
-                    onClick={() => handleAddItemToCart(batataCategory, item)}
-                    className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-orange-950/40 text-slate-200 border-slate-700/80 hover:border-orange-500/70 shadow-sm active:scale-95 group relative"
+                    onClick={() => handleOpenQuickDelete(acaiCategory)}
+                    title="Excluir opção de Açaí"
+                    className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
                   >
-                    {inCartQty > 0 && (
-                      <span className="absolute top-2 right-2 text-[10px] font-black bg-orange-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
-                        ✓ {inCartQty}x
-                      </span>
-                    )}
-
-                    <div className="my-1 transition-transform group-hover:scale-110 duration-200">
-                      <ProductIcon2D item={item} category={batataCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
-                    </div>
-
-                    <div className="w-full">
-                      <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
-                        {item.name}
-                      </div>
-                    </div>
-
-                    <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-orange-500/30">
-                      <span className="text-xs sm:text-sm font-mono font-black text-orange-400">
-                        {formatPrice(item.price, showCurrencySymbol)}
-                      </span>
-                      <span className="text-[10px] font-black text-orange-300 group-hover:text-white uppercase tracking-wider">
-                        + Incluir
-                      </span>
-                    </div>
+                    <Minus className="w-3.5 h-3.5 stroke-[3]" />
                   </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================
-            SEÇÃO 4: OUTRAS CATEGORIAS (PASTEL, SALGADOS, BEBIDAS...)
-           ======================================================== */}
-        {otherCategories.map((cat) => (
-          <div key={cat.id} className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30">
-                  <Utensils className="w-5 h-5" />
-                </span>
-                <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                  {cat.name}
-                </h2>
-                <span className="text-[10px] text-slate-400 hidden sm:inline">
-                  (Clique para adicionar diretamente à comanda)
-                </span>
+                </div>
               </div>
 
-              {/* BOTÕES + E - PARA OUTRAS CATEGORIAS */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleOpenQuickAdd(cat)}
-                  title={`Adicionar opções de ${cat.name}`}
-                  className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOpenQuickDelete(cat)}
-                  title={`Excluir opções ou categoria ${cat.name}`}
-                  className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                >
-                  <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-              </div>
-            </div>
-
-            {/* CARDS DOS ITENS COM ÍCONES 2D */}
-            {(!cat.items || cat.items.length === 0) ? (
-              <div className="py-3 text-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-dashed border-slate-700/80">
-                Nenhum item cadastrado em {cat.name}. Clique no botão <strong className="text-emerald-400 font-bold">+</strong> acima para cadastrar!
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-                {cat.items.map((item) => {
+              {/* CARDS VISUAIS DE AÇAÍ */}
+              <div className={`grid gap-2.5 ${
+                (acaiCategory.items?.length || 0) <= 2 
+                  ? 'grid-cols-2' 
+                  : (acaiCategory.items?.length || 0) <= 4 
+                    ? 'grid-cols-2 sm:grid-cols-3' 
+                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
+              }`}>
+                {acaiCategory.items.map((item) => {
                   const inCartQty = getItemCartQuantity(item.id);
                   return (
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => handleAddItemToCart(cat, item)}
-                      className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-cyan-950/40 text-slate-200 border-slate-700/80 hover:border-cyan-500/70 shadow-sm active:scale-95 group relative"
+                      onClick={() => handleAddItemToCart(acaiCategory, item)}
+                      className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-purple-950/40 text-slate-200 border-slate-700/80 hover:border-purple-500/70 shadow-sm active:scale-95 group relative"
                     >
                       {inCartQty > 0 && (
-                        <span className="absolute top-2 right-2 text-[10px] font-black bg-cyan-400 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
+                        <span className="absolute top-2 right-2 text-[10px] font-black bg-purple-500 text-white px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
                           ✓ {inCartQty}x
                         </span>
                       )}
 
                       <div className="my-1 transition-transform group-hover:scale-110 duration-200">
-                        <ProductIcon2D item={item} category={cat} className="w-14 h-14 sm:w-16 sm:h-16" />
+                        <ProductIcon2D item={item} category={acaiCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
                       </div>
 
                       <div className="w-full">
@@ -1609,11 +1453,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                         </div>
                       </div>
 
-                      <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-cyan-500/30">
-                        <span className="text-xs sm:text-sm font-mono font-black text-cyan-300">
+                      <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-purple-500/30">
+                        <span className="text-xs sm:text-sm font-mono font-black text-purple-300">
                           {formatPrice(item.price, showCurrencySymbol)}
                         </span>
-                        <span className="text-[10px] font-black text-cyan-300 group-hover:text-white uppercase tracking-wider">
+                        <span className="text-[10px] font-black text-purple-300 group-hover:text-white uppercase tracking-wider">
                           + Incluir
                         </span>
                       </div>
@@ -1621,9 +1465,196 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   );
                 })}
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          )}
+
+          {/* SEÇÃO 3: BATATA FRITA */}
+          {batataCategory && (
+            <div className={`bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md ${
+              (batataCategory.items?.length || 0) >= 5 ? 'col-span-1 md:col-span-2 lg:col-span-3' : 'col-span-1'
+            }`}>
+              <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 bg-orange-500/20 text-orange-400 rounded-lg border border-orange-500/30">
+                    <UtensilsCrossed className="w-5 h-5" />
+                  </span>
+                  <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
+                    BATATA FRITA
+                  </h2>
+                  <span className="text-[10px] text-slate-400 hidden sm:inline">
+                    (Clique para adicionar diretamente à comanda)
+                  </span>
+                </div>
+
+                {/* BOTÕES + E - PARA BATATA */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenQuickAdd(batataCategory)}
+                    title="Adicionar nova opção de Batata"
+                    className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenQuickDelete(batataCategory)}
+                    title="Excluir opção de Batata"
+                    className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                  >
+                    <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                  </button>
+                </div>
+              </div>
+
+              {/* CARDS VISUAIS DE BATATA */}
+              <div className={`grid gap-2.5 ${
+                (batataCategory.items?.length || 0) <= 2 
+                  ? 'grid-cols-2' 
+                  : (batataCategory.items?.length || 0) <= 4 
+                    ? 'grid-cols-2 sm:grid-cols-3' 
+                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
+              }`}>
+                {batataCategory.items.map((item) => {
+                  const inCartQty = getItemCartQuantity(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleAddItemToCart(batataCategory, item)}
+                      className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-orange-950/40 text-slate-200 border-slate-700/80 hover:border-orange-500/70 shadow-sm active:scale-95 group relative"
+                    >
+                      {inCartQty > 0 && (
+                        <span className="absolute top-2 right-2 text-[10px] font-black bg-orange-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
+                          ✓ {inCartQty}x
+                        </span>
+                      )}
+
+                      <div className="my-1 transition-transform group-hover:scale-110 duration-200">
+                        <ProductIcon2D item={item} category={batataCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
+                      </div>
+
+                      <div className="w-full">
+                        <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
+                          {item.name}
+                        </div>
+                      </div>
+
+                      <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-orange-500/30">
+                        <span className="text-xs sm:text-sm font-mono font-black text-orange-400">
+                          {formatPrice(item.price, showCurrencySymbol)}
+                        </span>
+                        <span className="text-[10px] font-black text-orange-300 group-hover:text-white uppercase tracking-wider">
+                          + Incluir
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* SEÇÃO 4: OUTRAS CATEGORIAS (SALADA DE FRUTAS, PASTEL, SALGADOS, BEBIDAS...) */}
+          {otherCategories.map((cat) => {
+            const itemCount = cat.items?.length || 0;
+            const isFullRow = itemCount >= 5;
+            return (
+              <div 
+                key={cat.id} 
+                className={`bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md ${
+                  isFullRow ? 'col-span-1 md:col-span-2 lg:col-span-3' : 'col-span-1'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30">
+                      <Utensils className="w-5 h-5" />
+                    </span>
+                    <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
+                      {cat.name}
+                    </h2>
+                    <span className="text-[10px] text-slate-400 hidden sm:inline">
+                      (Clique para adicionar diretamente à comanda)
+                    </span>
+                  </div>
+
+                  {/* BOTÕES + E - PARA OUTRAS CATEGORIAS */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickAdd(cat)}
+                      title={`Adicionar opções de ${cat.name}`}
+                      className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickDelete(cat)}
+                      title={`Excluir opções ou categoria ${cat.name}`}
+                      className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                    >
+                      <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* CARDS DOS ITENS COM ÍCONES 2D */}
+                {(!cat.items || cat.items.length === 0) ? (
+                  <div className="py-3 text-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-dashed border-slate-700/80">
+                    Nenhum item cadastrado em {cat.name}. Clique no botão <strong className="text-emerald-400 font-bold">+</strong> acima para cadastrar!
+                  </div>
+                ) : (
+                  <div className={`grid gap-2.5 ${
+                    itemCount <= 2 
+                      ? 'grid-cols-2' 
+                      : itemCount <= 4 
+                        ? 'grid-cols-2 sm:grid-cols-3' 
+                        : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
+                  }`}>
+                    {cat.items.map((item) => {
+                      const inCartQty = getItemCartQuantity(item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleAddItemToCart(cat, item)}
+                          className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-cyan-950/40 text-slate-200 border-slate-700/80 hover:border-cyan-500/70 shadow-sm active:scale-95 group relative"
+                        >
+                          {inCartQty > 0 && (
+                            <span className="absolute top-2 right-2 text-[10px] font-black bg-cyan-400 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
+                              ✓ {inCartQty}x
+                            </span>
+                          )}
+
+                          <div className="my-1 transition-transform group-hover:scale-110 duration-200">
+                            <ProductIcon2D item={item} category={cat} className="w-14 h-14 sm:w-16 sm:h-16" />
+                          </div>
+
+                          <div className="w-full">
+                            <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
+                              {item.name}
+                            </div>
+                          </div>
+
+                          <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-cyan-500/30">
+                            <span className="text-xs sm:text-sm font-mono font-black text-cyan-300">
+                              {formatPrice(item.price, showCurrencySymbol)}
+                            </span>
+                            <span className="text-[10px] font-black text-cyan-300 group-hover:text-white uppercase tracking-wider">
+                              + Incluir
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </main>
 
       {/* ========================================================
