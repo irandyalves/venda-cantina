@@ -1434,86 +1434,89 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             return (
               <div
                 key={`${category.id}_${item.id}`}
-                className="p-3.5 rounded-2xl bg-slate-900/95 hover:bg-slate-900 border border-slate-700/80 hover:border-slate-600 border-l-4 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[165px]"
+                className="rounded-2xl bg-slate-900/95 hover:bg-slate-900 border border-slate-700/80 hover:border-slate-600 border-l-4 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[168px] overflow-hidden"
                 style={{ borderLeftColor: itemColor }}
               >
-                {/* TOPO: CATEGORIA À ESQUERDA, LAPIZINHO ✏️ + X ✕ À DIREITA (+ BADGE SE ESTIVER NA COMANDA) */}
-                <div className="flex items-center justify-between gap-1.5 pb-1">
-                  <span 
-                    className="text-[10px] font-black uppercase tracking-wider block font-mono truncate"
-                    style={{ color: itemColor }}
-                  >
-                    {category.name}
-                  </span>
-
-                  <div className="flex items-center gap-1 z-10 shrink-0">
-                    {/* Badge de Quantidade se estiver na comanda */}
-                    {inCartQty > 0 && (
-                      <span className="text-[10px] font-black bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full shadow-md font-mono border border-emerald-300/60 animate-cart-item-birth mr-0.5">
-                        ✓ {inCartQty}x
-                      </span>
-                    )}
-
-                    {/* LAPIZINHO ✏️ PARA EDITAR PREÇO RÁPIDO */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenQuickEdit(category, item);
-                      }}
-                      className="w-6 h-6 rounded-lg bg-slate-950/90 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 border border-slate-700/80 hover:border-emerald-400 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-90"
-                      title="Editar preço e dados deste item rapidamente"
+                {/* CONTEÚDO SUPERIOR E CORPO DO CARD COM PADDING */}
+                <div className="p-3.5 pb-2.5 flex-1 flex flex-col justify-between">
+                  {/* TOPO: CATEGORIA À ESQUERDA, LAPIZINHO ✏️ + X ✕ À DIREITA (+ BADGE SE ESTIVER NA COMANDA) */}
+                  <div className="flex items-center justify-between gap-1.5 pb-1">
+                    <span 
+                      className="text-[10px] font-black uppercase tracking-wider block font-mono truncate"
+                      style={{ color: itemColor }}
                     >
-                      <Pencil className="w-3 h-3 stroke-[2.5]" />
-                    </button>
+                      {category.name}
+                    </span>
 
-                    {/* BOTÃO X ✕ PARA EXCLUIR ITEM DO CARDÁPIO */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setQuickDeleteModal({ isOpen: true, category, itemToDelete: item });
-                      }}
-                      className="w-6 h-6 rounded-lg bg-slate-950/90 hover:bg-rose-500 hover:text-white text-slate-400 hover:text-white border border-slate-700/80 hover:border-rose-400 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-90"
-                      title={`Excluir "${item.name}" do cardápio`}
-                    >
-                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </button>
+                    <div className="flex items-center gap-1 z-10 shrink-0">
+                      {/* Badge de Quantidade se estiver na comanda */}
+                      {inCartQty > 0 && (
+                        <span className="text-[10px] font-black bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full shadow-md font-mono border border-emerald-300/60 animate-cart-item-birth mr-0.5">
+                          ✓ {inCartQty}x
+                        </span>
+                      )}
+
+                      {/* LAPIZINHO ✏️ PARA EDITAR PREÇO RÁPIDO */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenQuickEdit(category, item);
+                        }}
+                        className="w-6 h-6 rounded-lg bg-slate-950/90 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 border border-slate-700/80 hover:border-emerald-400 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-90"
+                        title="Editar preço e dados deste item rapidamente"
+                      >
+                        <Pencil className="w-3 h-3 stroke-[2.5]" />
+                      </button>
+
+                      {/* BOTÃO X ✕ PARA EXCLUIR ITEM DO CARDÁPIO */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuickDeleteModal({ isOpen: true, category, itemToDelete: item });
+                        }}
+                        className="w-6 h-6 rounded-lg bg-slate-950/90 hover:bg-rose-500 hover:text-white text-slate-400 hover:text-white border border-slate-700/80 hover:border-rose-400 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-90"
+                        title={`Excluir "${item.name}" do cardápio`}
+                      >
+                        <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CORPO DO CARD: ÍCONE TRANSPARENTE (SEM MOLDURA) À ESQUERDA + TEXTOS À DIREITA */}
+                  <div className="flex items-center gap-3 my-1">
+                    {/* Ícone 2D / PNG Direto no fundo do card (sem moldura / sem caixa cinza) */}
+                    <div className="w-18 h-18 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <ProductIcon2D item={item} category={category} className="w-full h-full object-contain drop-shadow-md" />
+                    </div>
+
+                    {/* Informações: Nome e Descrição */}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-black text-xs sm:text-sm text-white uppercase tracking-wide truncate leading-snug" title={item.name}>
+                        {item.name}
+                      </h3>
+                      <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5">
+                        {item.description || 'Disponível no cardápio'}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* CORPO DO CARD: ÍCONE TRANSPARENTE (SEM MOLDURA) À ESQUERDA + TEXTOS À DIREITA */}
-                <div className="flex items-center gap-3 my-1">
-                  {/* Ícone 2D / PNG Direto no fundo do card (sem moldura / sem caixa cinza) */}
-                  <div className="w-18 h-18 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <ProductIcon2D item={item} category={category} className="w-full h-full object-contain drop-shadow-md" />
-                  </div>
-
-                  {/* Informações: Nome e Descrição */}
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-black text-xs sm:text-sm text-white uppercase tracking-wide truncate leading-snug" title={item.name}>
-                      {item.name}
-                    </h3>
-                    <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5">
-                      {item.description || 'Disponível no cardápio'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* BASE DO CARD: BOTÕES DE AÇÃO COM TAMANHO DOBRADO (H-11 / H-12) */}
+                {/* BASE DO CARD: BOTÕES QUE SE ESTENDEM ATÉ AS BORDAS DO CARD */}
                 {isPizza && pedacoVar && inteiraVar ? (
-                  /* BOTÕES DIRETOS PARA PIZZA: FATIA (ESQ) E INTEIRA (DIR) COM PREÇO À DIREITA E SEM EMOJI */
-                  <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-800/80">
+                  /* DOIS BOTÕES (PIZZA): ESQUERDO ATÉ O LIMITE ESQUERDO, DIREITO ATÉ O LIMITE DIREITO */
+                  <div className="grid grid-cols-2 divide-x divide-slate-800 border-t border-b border-slate-800/80 bg-slate-950/90">
                     <button
                       type="button"
                       onClick={() => handleAddPizzaToCart(item, pedacoVar)}
-                      className="h-11 sm:h-12 px-3 bg-slate-950 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/40 hover:border-amber-400 rounded-xl font-black transition-all flex items-center justify-between cursor-pointer shadow-xs active:scale-95 group/btn"
+                      className="h-10 sm:h-11 px-2.5 bg-slate-950/90 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border-t border-b border-l-0 border-r-0 border-amber-500/30 hover:border-amber-400 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] group/btn"
                       title={`Adicionar Fatia de ${item.name} à comanda`}
                     >
-                      <span className="text-xs sm:text-sm font-black uppercase tracking-wider group-hover/btn:text-slate-950">
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 shrink-0">
                         FATIA
                       </span>
-                      <span className="font-mono font-black text-sm sm:text-base group-hover/btn:text-slate-950">
+                      <span className="font-mono font-black text-xs sm:text-sm group-hover/btn:text-slate-950">
                         {formatPrice(pedacoVar.price, showCurrencySymbol)}
                       </span>
                     </button>
@@ -1521,30 +1524,30 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     <button
                       type="button"
                       onClick={() => handleAddPizzaToCart(item, inteiraVar)}
-                      className="h-11 sm:h-12 px-3 bg-slate-950 hover:bg-yellow-400 hover:text-slate-950 text-yellow-300 border border-yellow-500/40 hover:border-yellow-300 rounded-xl font-black transition-all flex items-center justify-between cursor-pointer shadow-xs active:scale-95 group/btn"
+                      className="h-10 sm:h-11 px-2.5 bg-slate-950/90 hover:bg-yellow-400 hover:text-slate-950 text-yellow-300 border-t border-b border-l-0 border-r-0 border-yellow-500/30 hover:border-yellow-300 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] group/btn"
                       title={`Adicionar Pizza Inteira de ${item.name} à comanda`}
                     >
-                      <span className="text-xs sm:text-sm font-black uppercase tracking-wider group-hover/btn:text-slate-950">
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 shrink-0">
                         INTEIRA
                       </span>
-                      <span className="font-mono font-black text-sm sm:text-base group-hover/btn:text-slate-950">
+                      <span className="font-mono font-black text-xs sm:text-sm group-hover/btn:text-slate-950">
                         {formatPrice(inteiraVar.price, showCurrencySymbol)}
                       </span>
                     </button>
                   </div>
                 ) : (
-                  /* BOTÃO PARA OUTROS ITENS: INCLUIR À ESQ E PREÇO À DIREITA COM TAMANHO DOBRADO */
-                  <div className="mt-2 pt-2 border-t border-slate-800/80">
+                  /* BOTÃO SOLO: RETIRA BORDAS LATERAIS, LEVA LINHA SUP E INF ATÉ AS BORDAS DO CARD */
+                  <div className="border-t border-b border-slate-800/80 bg-slate-950/90">
                     <button
                       type="button"
                       onClick={() => handleAddItemToCart(category, item)}
-                      className="w-full h-11 sm:h-12 px-3.5 bg-slate-950 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 border border-emerald-500/40 hover:border-emerald-400 rounded-xl font-black transition-all flex items-center justify-between cursor-pointer shadow-xs active:scale-95 group/btn"
+                      className="w-full h-10 sm:h-11 px-3.5 bg-slate-950/90 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 border-t border-b border-l-0 border-r-0 border-emerald-500/30 hover:border-emerald-400 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] group/btn"
                       title={`Adicionar ${item.name} à comanda`}
                     >
-                      <span className="text-xs sm:text-sm font-black uppercase tracking-wider group-hover/btn:text-slate-950">
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 shrink-0">
                         INCLUIR
                       </span>
-                      <span className="font-mono font-black text-sm sm:text-base group-hover/btn:text-slate-950">
+                      <span className="font-mono font-black text-xs sm:text-sm group-hover/btn:text-slate-950">
                         {formatPrice(item.price, showCurrencySymbol)}
                       </span>
                     </button>
