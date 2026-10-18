@@ -26,7 +26,7 @@ import {
   Trash2,
   Check
 } from 'lucide-react';
-import { storageService } from '../services/storage';
+import { storageService, formatPrice } from '../services/storage';
 import ProfileSelector from './ProfileSelector';
 import AutoToast from './AutoToast';
 
@@ -36,6 +36,15 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const [orders, setOrders] = useState([]);
   const [isFirebaseOnline, setIsFirebaseOnline] = useState(storageService.isFirebaseReady);
   const [currentEvent, setCurrentEvent] = useState(() => storageService.getCurrentEvent());
+  const [showCurrencySymbol, setShowCurrencySymbol] = useState(storageService.getShowCurrencySymbol());
+
+  useEffect(() => {
+    const handleCurrencyChanged = (e) => {
+      setShowCurrencySymbol(Boolean(e.detail));
+    };
+    window.addEventListener('cantina_currency_changed', handleCurrencyChanged);
+    return () => window.removeEventListener('cantina_currency_changed', handleCurrencyChanged);
+  }, []);
 
   // ========================================================
   // NOVO FLUXO DE ATENDIMENTO AO CLIENTE (MULTI-PEDIDOS)
@@ -551,7 +560,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         type: 'success',
         title: `Venda de ${cleanName.toUpperCase()} Concluída!`,
         message: `Comanda ${created.orderNumber} gerada com ${orderItems.length} item(ns)!`,
-        subtext: `Total: R$ ${cartTotal.toFixed(2)} (${paymentMethod})`
+        subtext: `Total: ${formatPrice(cartTotal, showCurrencySymbol)} (${paymentMethod})`
       });
 
       // Limpar tudo para o próximo cliente
@@ -712,7 +721,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </div>
 
           <span className="text-xs font-mono font-black text-emerald-400 shrink-0">
-            R$ {(Number(order.totalPrice) || 0).toFixed(2)}
+            {formatPrice(order.totalPrice, showCurrencySymbol)}
           </span>
         </div>
 
@@ -880,7 +889,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               <span>FINALIZAR PEDIDOS</span>
               {cart.length > 0 && (
                 <span className="bg-yellow-400 text-slate-950 px-2.5 py-0.5 rounded-lg font-mono text-sm sm:text-base font-black shadow-md border border-yellow-300">
-                  R$ {cartTotal.toFixed(2)}
+                  {formatPrice(cartTotal, showCurrencySymbol)}
                 </span>
               )}
             </button>
@@ -906,7 +915,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     {cItem.description}
                   </span>
                   <span className={`text-xs font-black font-mono ${itemStyle.price}`}>
-                    R$ {(cItem.unitPrice * cItem.quantity).toFixed(2)}
+                    {formatPrice(cItem.unitPrice * cItem.quantity, showCurrencySymbol)}
                   </span>
 
                   <div className="flex items-center gap-1 bg-black/40 px-1 py-0.5 rounded-lg border border-white/10">
@@ -1035,36 +1044,30 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               })}
             </div>
 
-            {/* BARRA DE ESCOLHA DE VARIAÇÃO: PEDAÇO OU INTEIRA (ADICIONA DIRETO À COMANDA) */}
+            {/* CORTINA SUAVE DE VARIAÇÕES (FUNDO PRETO, FONTE BRANCA) */}
             {selectedPizzaFlavor && (
-              <div className="mt-2.5 p-2.5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-xl border-2 border-amber-500/80 flex items-center justify-between flex-wrap gap-2 animate-fadeIn shadow-lg">
+              <div className="mt-2.5 p-3 bg-black rounded-xl border border-zinc-800 shadow-2xl flex items-center justify-between flex-wrap gap-2.5 animate-curtain-down">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-amber-300">
-                    Sabor: <strong className="text-white uppercase">{selectedPizzaFlavor.name}</strong>
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    &bull; Clique para adicionar à comanda de <strong className="text-white">{customerName || 'Cliente'}</strong>:
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs text-zinc-300 font-medium">
+                    Opções para <strong className="text-white font-bold">{selectedPizzaFlavor.name}</strong>:
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {pizzaCategory.variations.map((variation) => {
                     const isPedaco = variation.id === 'pedaco';
+                    const label = isPedaco ? 'Fatia' : (variation.name.charAt(0).toUpperCase() + variation.name.slice(1).toLowerCase());
                     return (
                       <button
                         key={variation.id}
                         type="button"
                         onClick={() => handleAddPizzaToCart(selectedPizzaFlavor, variation)}
-                        className={`h-9 px-3.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer font-black text-xs shadow-md active:scale-95 ${
-                          isPedaco
-                            ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300'
-                            : 'bg-red-600 hover:bg-red-500 text-white border-red-400'
-                        }`}
+                        className="h-9 px-4 rounded-lg bg-black hover:bg-zinc-900 active:bg-zinc-800 text-white border border-zinc-700/90 hover:border-zinc-500 flex items-center gap-2.5 transition-all cursor-pointer font-bold text-xs shadow-md active:scale-95"
                       >
-                        {isPedaco ? <Pizza className="w-4 h-4" /> : <Disc className="w-4 h-4" />}
-                        <span>+ {variation.name}</span>
-                        <span className="ml-1 bg-slate-950/30 px-1.5 py-0.5 rounded font-mono text-[11px]">
-                          R$ {variation.price.toFixed(2)}
+                        <span>{label}</span>
+                        <span className="font-mono font-bold text-zinc-100 bg-zinc-800/80 px-2 py-0.5 rounded border border-zinc-700">
+                          {formatPrice(variation.price, showCurrencySymbol)}
                         </span>
                       </button>
                     );
@@ -1073,7 +1076,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <button
                     type="button"
                     onClick={() => setSelectedPizzaFlavor(null)}
-                    className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                    className="h-9 w-9 flex items-center justify-center text-zinc-400 hover:text-white bg-black hover:bg-zinc-900 rounded-lg border border-zinc-800 transition-colors cursor-pointer"
                     title="Fechar seleção"
                   >
                     <X className="w-4 h-4" />
@@ -1144,7 +1147,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                         )}
                       </div>
                       <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-purple-300">
-                        R$ {item.price.toFixed(2)}
+                        {formatPrice(item.price, showCurrencySymbol)}
                       </div>
                     </div>
                     <div className="mt-1.5 flex items-center justify-end">
@@ -1219,7 +1222,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                         )}
                       </div>
                       <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-orange-400">
-                        R$ {item.price.toFixed(2)}
+                        {formatPrice(item.price, showCurrencySymbol)}
                       </div>
                     </div>
                     <div className="mt-1.5 flex items-center justify-end">
@@ -1299,7 +1302,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                           )}
                         </div>
                         <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-cyan-300">
-                          R$ {item.price.toFixed(2)}
+                          {formatPrice(item.price, showCurrencySymbol)}
                         </div>
                       </div>
                       <div className="mt-1.5 flex items-center justify-end">
@@ -1350,7 +1353,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-0.5 rounded-lg border border-slate-700">
               <span className="text-slate-400 font-semibold text-[10px]">Total Hoje:</span>
               <span className="text-xs font-black text-emerald-400 font-mono">
-                R$ {totalFaturado.toFixed(2)}
+                {formatPrice(totalFaturado, showCurrencySymbol)}
               </span>
             </div>
           </div>
@@ -1487,7 +1490,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Preço (R$):
+                    Preço:
                   </label>
                   <input
                     type="text"
@@ -1658,7 +1661,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                               {it.name}
                             </div>
                             <div className="text-[11px] font-mono text-emerald-400 font-bold mt-0.5">
-                              R$ {formatCurrencyMask(it.price)}
+                              {formatPrice(it.price, showCurrencySymbol)}
                               {it.prefix && <span className="text-slate-500 font-normal ml-2">Prefixo: {it.prefix}</span>}
                             </div>
                           </div>

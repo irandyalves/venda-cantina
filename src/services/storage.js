@@ -23,6 +23,7 @@ const TV_SETTINGS_KEY = 'cantina_tv_settings';
 const LOCAL_CURRENT_EVENT_KEY = 'cantina_current_event';
 const LOCAL_EVENTS_LIST_KEY = 'cantina_events_list';
 const LOCAL_TURNO_HISTORY_KEY = 'cantina_turno_history';
+const SHOW_CURRENCY_SYMBOL_KEY = 'cantina_show_currency_symbol';
 const COLLECTION_ORDERS = 'cantina_pedidos';
 const COLLECTION_HISTORY = 'cantina_historico_turnos';
 const COLLECTION_SETTINGS = 'cantina_configuracoes';
@@ -507,12 +508,18 @@ class StorageService {
         if (event.data?.type === 'PRODUCTION_ROUTING_UPDATED') {
           window.dispatchEvent(new CustomEvent('cantina_production_routing_changed', { detail: event.data.payload }));
         }
+        if (event.data?.type === 'CURRENCY_SYMBOL_UPDATED') {
+          window.dispatchEvent(new CustomEvent('cantina_currency_changed', { detail: event.data.payload }));
+        }
       };
     }
 
     // Escuta evento 'storage' para navegadores que não compartilham BroadcastChannel
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
+        if (e.key === SHOW_CURRENCY_SYMBOL_KEY) {
+          window.dispatchEvent(new CustomEvent('cantina_currency_changed', { detail: e.newValue === 'true' }));
+        }
         if (e.key === LOCAL_ORDERS_KEY) {
           const local = this.getLocalOrders();
           this.orderSubscribers.forEach(cb => {
@@ -715,6 +722,27 @@ class StorageService {
       syncChannel.postMessage({ type: 'KITCHEN_SETTINGS_UPDATED', payload: settings });
     }
     window.dispatchEvent(new CustomEvent('cantina_kitchen_settings_changed', { detail: settings }));
+  }
+
+  // --- CONFIGURAÇÃO DE EXIBIÇÃO DE MOEDA (R$) ---
+  getShowCurrencySymbol() {
+    return localStorage.getItem(SHOW_CURRENCY_SYMBOL_KEY) === 'true';
+  }
+
+  setShowCurrencySymbol(enabled) {
+    const val = Boolean(enabled);
+    localStorage.setItem(SHOW_CURRENCY_SYMBOL_KEY, val ? 'true' : 'false');
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'CURRENCY_SYMBOL_UPDATED', payload: val });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_currency_changed', { detail: val }));
+  }
+
+  formatPrice(val, showSymbol = null) {
+    const shouldShow = showSymbol !== null ? Boolean(showSymbol) : this.getShowCurrencySymbol();
+    const num = Number(val) || 0;
+    const formatted = num.toFixed(2).replace('.', ',');
+    return shouldShow ? `R$ ${formatted}` : formatted;
   }
 
   // --- ROTEAMENTO DE PRODUÇÃO: ENVIAR PARA COZINHA E EXIBIR NA TV ---
@@ -1149,3 +1177,4 @@ class StorageService {
 }
 
 export const storageService = new StorageService();
+export const formatPrice = (val, showSymbol = null) => storageService.formatPrice(val, showSymbol);

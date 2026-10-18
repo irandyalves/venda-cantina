@@ -42,7 +42,7 @@ import {
   BellRing,
   Download
 } from 'lucide-react';
-import { storageService } from '../services/storage';
+import { storageService, formatPrice } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
 import { DEFAULT_CATEGORIES } from '../data/defaultProducts';
 import AutoToast from './AutoToast';
@@ -51,6 +51,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [activeTab, setActiveTab] = useState(initialTab); // 'products', 'firebase', 'reports', 'emails'
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [showCurrencySymbol, setShowCurrencySymbol] = useState(storageService.getShowCurrencySymbol());
+
+  useEffect(() => {
+    const handleCurrencyChanged = (e) => {
+      setShowCurrencySymbol(Boolean(e.detail));
+    };
+    window.addEventListener('cantina_currency_changed', handleCurrencyChanged);
+    return () => window.removeEventListener('cantina_currency_changed', handleCurrencyChanged);
+  }, []);
+
+  const handleToggleCurrencySymbol = (checked) => {
+    setShowCurrencySymbol(checked);
+    storageService.setShowCurrencySymbol(checked);
+    showToast(
+      checked ? 'Exibição de "R$" ativada nos valores.' : 'Exibição de "R$" desativada (apenas números).',
+      'Configuração salva'
+    );
+  };
   
   // Modal Bonito de 2 Segundos (AutoToast)
   const [toast, setToast] = useState(null);
@@ -1324,7 +1342,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       <body>
         <h3>FECHAMENTO DE CAIXA - CANTINA</h3>
         <p><strong>Evento:</strong> ${currentEvent?.name || 'Cantina Geral'} &bull; <strong>Gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-        <p><strong>Total Faturado:</strong> R$ ${totalGeral.toFixed(2)} &bull; <strong>Vendas Ativas:</strong> ${activeOrders.length}</p>
+        <p><strong>Total Faturado:</strong> ${formatPrice(totalGeral, showCurrencySymbol)} &bull; <strong>Vendas Ativas:</strong> ${activeOrders.length}</p>
         <table>
           <thead>
             <tr>
@@ -1520,6 +1538,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           </div>
 
           <div className="flex items-center gap-3">
+            {/* CHAVINHA: EXIBIR R$ NOS VALORES (PADRÃO DESMARCADO) */}
+            <label 
+              className="flex items-center gap-2 cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-700/80 px-3 py-1.5 rounded-xl transition-all select-none shadow-sm"
+              title="Ative para exibir 'R$' antes dos valores em todo o sistema (padrão desmarcado)"
+            >
+              <input
+                type="checkbox"
+                checked={showCurrencySymbol}
+                onChange={(e) => handleToggleCurrencySymbol(e.target.checked)}
+                className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-600 cursor-pointer accent-amber-500"
+              />
+              <span className="text-xs font-bold text-slate-200">Exibir R$ nos valores</span>
+            </label>
+
             <button
               type="button"
               onClick={() => {
@@ -2038,7 +2070,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         {/* VALOR */}
                         <div>
                           <label className="text-[10px] text-slate-400 font-bold block mb-0.5 text-right">
-                            Valor (R$)
+                            {showCurrencySymbol ? 'Valor (R$)' : 'Valor'}
                           </label>
                           <input
                             type="text"
@@ -2111,16 +2143,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           </div>
                           <div className="text-right shrink-0">
                             <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight">
-                              R$ {(hist.totalRevenue || 0).toFixed(2)}
+                              {formatPrice(hist.totalRevenue, showCurrencySymbol)}
                             </span>
                           </div>
                         </div>
 
                         <div className="text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1 leading-none font-mono">
                           <span><strong className="text-slate-300">{hist.totalOrders}</strong> ped.</span>
-                          <span>PIX: R$ {(hist.paymentBreakdown?.pix || 0).toFixed(2)}</span>
-                          <span>Din: R$ {(hist.paymentBreakdown?.dinheiro || 0).toFixed(2)}</span>
-                          <span>Cart: R$ {((hist.paymentBreakdown?.debito || 0) + (hist.paymentBreakdown?.credito || 0)).toFixed(2)}</span>
+                          <span>PIX: {formatPrice(hist.paymentBreakdown?.pix, showCurrencySymbol)}</span>
+                          <span>Din: {formatPrice(hist.paymentBreakdown?.dinheiro, showCurrencySymbol)}</span>
+                          <span>Cart: {formatPrice((hist.paymentBreakdown?.debito || 0) + (hist.paymentBreakdown?.credito || 0), showCurrencySymbol)}</span>
                         </div>
                       </div>
                     ))}
@@ -2139,20 +2171,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
                       <div className="text-[9px] font-bold text-slate-400 uppercase leading-none">Total Geral</div>
-                      <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">R$ {totalGeral.toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">{formatPrice(totalGeral, showCurrencySymbol)}</div>
                       <div className="text-[8px] text-slate-500 leading-none">{activeOrders.length} ativas</div>
                     </div>
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
                       <div className="text-[9px] font-bold text-emerald-400 uppercase leading-none">PIX</div>
-                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalPix.toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalPix, showCurrencySymbol)}</div>
                     </div>
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
                       <div className="text-[9px] font-bold text-teal-400 uppercase leading-none">Dinheiro</div>
-                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalDinheiro.toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalDinheiro, showCurrencySymbol)}</div>
                     </div>
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
                       <div className="text-[9px] font-bold text-blue-400 uppercase leading-none">Cartões</div>
-                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {(totalDebito + totalCredito).toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalDebito + totalCredito, showCurrencySymbol)}</div>
                     </div>
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
                       <div className="text-[9px] font-bold text-rose-400 uppercase leading-none">Excluídas</div>
@@ -2212,7 +2244,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                 <td className="p-2.5">{ord.quantity}x</td>
                                 <td className="p-2.5">{ord.paymentMethod}</td>
                                 <td className={`p-2.5 text-right font-bold ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
-                                  R$ {Number(ord.totalPrice).toFixed(2)}
+                                  {formatPrice(ord.totalPrice, showCurrencySymbol)}
                                 </td>
                                 <td className="p-2.5 text-center no-underline">
                                   {isCancelled ? (
@@ -2502,7 +2534,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <div className="flex items-center gap-2 flex-wrap flex-1 justify-start lg:justify-center">
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-slate-400 uppercase leading-none">Total Geral</div>
-                      <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">R$ {totalGeral.toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">{formatPrice(totalGeral, showCurrencySymbol)}</div>
                       <div className="text-[8px] text-slate-500 leading-none">
                         {activeOrders.length} ativas
                         {displayedOrders.length - activeOrders.length > 0 && (
@@ -2515,22 +2547,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-emerald-400 uppercase leading-none">PIX</div>
-                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalPix.toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalPix, showCurrencySymbol)}</div>
                     </div>
 
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-teal-400 uppercase leading-none">Dinheiro</div>
-                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalDinheiro.toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalDinheiro, showCurrencySymbol)}</div>
                     </div>
 
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-blue-400 uppercase leading-none">Débito</div>
-                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalDebito.toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalDebito, showCurrencySymbol)}</div>
                     </div>
 
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
                       <div className="text-[9px] font-bold text-indigo-400 uppercase leading-none">Crédito</div>
-                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">R$ {totalCredito.toFixed(2)}</div>
+                      <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalCredito, showCurrencySymbol)}</div>
                     </div>
                   </div>
 
@@ -2675,7 +2707,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                         <span className="font-medium">{it.description}</span>
                                         {it.unitPrice > 0 && (
                                           <span className="text-[10px] text-slate-400 font-mono">
-                                            (R$ {Number(it.unitPrice).toFixed(2)})
+                                            ({formatPrice(it.unitPrice, showCurrencySymbol)})
                                           </span>
                                         )}
                                       </div>
@@ -2693,7 +2725,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                               </td>
                               <td className="py-1 px-2.5">{ord.paymentMethod}</td>
                               <td className={`py-1 px-2.5 text-right font-bold ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
-                                R$ {Number(ord.totalPrice).toFixed(2)}
+                                {formatPrice(ord.totalPrice, showCurrencySymbol)}
                               </td>
                               <td className="py-1 px-2.5 text-center no-underline">
                                 {isCancelled ? (
@@ -3098,7 +3130,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     Cópia Salva no Histórico
                   </span>
                   <p className="text-[11px] text-emerald-200/90 leading-relaxed">
-                    O sistema guardará uma <strong>cópia completa de segurança</strong> de todas as <strong>{displayedOrders.length} vendas</strong> (R$ {totalGeral.toFixed(2)}) e do evento ativo <strong>"{currentEvent?.name || 'Cantina Geral'}"</strong> no histórico permanente.
+                    O sistema guardará uma <strong>cópia completa de segurança</strong> de todas as <strong>{displayedOrders.length} vendas</strong> ({formatPrice(totalGeral, showCurrencySymbol)}) e do evento ativo <strong>"{currentEvent?.name || 'Cantina Geral'}"</strong> no histórico permanente.
                   </p>
                 </div>
               </div>
@@ -3328,10 +3360,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Preço de Venda (R$): *
+                    Preço de Venda: *
                   </label>
                   <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-emerald-400">
-                    <span className="text-xs font-bold text-emerald-400 mr-1.5">R$</span>
+                    {showCurrencySymbol && <span className="text-xs font-bold text-emerald-400 mr-1.5">R$</span>}
                     <input
                       type="text"
                       inputMode="numeric"
@@ -3450,10 +3482,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Preço de Venda (R$): *
+                    Preço de Venda: *
                   </label>
                   <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-amber-400">
-                    <span className="text-xs font-bold text-emerald-400 mr-1.5">R$</span>
+                    {showCurrencySymbol && <span className="text-xs font-bold text-emerald-400 mr-1.5">R$</span>}
                     <input
                       type="text"
                       inputMode="numeric"
@@ -3630,7 +3662,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-800/80 pt-1.5 mt-1">
                     <span className="text-slate-400">Valor a deduzir:</span>
-                    <span className="font-black text-rose-400 text-sm">R$ {(cancelConfirmModal.order.totalPrice || 0).toFixed(2)}</span>
+                    <span className="font-black text-rose-400 text-sm">{formatPrice(cancelConfirmModal.order.totalPrice, showCurrencySymbol)}</span>
                   </div>
                 </div>
               )}
@@ -3704,7 +3736,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-800/80 pt-1.5 mt-1">
                     <span className="text-slate-400 font-sans">Valor de Venda:</span>
-                    <span className="font-black text-emerald-400 text-sm">R$ {formatCurrencyMask(deleteItemConfirmModal.item.price)}</span>
+                    <span className="font-black text-emerald-400 text-sm">{formatPrice(deleteItemConfirmModal.item.price, showCurrencySymbol)}</span>
                   </div>
                 </div>
               )}
