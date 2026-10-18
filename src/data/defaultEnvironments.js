@@ -19,13 +19,13 @@ export const DEFAULT_ENVIRONMENTS = [
   },
   {
     id: 'COZINHA',
-    name: 'COZINHA 1 (Principal)',
-    shortName: 'COZINHA',
+    name: 'COZINHA PIZZA',
+    shortName: 'COZINHA PIZZA',
     type: 'kitchen',
     icon: 'UtensilsCrossed',
     color: 'orange',
     isSystem: true,
-    description: 'Cozinha 1, Fogões & Fornos'
+    description: 'Cozinha, Fogões & Fornos'
   },
   {
     id: 'PUBLICO',

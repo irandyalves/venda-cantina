@@ -217,6 +217,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   // Preços de pizza (Pedaço e Inteira com máscara 0,00)
   const [pedacoPrice, setPedacoPrice] = useState('9,00');
   const [inteiraPrice, setInteiraPrice] = useState('48,00');
+  const [reportDateFilter, setReportDateFilter] = useState('all');
 
   // Modal de Adicionar Item para Venda
   const [showAddItemModal, setShowAddItemModal] = useState(false);
@@ -259,19 +260,46 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
   }, [isOpen, initialTab]);
 
-  // Escuta atualizações de ambientes e roteamento em tempo real (vindos de outros dispositivos ou da nuvem)
+  // Escuta atualizações de pedidos, ambientes, histórico e roteamento em tempo real (vindos de outros dispositivos ou da nuvem)
   useEffect(() => {
+    const unsubOrders = storageService.subscribeOrders((all) => {
+      setOrders(all);
+    });
+
     const handleEnvsChange = (e) => {
       setEnvironments(e.detail || authService.getEnvironments());
     };
     const handleRoutingChange = (e) => {
       setProductionRouting(e.detail || storageService.getProductionRouting());
     };
+    const handleHistoryChange = (e) => {
+      setTurnoHistory(e.detail || storageService.getTurnoHistory());
+    };
+    const handleProductsChange = (e) => {
+      if (e.detail) setCategories(e.detail);
+    };
+    const handleEventChange = (e) => {
+      if (e.detail) setCurrentEvent(e.detail);
+    };
+    const handleEventsListChange = (e) => {
+      if (e.detail) setEventsList(e.detail);
+    };
+
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
     window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
+    window.addEventListener('cantina_turno_history_changed', handleHistoryChange);
+    window.addEventListener('cantina_products_changed', handleProductsChange);
+    window.addEventListener('cantina_event_changed', handleEventChange);
+    window.addEventListener('cantina_events_list_changed', handleEventsListChange);
+
     return () => {
+      unsubOrders();
       window.removeEventListener('cantina_environments_changed', handleEnvsChange);
       window.removeEventListener('cantina_production_routing_changed', handleRoutingChange);
+      window.removeEventListener('cantina_turno_history_changed', handleHistoryChange);
+      window.removeEventListener('cantina_products_changed', handleProductsChange);
+      window.removeEventListener('cantina_event_changed', handleEventChange);
+      window.removeEventListener('cantina_events_list_changed', handleEventsListChange);
     };
   }, []);
 
@@ -1180,11 +1208,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     showToast('Venda restaurada com sucesso ao faturamento!', 'Venda Restaurada');
   };
 
-  const today = new Date().toDateString();
-  const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === today);
+  // Filtro de data do Fechamento de Caixa
+  // 'all' = Todos os pedidos do turno atual ativo (garante que vendas não sumam na virada da meia-noite!)
+  const availableDates = Array.from(new Set(orders.map(o => {
+    if (!o.createdAt) return '';
+    return new Date(o.createdAt).toLocaleDateString('pt-BR');
+  }))).filter(Boolean);
+
+  const displayedOrders = orders.filter(o => {
+    if (reportDateFilter === 'all') return true;
+    return new Date(o.createdAt).toLocaleDateString('pt-BR') === reportDateFilter;
+  });
 
   // Vendas ativas (exclui vendas canceladas/excluídas do cálculo financeiro)
-  const activeOrders = todayOrders.filter(o => o.status !== 'cancelado');
+  const activeOrders = displayedOrders.filter(o => o.status !== 'cancelado');
   const totalGeral = activeOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
   const totalPix = activeOrders.filter(o => o.paymentMethod === 'PIX').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
   const totalDinheiro = activeOrders.filter(o => o.paymentMethod === 'DINHEIRO').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
@@ -1473,7 +1510,15 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     .filter(env => {
                       const id = (env?.id || '').toUpperCase();
                       const name = (env?.name || '').toUpperCase();
-                      return id !== 'TENDA' && name !== 'TENDA' && id !== 'QUADRA' && name !== 'QUADRA' && !id.includes('TENDA');
+                      const desc = (env?.description || '').toLowerCase();
+                      return (
+                        id !== 'TENDA' && 
+                        name !== 'TENDA' && 
+                        id !== 'QUADRA' && 
+                        name !== 'QUADRA' && 
+                        !id.includes('TENDA') &&
+                        !(id === 'COZINHA_2' && desc.includes('fogões adicionais'))
+                      );
                     })
                     .map((env) => {
                     const isKitchen = env.type === 'kitchen';
@@ -2255,9 +2300,26 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               {/* SEÇÃO 2: RESUMO DE VENDAS */}
               <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-4">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-700/80 pb-3">
-                  <h3 className="font-extrabold text-white text-base shrink-0">
-                    Resumo de vendas
-                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-extrabold text-white text-base shrink-0">
+                      Resumo de vendas
+                    </h3>
+                    {availableDates.length > 0 && (
+                      <select
+                        value={reportDateFilter}
+                        onChange={(e) => setReportDateFilter(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-amber-300 font-bold outline-none focus:border-amber-400 cursor-pointer"
+                        title="Filtrar resumo por data"
+                      >
+                        <option value="all">Turno Ativo Completo ({orders.length} vendas)</option>
+                        {availableDates.map(d => (
+                          <option key={d} value={d}>
+                            Data: {d} ({orders.filter(o => new Date(o.createdAt).toLocaleDateString('pt-BR') === d).length} vendas)
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
 
                   {/* CARDS COM TOTALIZADORES NA FRENTE DO TÍTULO */}
                   <div className="flex items-center gap-2 flex-wrap flex-1 justify-start">
@@ -2266,9 +2328,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">R$ {totalGeral.toFixed(2)}</div>
                       <div className="text-[8px] text-slate-500 leading-none">
                         {activeOrders.length} ativas
-                        {todayOrders.length - activeOrders.length > 0 && (
+                        {displayedOrders.length - activeOrders.length > 0 && (
                           <span className="text-rose-400 font-bold ml-1">
-                            ({todayOrders.length - activeOrders.length} excl.)
+                            ({displayedOrders.length - activeOrders.length} excl.)
                           </span>
                         )}
                       </div>
@@ -2306,7 +2368,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </div>
 
-                {/* TABELA DE PEDIDOS DE HOJE COM HISTÓRICO ESMAECIDO E EXCLUSÃO DE VENDAS */}
+                {/* TABELA DE PEDIDOS COM HISTÓRICO ESMAECIDO E EXCLUSÃO DE VENDAS */}
                 <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-4">
                   <div className="max-h-72 overflow-y-auto">
                     <table className="w-full text-left text-xs text-slate-300">
@@ -2322,7 +2384,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800">
-                        {todayOrders.map((ord) => {
+                        {displayedOrders.map((ord) => {
                           const isCancelled = ord.status === 'cancelado';
                           return (
                             <tr 
@@ -2374,10 +2436,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             </tr>
                           );
                         })}
-                        {todayOrders.length === 0 && (
+                        {displayedOrders.length === 0 && (
                           <tr>
                             <td colSpan="7" className="p-6 text-center text-slate-500 text-xs italic">
-                              Nenhuma venda registrada hoje.
+                              Nenhuma venda encontrada para o período selecionado.
                             </td>
                           </tr>
                         )}
@@ -2463,7 +2525,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       env.id !== 'ADMIN' && 
                       env.id !== 'TENDA' && 
                       !env.id.includes('TENDA') && 
-                      (env.name || '').toUpperCase() !== 'TENDA'
+                      (env.name || '').toUpperCase() !== 'TENDA' &&
+                      !(env.id === 'COZINHA_2' && (env.description || '').toLowerCase().includes('fogões adicionais'))
                     );
 
                     const destEnvObj = environments.find(e => e.id === currentDest);
@@ -2754,7 +2817,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     Cópia Salva no Histórico
                   </span>
                   <p className="text-[11px] text-emerald-200/90 leading-relaxed">
-                    O sistema guardará uma <strong>cópia completa de segurança</strong> de todas as <strong>{todayOrders.length} vendas</strong> (R$ {totalGeral.toFixed(2)}) e do evento ativo <strong>"{currentEvent?.name || 'Cantina Geral'}"</strong> no histórico permanente.
+                    O sistema guardará uma <strong>cópia completa de segurança</strong> de todas as <strong>{displayedOrders.length} vendas</strong> (R$ {totalGeral.toFixed(2)}) e do evento ativo <strong>"{currentEvent?.name || 'Cantina Geral'}"</strong> no histórico permanente.
                   </p>
                 </div>
               </div>
@@ -3573,7 +3636,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     className="w-full bg-slate-900 border border-emerald-500/50 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-emerald-400 cursor-pointer"
                   >
                     <option value="">🌐 Painel TV Geral (Exibe pedidos e chamadas de todas as cozinhas)</option>
-                    {environments.filter(e => e.type === 'kitchen' && e.id !== 'ADMIN' && e.id !== 'PUBLICO' && e.id !== 'TENDA').map((k) => (
+                    {environments.filter(e => e.type === 'kitchen' && e.id !== 'ADMIN' && e.id !== 'PUBLICO' && e.id !== 'TENDA' && !(e.id === 'COZINHA_2' && (e.description || '').toLowerCase().includes('fogões adicionais'))).map((k) => (
                       <option key={k.id} value={k.id}>
                         🍳 Exclusivo de: {k.name}
                       </option>
@@ -3694,7 +3757,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     className="w-full bg-slate-900 border border-emerald-500/50 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none focus:border-emerald-400 cursor-pointer"
                   >
                     <option value="">🌐 Painel TV Geral (Exibe pedidos e chamadas de todas as cozinhas)</option>
-                    {environments.filter(e => e.type === 'kitchen' && e.id !== 'ADMIN' && e.id !== 'PUBLICO' && e.id !== 'TENDA').map((k) => (
+                    {environments.filter(e => e.type === 'kitchen' && e.id !== 'ADMIN' && e.id !== 'PUBLICO' && e.id !== 'TENDA' && !(e.id === 'COZINHA_2' && (e.description || '').toLowerCase().includes('fogões adicionais'))).map((k) => (
                       <option key={k.id} value={k.id}>
                         🍳 Exclusivo de: {k.name}
                       </option>

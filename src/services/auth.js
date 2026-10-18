@@ -109,20 +109,28 @@ class AuthService {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // EXORCIZA TENDA E QUADRA DE QUALQUER LISTA RESIDUAL
+          // EXORCIZA TENDA, QUADRA E O SEED DUMMY RESIDUAL DE COZINHA 2
           const isLegacyJunk = (e) => {
             const id = (e.id || '').toUpperCase();
             const name = (e.name || '').toUpperCase();
-            return id === 'TENDA' || name === 'TENDA' || id === 'QUADRA' || name === 'QUADRA' || id.includes('TENDA');
+            const desc = (e.description || '').toLowerCase();
+            return (
+              id === 'TENDA' || 
+              name === 'TENDA' || 
+              id === 'QUADRA' || 
+              name === 'QUADRA' || 
+              id.includes('TENDA') ||
+              (id === 'COZINHA_2' && desc.includes('fogões adicionais'))
+            );
           };
           const cleaned = parsed.filter(e => !isLegacyJunk(e));
-          const hadLegacyJunk = cleaned.length !== parsed.length;
+          let hadLegacyJunk = cleaned.length !== parsed.length;
 
           // Garante apenas que os ambientes essenciais do sistema (ADMIN, COZINHA, PÚBLICO) existam
           const ids = new Set(cleaned.map(e => e.id));
           const missingSystemDefaults = DEFAULT_ENVIRONMENTS.filter(d => d.isSystem && !ids.has(d.id));
 
-          // NUNCA sobrescreve nomes ou descrições personalizados pelo usuário e remove qualquer menção residual a 'KDS'
+          // NUNCA sobrescreve nomes personalizados e substitui qualquer menção indesejada a COZINHA 1 ou KDS
           const updated = cleaned.map(env => {
             const defaultMatch = DEFAULT_ENVIRONMENTS.find(d => d.id === env.id);
             const rawDesc = env.description !== undefined ? env.description : (defaultMatch?.description || '');
@@ -131,15 +139,26 @@ class AuthService {
             const actualType = env.type || (defaultMatch?.type || 'kitchen');
             const isDisplay = actualType === 'display';
             const isCashier = actualType === 'cashier';
-            const icon = isDisplay ? 'Tv' : isCashier ? 'ShieldCheck' : 'UtensilsCrossed';
-            const color = isDisplay ? 'emerald' : isCashier ? 'amber' : 'orange';
+            const icon = isDisplay ? 'Tv' : isCashier ? 'ShieldCheck' : (env.icon || defaultMatch?.icon || 'UtensilsCrossed');
+            const color = isDisplay ? 'emerald' : isCashier ? 'amber' : (env.color || defaultMatch?.color || 'orange');
+
+            let finalName = env.name || defaultMatch?.name || env.id;
+            if (env.id === 'COZINHA' && (finalName.includes('COZINHA 1') || finalName === 'COZINHA')) {
+              finalName = 'COZINHA PIZZA';
+              hadLegacyJunk = true;
+            }
+            let finalShortName = env.shortName || finalName;
+            if (env.id === 'COZINHA' && (finalShortName.includes('COZINHA 1') || finalShortName === 'COZINHA')) {
+              finalShortName = 'COZINHA PIZZA';
+              hadLegacyJunk = true;
+            }
 
             if (defaultMatch && defaultMatch.isSystem) {
               return {
                 ...defaultMatch,
                 ...env,
-                name: env.name || defaultMatch.name,
-                shortName: env.shortName || defaultMatch.shortName,
+                name: finalName,
+                shortName: finalShortName,
                 description: cleanDesc,
                 type: actualType,
                 icon,
@@ -148,6 +167,8 @@ class AuthService {
             }
             return {
               ...env,
+              name: finalName,
+              shortName: finalShortName,
               description: cleanDesc,
               type: actualType,
               icon,

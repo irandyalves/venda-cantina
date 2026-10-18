@@ -204,7 +204,15 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
               .filter(env => {
                 const id = (env?.id || '').toUpperCase();
                 const name = (env?.name || '').toUpperCase();
-                return id !== 'TENDA' && name !== 'TENDA' && id !== 'QUADRA' && name !== 'QUADRA' && !id.includes('TENDA');
+                const desc = (env?.description || '').toLowerCase();
+                return (
+                  id !== 'TENDA' && 
+                  name !== 'TENDA' && 
+                  id !== 'QUADRA' && 
+                  name !== 'QUADRA' && 
+                  !id.includes('TENDA') &&
+                  !(id === 'COZINHA_2' && desc.includes('fogões adicionais'))
+                );
               })
               .map((env) => {
                 const isSelected = activeProfile === env.id;

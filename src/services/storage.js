@@ -5,6 +5,7 @@ import {
   getFirestore,
   collection,
   doc,
+  getDoc,
   setDoc,
   deleteDoc,
   onSnapshot,
@@ -55,6 +56,9 @@ class StorageService {
     this.unsubscribeFirestore = null;
     this.unsubscribeEnvironments = null;
     this.unsubscribeRouting = null;
+    this.unsubscribeHistory = null;
+    this.unsubscribeProducts = null;
+    this.unsubscribeEvents = null;
     this.pollTimer = null;
     this.lastOrdersJson = '';
     this.isReconnecting = false;
@@ -135,6 +139,7 @@ class StorageService {
       // Inicia o listener em tempo real imediatamente
       this.startFirestoreListener();
       setTimeout(() => this.purgeLegacyOrders(), 1200);
+      setTimeout(() => this.syncLocalConfigsToCloudIfEmpty(), 2000);
       return true;
     } catch (e) {
       console.error('❌ Falha ao inicializar Firebase:', e);
@@ -162,6 +167,18 @@ class StorageService {
       try { this.unsubscribeRouting(); } catch (_) {}
       this.unsubscribeRouting = null;
     }
+    if (this.unsubscribeHistory) {
+      try { this.unsubscribeHistory(); } catch (_) {}
+      this.unsubscribeHistory = null;
+    }
+    if (this.unsubscribeProducts) {
+      try { this.unsubscribeProducts(); } catch (_) {}
+      this.unsubscribeProducts = null;
+    }
+    if (this.unsubscribeEvents) {
+      try { this.unsubscribeEvents(); } catch (_) {}
+      this.unsubscribeEvents = null;
+    }
 
     try {
       // 1. Listener de pedidos e configurações em tempo real
@@ -170,27 +187,8 @@ class StorageService {
         const list = [];
         snapshot.forEach((docSnap) => {
           const docId = docSnap.id;
-          const data = docSnap.data();
-
-          if (docId === '__config_ambientes__') {
-            if (Array.isArray(data?.environments) && data.environments.length > 0) {
-              console.log(`📡 [Realtime Nuvem] ${data.environments.length} ambientes sincronizados via WebSocket`);
-              this.handleCloudEnvironments(data.environments);
-            }
-            return;
-          }
-
-          if (docId === '__config_roteamento__') {
-            if (data?.routing) {
-              console.log('📡 [Realtime Nuvem] Roteamento sincronizado via WebSocket');
-              this.handleCloudRouting(data.routing);
-            }
-            return;
-          }
-
-          if (docId.startsWith('__config_')) return;
-
-          list.push({ ...data, id: docId, firestoreDocId: docId });
+          if (docId.startsWith('__config_') || docId.startsWith('__')) return;
+          list.push({ ...docSnap.data(), id: docId, firestoreDocId: docId });
         });
         
         // Ordena por data decrescente de forma segura em JavaScript
@@ -209,7 +207,21 @@ class StorageService {
         }
       });
 
-      // 2. Listener de Roteamento de Produção em tempo real na nuvem
+      // 2. Listener dedicado de Ambientes em tempo real na nuvem (coleção cantina_configuracoes)
+      const envsDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
+      this.unsubscribeEnvironments = onSnapshot(envsDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (Array.isArray(data?.environments) && data.environments.length > 0) {
+            console.log(`📡 [Firestore Realtime] ${data.environments.length} ambientes sincronizados via cantina_configuracoes/ambientes`);
+            this.handleCloudEnvironments(data.environments);
+          }
+        }
+      }, (err) => {
+        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar ambientes:', err);
+      });
+
+      // 3. Listener de Roteamento de Produção em tempo real na nuvem
       const routingDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
       this.unsubscribeRouting = onSnapshot(routingDocRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -222,6 +234,53 @@ class StorageService {
       }, (err) => {
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar roteamento:', err);
       });
+
+      // 4. Listener de Histórico de Turnos em tempo real na nuvem (coleção cantina_historico_turnos)
+      const historyColRef = collection(this.db, COLLECTION_HISTORY);
+      this.unsubscribeHistory = onSnapshot(historyColRef, (snapshot) => {
+        const historyList = [];
+        snapshot.forEach((docSnap) => {
+          historyList.push({ ...docSnap.data(), id: docSnap.id });
+        });
+        historyList.sort((a, b) => (Number(b.archivedAt) || 0) - (Number(a.archivedAt) || 0));
+        console.log(`📡 [Firestore Realtime] ${historyList.length} turnos arquivados sincronizados da nuvem`);
+        localStorage.setItem(LOCAL_TURNO_HISTORY_KEY, JSON.stringify(historyList));
+        window.dispatchEvent(new CustomEvent('cantina_turno_history_changed', { detail: historyList }));
+      }, (err) => {
+        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar histórico de turnos:', err);
+      });
+
+      // 5. Listener de Produtos e Cardápio em tempo real na nuvem
+      const productsDocRef = doc(this.db, COLLECTION_SETTINGS, 'produtos');
+      this.unsubscribeProducts = onSnapshot(productsDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (Array.isArray(data?.categories) && data.categories.length > 0) {
+            console.log(`📡 [Firestore Realtime] Cardápio (${data.categories.length} categorias) sincronizado da nuvem`);
+            this.saveProducts(data.categories, false);
+          }
+        }
+      }, (err) => {
+        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar produtos:', err);
+      });
+
+      // 6. Listener de Eventos em tempo real na nuvem
+      const eventsDocRef = doc(this.db, COLLECTION_SETTINGS, 'eventos');
+      this.unsubscribeEvents = onSnapshot(eventsDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data?.currentEvent) {
+            localStorage.setItem(LOCAL_CURRENT_EVENT_KEY, JSON.stringify(data.currentEvent));
+            window.dispatchEvent(new CustomEvent('cantina_event_changed', { detail: data.currentEvent }));
+          }
+          if (Array.isArray(data?.eventsList)) {
+            localStorage.setItem(LOCAL_EVENTS_LIST_KEY, JSON.stringify(data.eventsList));
+            window.dispatchEvent(new CustomEvent('cantina_events_list_changed', { detail: data.eventsList }));
+          }
+        }
+      }, (err) => {
+        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar eventos:', err);
+      });
     } catch (err) {
       console.error('❌ Erro ao configurar onSnapshot:', err);
     }
@@ -231,14 +290,42 @@ class StorageService {
   async seedCloudEnvironments() {
     if (!this.isFirebaseReady || !this.db) return;
     try {
-      const ordersDocRef = doc(this.db, COLLECTION_ORDERS, '__config_ambientes__');
-      await setDoc(ordersDocRef, {
-        environments: DEFAULT_ENVIRONMENTS,
-        updatedAt: serverTimestamp()
-      });
+      await this.saveEnvironmentsCloud(DEFAULT_ENVIRONMENTS);
       console.log('🌱 Ambientes padrão semeados no Firestore');
     } catch (err) {
       console.warn('Falha ao semear ambientes:', err);
+    }
+  }
+
+  // Sincroniza cardápio e eventos locais para a nuvem caso ainda não existam no Firestore
+  async syncLocalConfigsToCloudIfEmpty() {
+    if (!this.isFirebaseReady || !this.db) return;
+    try {
+      const prodDocRef = doc(this.db, COLLECTION_SETTINGS, 'produtos');
+      const prodSnap = await getDoc(prodDocRef);
+      if (!prodSnap.exists()) {
+        const localProds = this.getProducts();
+        await setDoc(prodDocRef, {
+          categories: localProds,
+          updatedAt: serverTimestamp()
+        });
+        console.log('🌱 Cardápio local sincronizado com a nuvem Firestore');
+      }
+
+      const evtDocRef = doc(this.db, COLLECTION_SETTINGS, 'eventos');
+      const evtSnap = await getDoc(evtDocRef);
+      if (!evtSnap.exists()) {
+        const currentEvent = this.getCurrentEvent();
+        const eventsList = this.getEventsList();
+        await setDoc(evtDocRef, {
+          currentEvent,
+          eventsList,
+          updatedAt: serverTimestamp()
+        });
+        console.log('🌱 Eventos locais sincronizados com a nuvem Firestore');
+      }
+    } catch (e) {
+      console.warn('Aviso ao sincronizar configurações locais na nuvem:', e);
     }
   }
 
@@ -248,14 +335,42 @@ class StorageService {
       const isLegacyJunk = (e) => {
         const id = (e?.id || '').toUpperCase();
         const name = (e?.name || '').toUpperCase();
-        return id === 'TENDA' || name === 'TENDA' || id === 'QUADRA' || name === 'QUADRA' || id.includes('TENDA');
+        const desc = (e?.description || '').toLowerCase();
+        return (
+          id === 'TENDA' || 
+          name === 'TENDA' || 
+          id === 'QUADRA' || 
+          name === 'QUADRA' || 
+          id.includes('TENDA') ||
+          (id === 'COZINHA_2' && desc.includes('fogões adicionais'))
+        );
       };
       const cleaned = (cloudEnvs || []).filter(e => !isLegacyJunk(e));
-      const hadLegacyJunk = cleaned.length !== (cloudEnvs || []).length;
+      let hadChanges = cleaned.length !== (cloudEnvs || []).length;
 
-      const cloudIds = new Set(cleaned.map(e => e.id));
+      const updated = cleaned.map(env => {
+        const defaultMatch = DEFAULT_ENVIRONMENTS.find(d => d.id === env.id);
+        let finalName = env.name || defaultMatch?.name || env.id;
+        if (env.id === 'COZINHA' && (finalName.includes('COZINHA 1') || finalName === 'COZINHA')) {
+          finalName = 'COZINHA PIZZA';
+          hadChanges = true;
+        }
+        let finalShortName = env.shortName || finalName;
+        if (env.id === 'COZINHA' && (finalShortName.includes('COZINHA 1') || finalShortName === 'COZINHA')) {
+          finalShortName = 'COZINHA PIZZA';
+          hadChanges = true;
+        }
+        return {
+          ...(defaultMatch || {}),
+          ...env,
+          name: finalName,
+          shortName: finalShortName
+        };
+      });
+
+      const cloudIds = new Set(updated.map(e => e.id));
       const missingSystemDefaults = DEFAULT_ENVIRONMENTS.filter(d => d.isSystem && !cloudIds.has(d.id));
-      const fullList = [...cleaned, ...missingSystemDefaults];
+      const fullList = [...updated, ...missingSystemDefaults];
 
       localStorage.setItem('cantina_environments', JSON.stringify(fullList));
       window.dispatchEvent(new CustomEvent('cantina_environments_changed', { detail: fullList }));
@@ -264,7 +379,7 @@ class StorageService {
         syncChannel.postMessage({ type: 'ENVIRONMENTS_UPDATED', payload: fullList });
       }
 
-      if (hadLegacyJunk) {
+      if (hadChanges || missingSystemDefaults.length > 0) {
         this.saveEnvironmentsCloud(fullList);
       }
     } catch (e) {
@@ -282,11 +397,12 @@ class StorageService {
   async saveEnvironmentsCloud(environments) {
     if (!this.isFirebaseReady || !this.db) return;
     try {
-      const ordersDocRef = doc(this.db, COLLECTION_ORDERS, '__config_ambientes__');
-      await setDoc(ordersDocRef, {
+      const settingsDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
+      const payload = {
         environments,
         updatedAt: serverTimestamp()
-      });
+      };
+      await setDoc(settingsDocRef, payload);
       console.log('☁️ Ambientes salvos no Firestore na nuvem com sucesso:', environments.length);
     } catch (err) {
       console.error('⚠️ Erro ao salvar ambientes no Firestore:', err);
@@ -311,20 +427,11 @@ class StorageService {
   async saveProductionRoutingCloud(routing) {
     if (!this.isFirebaseReady || !this.db) return;
     try {
-      const ordersDocRef = doc(this.db, COLLECTION_ORDERS, '__config_roteamento__');
-      await setDoc(ordersDocRef, {
+      const configDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
+      await setDoc(configDocRef, {
         routing,
         updatedAt: serverTimestamp()
       }, { merge: true });
-
-      try {
-        const configDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
-        await setDoc(configDocRef, {
-          routing,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      } catch (_) {}
-
       console.log('☁️ Roteamento salvo no Firestore na nuvem com sucesso');
     } catch (err) {
       console.error('⚠️ Erro ao salvar roteamento no Firestore:', err);
@@ -345,25 +452,8 @@ class StorageService {
           const list = [];
           snap.forEach(docSnap => {
             const docId = docSnap.id;
-            const data = docSnap.data();
-
-            if (docId === '__config_ambientes__') {
-              if (Array.isArray(data?.environments) && data.environments.length > 0) {
-                this.handleCloudEnvironments(data.environments);
-              }
-              return;
-            }
-
-            if (docId === '__config_roteamento__') {
-              if (data?.routing) {
-                this.handleCloudRouting(data.routing);
-              }
-              return;
-            }
-
-            if (docId.startsWith('__config_')) return;
-
-            list.push({ ...data, id: docSnap.id, firestoreDocId: docSnap.id });
+            if (docId.startsWith('__config_') || docId.startsWith('__')) return;
+            list.push({ ...docSnap.data(), id: docId, firestoreDocId: docId });
           });
           list.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
 
@@ -409,6 +499,9 @@ class StorageService {
           window.dispatchEvent(new CustomEvent('cantina_event_changed', { detail: event.data.payload }));
         }
         if (event.data?.type === 'ENVIRONMENTS_UPDATED') {
+          if (Array.isArray(event.data.payload)) {
+            localStorage.setItem('cantina_environments', JSON.stringify(event.data.payload));
+          }
           window.dispatchEvent(new CustomEvent('cantina_environments_changed', { detail: event.data.payload }));
         }
         if (event.data?.type === 'PRODUCTION_ROUTING_UPDATED') {
@@ -561,13 +654,24 @@ class StorageService {
     return DEFAULT_CATEGORIES;
   }
 
-  saveProducts(categories) {
+  saveProducts(categories, syncCloud = true) {
     localStorage.setItem(LOCAL_PRODUCTS_KEY, JSON.stringify(categories));
     if (syncChannel) {
       syncChannel.postMessage({ type: 'PRODUCTS_UPDATED', payload: categories });
     }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('cantina_products_changed', { detail: categories }));
+    }
+    if (syncCloud && this.isFirebaseReady && this.db) {
+      try {
+        const productsDocRef = doc(this.db, COLLECTION_SETTINGS, 'produtos');
+        setDoc(productsDocRef, {
+          categories,
+          updatedAt: serverTimestamp()
+        }, { merge: true }).catch(e => console.warn('Falha ao salvar produtos na nuvem:', e));
+      } catch (err) {
+        console.warn('Erro ao salvar produtos no Firestore:', err);
+      }
     }
   }
 
@@ -682,25 +786,40 @@ class StorageService {
     };
   }
 
-  saveCurrentEvent(eventObj) {
+  saveCurrentEvent(eventObj, syncCloud = true) {
     if (!eventObj || !eventObj.name) return;
     localStorage.setItem(LOCAL_CURRENT_EVENT_KEY, JSON.stringify(eventObj));
     
     // Atualiza também na lista de eventos
     const events = this.getEventsList();
     const exists = events.some(e => e.id === eventObj.id);
+    let updated;
     if (!exists) {
       events.unshift(eventObj);
-      this.saveEventsList(events);
+      updated = events;
+      this.saveEventsList(events, false);
     } else {
-      const updated = events.map(e => e.id === eventObj.id ? eventObj : e);
-      this.saveEventsList(updated);
+      updated = events.map(e => e.id === eventObj.id ? eventObj : e);
+      this.saveEventsList(updated, false);
     }
 
     if (syncChannel) {
       syncChannel.postMessage({ type: 'EVENT_CHANGED', payload: eventObj });
     }
     window.dispatchEvent(new CustomEvent('cantina_event_changed', { detail: eventObj }));
+
+    if (syncCloud && this.isFirebaseReady && this.db) {
+      try {
+        const eventsDocRef = doc(this.db, COLLECTION_SETTINGS, 'eventos');
+        setDoc(eventsDocRef, {
+          currentEvent: eventObj,
+          eventsList: updated,
+          updatedAt: serverTimestamp()
+        }, { merge: true }).catch(e => console.warn('Falha ao salvar evento na nuvem:', e));
+      } catch (err) {
+        console.warn('Erro ao salvar evento no Firestore:', err);
+      }
+    }
     return eventObj;
   }
 
@@ -724,12 +843,24 @@ class StorageService {
     ];
   }
 
-  saveEventsList(events) {
+  saveEventsList(events, syncCloud = true) {
     localStorage.setItem(LOCAL_EVENTS_LIST_KEY, JSON.stringify(events));
     if (syncChannel) {
       syncChannel.postMessage({ type: 'EVENTS_LIST_CHANGED', payload: events });
     }
     window.dispatchEvent(new CustomEvent('cantina_events_list_changed', { detail: events }));
+
+    if (syncCloud && this.isFirebaseReady && this.db) {
+      try {
+        const eventsDocRef = doc(this.db, COLLECTION_SETTINGS, 'eventos');
+        setDoc(eventsDocRef, {
+          eventsList: events,
+          updatedAt: serverTimestamp()
+        }, { merge: true }).catch(e => console.warn('Falha ao salvar lista de eventos na nuvem:', e));
+      } catch (err) {
+        console.warn('Erro ao salvar lista de eventos no Firestore:', err);
+      }
+    }
   }
 
   createEvent(name, date) {
@@ -1000,6 +1131,7 @@ class StorageService {
         const snap = await getDocs(colRef);
         const deletePromises = [];
         snap.forEach(docSnap => {
+          if (docSnap.id.startsWith('__config_')) return;
           deletePromises.push(deleteDoc(docSnap.ref));
         });
         await Promise.all(deletePromises);
