@@ -132,25 +132,25 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig, compact
   return (
     <div className="relative inline-block text-left" ref={menuRef}>
       
-      {/* BOTÃO DO SELETOR: VERSÃO COMPACTA (ADMIN PARA CAIXAS) OU VERSÃO TÍTULO (COZINHAS / TELÃO) */}
+      {/* BOTÃO DO SELETOR: VERSÃO COMPACTA (ADMIN REDUZIDO EM 20% PARA CAIXAS) OU VERSÃO TÍTULO (COZINHAS / TELÃO) */}
       {compact ? (
         <button
           type="button"
           disabled={isSecondaryLocked}
           onClick={handleToggle}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border shadow-xs transition-all text-xs font-black uppercase tracking-wider ${
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border shadow-xs transition-all uppercase tracking-wider ${
             isSecondaryLocked
               ? 'bg-slate-900/60 border-rose-500/40 opacity-70 cursor-not-allowed text-rose-300'
               : 'bg-slate-900/90 hover:bg-slate-800 text-amber-400 border-amber-500/50 hover:border-amber-400 active:scale-95 cursor-pointer'
           }`}
           title={isSecondaryLocked ? 'Tela travada pelo Administrador' : 'Alternar ambiente de trabalho'}
         >
-          <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-[11px] font-black">ADMIN</span>
+          <ShieldCheck className="w-3 h-3 text-amber-400" />
+          <span className="text-[9px] font-black">ADMIN</span>
           {isSecondaryLocked ? (
-            <Lock className="w-3 h-3 text-rose-400 shrink-0" />
+            <Lock className="w-2.5 h-2.5 text-red-500 shrink-0" />
           ) : (
-            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-2.5 h-2.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           )}
         </button>
       ) : (
@@ -160,10 +160,10 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig, compact
           onClick={handleToggle}
           className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border shadow-sm transition-all ${
             isSecondaryLocked 
-              ? 'bg-slate-900/60 border-rose-500/40 opacity-80 cursor-not-allowed text-slate-300' 
+              ? 'bg-slate-900/80 border-red-500/80 shadow-[0_0_12px_rgba(239,68,68,0.35)] opacity-95 cursor-not-allowed text-white' 
               : 'bg-slate-900/90 hover:bg-slate-850 border-slate-700/80 hover:border-slate-500 text-white cursor-pointer active:scale-95'
           }`}
-          title={isSecondaryLocked ? 'Tela travada pelo Administrador. Desabilidado.' : 'Alternar ambiente de trabalho'}
+          title={isSecondaryLocked ? 'Tela travada pelo Administrador. Desabilitado.' : 'Alternar ambiente de trabalho'}
         >
           {/* Ícone */}
           <div className="p-1.5 bg-gradient-to-tr from-amber-500 to-red-600 rounded-lg shadow shrink-0">
@@ -185,10 +185,13 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig, compact
             {displayName}
           </span>
 
-          {/* Indicador de trava ou chevron */}
+          {/* Indicador de trava ou chevron - CADEADO VERMELHO MAIS VIVO E BRILHANTE */}
           <div className="flex items-center gap-1 ml-0.5">
             {isSecondaryLocked ? (
-              <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" title="Tela travada pelo Administrador" />
+              <Lock 
+                className="w-4 h-4 text-red-500 fill-red-500/30 drop-shadow-[0_0_8px_rgba(239,68,68,0.95)] shrink-0 animate-pulse" 
+                title="Tela travada pelo Administrador" 
+              />
             ) : (
               <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             )}

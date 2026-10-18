@@ -390,17 +390,8 @@ export default function KitchenView({ environment, onNavigate }) {
           </div>
         </div>
 
-        {/* LADO DIREITO: STATUS TRAVADO + ESPERA E ENTREGUES */}
+        {/* LADO DIREITO: ESPERA E ENTREGUES */}
         <div className="flex items-center gap-3">
-          {screensLocked && (
-            <div 
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-950/80 border border-rose-500/60 rounded-xl text-rose-300 text-xs font-bold shadow-sm"
-              title="Tela travada remotamente pelo Administrador."
-            >
-              <Lock className="w-3.5 h-3.5 text-rose-400" />
-              <span className="hidden sm:inline">Travado</span>
-            </div>
-          )}
 
           <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
             <button

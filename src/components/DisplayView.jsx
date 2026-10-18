@@ -247,17 +247,8 @@ export default function DisplayView({ environment, onNavigate }) {
           </div>
         </div>
 
-        {/* CONTROLES À DIREITA: STATUS TRAVADO E TELA CHEIA */}
+        {/* CONTROLES À DIREITA: TELA CHEIA */}
         <div className="flex items-center gap-3">
-          {screensLocked && (
-            <div 
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/80 border border-rose-500/60 rounded-xl text-rose-300 text-xs font-bold shadow-sm"
-              title="Telão travado remotamente pelo Administrador."
-            >
-              <Lock className="w-4 h-4 text-rose-400" />
-              <span className="hidden sm:inline">Telão Travado</span>
-            </div>
-          )}
 
           <button
             onClick={toggleFullscreen}
