@@ -1136,24 +1136,26 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             )}
           </div>
 
-          {/* BOTÃO FINALIZAR VENDA COM VALOR DESTACADO */}
+          {/* BOTÃO FINALIZAR VENDA COM VALOR NO LIMITE DIREITO (FUNDO PRETO, LETRA BRANCA) */}
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleFinalizeCart}
               disabled={isSubmittingCart || cart.length === 0}
-              className={`h-11 px-4 sm:px-6 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 sm:gap-3 transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
+              className={`h-11 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-between overflow-hidden transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
                 cart.length > 0
-                  ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 border-emerald-300 shadow-emerald-950/80'
-                  : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-60'
+                  ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 border-emerald-300 shadow-emerald-950/80 pl-4 pr-0'
+                  : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-60 px-5'
               }`}
             >
-              <Send className="w-4 h-4 fill-current" />
-              <span>FINALIZAR PEDIDOS</span>
+              <div className="flex items-center gap-2 sm:gap-2.5 pr-3">
+                <Send className="w-4 h-4 fill-current" />
+                <span>FINALIZAR PEDIDOS</span>
+              </div>
               {cart.length > 0 && (
-                <span className="bg-yellow-400 text-slate-950 px-2.5 py-0.5 rounded-lg font-mono text-sm sm:text-base font-black shadow-md border border-yellow-300 animate-cart-item-birth">
+                <div className="h-full flex items-center justify-center px-3.5 bg-black text-white font-mono text-sm sm:text-base font-black border-l-2 border-emerald-300/80 animate-cart-item-birth shrink-0">
                   {formatPrice(cartTotal, showCurrencySymbol)}
-                </span>
+                </div>
               )}
             </button>
           </div>
