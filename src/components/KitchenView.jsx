@@ -13,7 +13,6 @@ import {
   Check, 
   Sparkles,
   User,
-  AlertTriangle,
   Lock
 } from 'lucide-react';
 import { storageService } from '../services/storage';
@@ -283,52 +282,11 @@ export default function KitchenView({ environment, onNavigate }) {
     return `${min}m ${sec < 10 ? '0' : ''}${sec}s`;
   };
 
-  // Normalizador de nome de item para comparação inteligente
-  const getItemKeywords = (it) => {
-    return (it.description || it.itemName || it.name || '').trim().toLowerCase();
-  };
-
-  // Verifica se outro pedido feito DEPOIS contendo o mesmo item já foi entregue antes (dedurar atraso)
-  const getBypassedInfo = (order, allOrders) => {
-    if (!order || !order.createdAt) return { isBypassed: false, count: 0, deliveredOrders: [] };
-
-    const currentItems = order.items && order.items.length > 0 ? order.items : getOrderItems(order);
-    const myItemNames = currentItems.map(getItemKeywords).filter(Boolean);
-
-    // Pedidos entregues que foram criados DEPOIS deste pedido e contêm pelo menos um item igual
-    const deliveredNewer = allOrders.filter(other => {
-      if (other.status !== 'entregue') return false;
-      if (other.id === order.id || (order.orderIds && order.orderIds.includes(other.id))) return false;
-      const otherTime = other.createdAt || 0;
-      const thisTime = order.createdAt || 0;
-      if (otherTime < thisTime) return false;
-
-      const otherItems = other.items && other.items.length > 0 ? other.items : getOrderItems(other);
-      return otherItems.some(it => {
-        const otherName = getItemKeywords(it);
-        return myItemNames.some(mine => mine.includes(otherName) || otherName.includes(mine));
-      });
-    });
-
-    return {
-      isBypassed: deliveredNewer.length > 0,
-      count: deliveredNewer.length,
-      deliveredOrders: deliveredNewer
-    };
-  };
-
-  // Tempo inteligente com 5 cores: Verde -> Azul -> Amarelo -> Laranja -> Vermelho (dedura se outro do mesmo saiu antes)
+  // Classificação de tempo por faixas configuradas: Verde -> Azul -> Amarelo -> Laranja -> Vermelho
   const getOrderTimeStatus = (order) => {
     const elapsedMinutes = Math.floor((currentTime - (order.createdAt || 0)) / 60000);
-    const bypass = getBypassedInfo(order, orders);
     const limits = orderTimeLimits || { greenLimit: 3, blueLimit: 6, yellowLimit: 10, orangeLimit: 15 };
 
-    // Severidade base por tempo configurável:
-    // 0 = Verde (Normal) < greenLimit
-    // 1 = Azul (No prazo) < blueLimit
-    // 2 = Amarelo (Alerta 1) < yellowLimit
-    // 3 = Laranja (Atrasado) < orangeLimit
-    // 4 = Vermelho (Muito Atrasado) >= orangeLimit
     let severity = 0;
     if (elapsedMinutes < (limits.greenLimit || 3)) {
       severity = 0; // Verde (Normal)
@@ -340,16 +298,6 @@ export default function KitchenView({ environment, onNavigate }) {
       severity = 3; // Laranja (Atrasado)
     } else {
       severity = 4; // Vermelho (Muito Atrasado)
-    }
-
-    // Se outro pedido do mesmo item foi feito depois e já saiu antes: DEDURA ATRASO!
-    if (bypass.isBypassed) {
-      if (bypass.count >= 2) {
-        severity = 4; // Vermelho direto!
-      } else {
-        severity = Math.max(severity, 3);
-        if (elapsedMinutes >= (limits.blueLimit || 6)) severity = 4;
-      }
     }
 
     const colorConfigs = [
@@ -386,15 +334,13 @@ export default function KitchenView({ environment, onNavigate }) {
         label: 'Muito Atrasado',
         borderLeftClass: 'border-l-rose-500',
         classes: 'text-rose-300 bg-rose-950/80 border-rose-500/80 animate-pulse font-black shadow-md shadow-rose-950/50',
-        badge: bypass.isBypassed ? 'Crítico (passou na frente)' : 'Muito Atrasado'
+        badge: 'Muito Atrasado'
       }
     ];
 
     return {
       ...colorConfigs[severity],
-      severity,
-      isBypassed: bypass.isBypassed,
-      bypassedCount: bypass.count
+      severity
     };
   };
 
@@ -518,9 +464,7 @@ export default function KitchenView({ environment, onNavigate }) {
                         ? 'glow-new-order-line border-amber-400 border-l-amber-300'
                         : isReady
                           ? 'bg-emerald-950/40 border-emerald-500 border-l-emerald-400 shadow-emerald-500/10'
-                          : timeStatus.isBypassed
-                            ? 'bg-rose-950/30 border-rose-500/80 border-l-rose-500 shadow-md shadow-rose-950/40'
-                            : `bg-slate-900/90 border-slate-700/80 ${timeStatus.borderLeftClass} hover:border-slate-600`
+                          : `bg-slate-900/90 border-slate-700/80 ${timeStatus.borderLeftClass} hover:border-slate-600`
                   }`}
                 >
                   {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
@@ -571,20 +515,12 @@ export default function KitchenView({ environment, onNavigate }) {
                   <div className="flex items-center justify-between md:justify-end gap-1.5 shrink-0">
                     {!isDelivered ? (
                       <div className="flex items-center gap-1.5">
-                        {/* TEMPO INTELIGENTE */}
+                        {/* TEMPO BASEADO NAS CORES CONFIGURADAS */}
                         <div 
                           className={`text-[9px] font-mono font-bold px-1.5 h-[22px] rounded-lg border flex items-center justify-center gap-1 transition-all shadow-sm ${timeStatus.classes}`}
-                          title={
-                            timeStatus.isBypassed
-                              ? `ATENÇÃO: Outro pedido com item igual foi feito depois e já saiu/entregue antes! (${timeStatus.bypassedCount}x)`
-                              : `Tempo em preparo: ${getElapsedTime(order.createdAt)}`
-                          }
+                          title={`Tempo em preparo: ${getElapsedTime(order.createdAt)}`}
                         >
-                          {timeStatus.isBypassed ? (
-                            <AlertTriangle className="w-2.5 h-2.5 text-rose-400 shrink-0 animate-bounce" />
-                          ) : (
-                            <Clock className="w-2.5 h-2.5" />
-                          )}
+                          <Clock className="w-2.5 h-2.5" />
                           <span>{getElapsedTime(order.createdAt)}</span>
                           {timeStatus.badge && (
                             <span className="text-[7px] font-black uppercase tracking-wider bg-black/40 px-1 py-0.2 rounded border border-white/20">

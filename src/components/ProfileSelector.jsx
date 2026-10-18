@@ -11,6 +11,7 @@ import {
   Settings,
   Lock,
   KeyRound,
+  Check,
   X
 } from 'lucide-react';
 import { authService, PERFIS } from '../services/auth';
