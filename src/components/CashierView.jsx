@@ -403,12 +403,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   const totalFaturado = todayOrders.filter(o => o.status !== 'cancelado').reduce((acc, curr) => acc + (Number(curr.totalPrice) || 0), 0);
 
+  const isValidColorHex = (c) => {
+    if (!c || typeof c !== 'string') return false;
+    const s = c.trim().toLowerCase();
+    return s.startsWith('#') || s.startsWith('rgb');
+  };
+
   // Resolução inteligente da cor do item para os mini cards e pedidos
   const getOrderItemColor = (order) => {
-    if (order.color) return order.color;
+    if (isValidColorHex(order.color)) return order.color;
     const items = order.items && order.items.length > 0 ? order.items : getOrderItems(order);
     const firstItem = items?.[0];
-    if (firstItem?.color) return firstItem.color;
+    if (isValidColorHex(firstItem?.color)) return firstItem.color;
 
     const numClean = (order.orderNumber || '').toUpperCase();
     const itemId = firstItem?.itemId || order.itemId;
@@ -419,27 +425,27 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       if (variationId) {
         for (const cat of categories) {
           const v = (cat.variations || []).find(x => x.id === variationId);
-          if (v?.color) return v.color;
+          if (isValidColorHex(v?.color)) return v.color;
         }
       }
       if (itemId) {
         for (const cat of categories) {
           const it = (cat.items || []).find(x => x.id === itemId);
-          if (it?.color) return it.color;
+          if (isValidColorHex(it?.color)) return it.color;
         }
       }
       if (itemName) {
         for (const cat of categories) {
           const it = (cat.items || []).find(x => x.name?.toLowerCase() === itemName?.toLowerCase());
-          if (it?.color) return it.color;
+          if (isValidColorHex(it?.color)) return it.color;
         }
       }
       for (const cat of categories) {
         const v = (cat.variations || []).find(x => x.prefix && numClean.startsWith(x.prefix.toUpperCase()));
-        if (v?.color) return v.color;
+        if (isValidColorHex(v?.color)) return v.color;
         const it = (cat.items || []).find(x => x.prefix && numClean.startsWith(x.prefix.toUpperCase()));
-        if (it?.color) return it.color;
-        if (cat.prefixDefault && numClean.startsWith(cat.prefixDefault.toUpperCase()) && cat.color) {
+        if (isValidColorHex(it?.color)) return it.color;
+        if (cat.prefixDefault && numClean.startsWith(cat.prefixDefault.toUpperCase()) && isValidColorHex(cat.color)) {
           return cat.color;
         }
       }
@@ -553,10 +559,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const prefix = item.prefix || category.prefixDefault || 'Ped-';
     const unitPrice = item.price || 0;
     const description = item.name;
-    const cartItemId = `${category.id}_${item.id}`;
-    const color = item.color || category.color || (
-      category.id === 'acai' ? '#a855f7' : category.id === 'batata' ? '#f97316' : '#06b6d4'
-    );
+    const color = (isValidColorHex(item.color) ? item.color : null) || 
+      (isValidColorHex(category.color) ? category.color : null) || (
+        category.id === 'acai' ? '#a855f7' : category.id === 'batata' ? '#f97316' : '#06b6d4'
+      );
 
     setCart(prev => {
       const existingIndex = prev.findIndex(i => i.cartItemId === cartItemId);
@@ -840,19 +846,26 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   // Renderizador de card do rodapé com SENHA ÚNICA e itens consolidados no mesmo card
   const renderFooterCard = (order, isDelivered = false) => {
-    const itemColor = getOrderItemColor(order);
+    const rawColor = getOrderItemColor(order);
+    const isWhite = !rawColor || ['#fff', '#ffffff', 'white', '#f8fafc', '#f1f5f9'].includes(rawColor.trim().toLowerCase());
+    const itemColor = isWhite ? '#64748b' : rawColor;
+
     const items = order.items && order.items.length > 0 ? order.items : getOrderItems(order);
-    const itemBorderColor = itemColor ? `${itemColor}55` : 'rgba(100, 116, 139, 0.4)';
+
+    // Linha superior e inferior: cinza suave discreto (30% de intensidade)
+    const topBottomBorderColor = 'rgba(100, 116, 139, 0.3)';
+    // Borda esquerda: cor do item ou cinza atenuado se for branco
+    const leftBorderColor = isWhite ? 'rgba(148, 163, 184, 0.45)' : itemColor;
 
     return (
       <div 
         key={order.id || order.orderIds?.[0] || order.orderNumber}
         style={{
-          borderLeftColor: itemColor,
-          borderTopColor: itemBorderColor,
-          borderBottomColor: itemBorderColor
+          borderLeftColor: leftBorderColor,
+          borderTopColor: topBottomBorderColor,
+          borderBottomColor: topBottomBorderColor
         }}
-        className={`px-2 py-0.5 rounded-l-lg rounded-r-none border-y border-l-[5px] border-r-0 transition-all shadow-md text-xs flex items-center justify-between gap-1.5 relative bg-slate-900/90 hover:bg-slate-850 ${
+        className={`px-2 py-0.5 rounded-l-lg rounded-r-none border-y border-l-[4px] border-r-0 transition-all shadow-md text-xs flex items-center justify-between gap-1.5 relative bg-slate-900/90 hover:bg-slate-850 ${
           isDelivered ? 'opacity-70 hover:opacity-100' : ''
         }`}
       >
@@ -861,8 +874,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <span 
             className="font-mono font-black text-xs px-1.5 py-0.2 rounded-md shrink-0"
             style={{
-              backgroundColor: `${itemColor}25`,
-              color: itemColor
+              backgroundColor: `${itemColor}20`,
+              color: isWhite ? '#94a3b8' : itemColor
             }}
           >
             {order.orderNumber}
