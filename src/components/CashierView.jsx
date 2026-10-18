@@ -738,42 +738,34 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         key={order.id || order.orderIds?.[0] || order.orderNumber}
         onMouseEnter={(e) => handleCardMouseEnter(e, order)}
         onMouseLeave={handleCardMouseLeave}
-        className={`px-3 py-2 rounded-xl border ${style.border} ${style.bg} transition-all shadow-md text-xs flex flex-col gap-1.5 cursor-pointer relative group`}
+        className={`px-2.5 py-1.5 rounded-xl border ${style.border} ${style.bg} transition-all shadow-md text-xs flex items-center justify-between gap-2 cursor-pointer relative group`}
       >
-        {/* CABEÇALHO DO CARD: B-01 | JOÃO + VALOR TOTAL */}
-        <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="flex items-center gap-1.5 shrink-0">
-              {style.icon}
-              <span className={`font-mono font-black text-xs px-2 py-0.5 rounded-lg border ${style.badgeColor}`}>
-                {order.orderNumber}
-              </span>
-            </div>
-
-            <span className="text-slate-600 font-bold select-none text-xs">|</span>
-
-            <span className="text-xs font-black text-white uppercase tracking-wider truncate" title={order.customerName}>
-              {order.customerName}
-            </span>
-          </div>
-
-          <span className="text-xs font-mono font-black text-emerald-400 shrink-0">
-            {formatPrice(order.totalPrice, showCurrencySymbol)}
+        <div className="flex items-center gap-1.5 min-w-0">
+          {/* NÚMERO / SENHA DO PEDIDO (SEM ÍCONE ANTES) */}
+          <span className={`font-mono font-black text-xs px-2 py-0.5 rounded-lg border ${style.badgeColor} shrink-0`}>
+            {order.orderNumber}
           </span>
-        </div>
 
-        {/* CAPTION COLORIDO: PEDIDOS DO CLIENTE */}
-        <div className="flex items-center justify-between pt-0.5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white shadow-xs group-hover:brightness-110 transition-all select-none">
-            <span>PEDIDOS DO CLIENTE</span>
-            <span className="bg-black/30 px-1.5 py-0.2 rounded-full font-mono text-[9px]">
+          <span className="text-slate-600 font-bold select-none text-xs shrink-0">|</span>
+
+          {/* NOME DO CLIENTE */}
+          <span className="text-xs font-black text-white uppercase tracking-wider truncate max-w-[120px]" title={order.customerName}>
+            {order.customerName}
+          </span>
+
+          {/* CAPTION/BOTÃO PEDIDOS: FUNDO PRETO, FONTE BRANCA, NA FRENTE DO NOME */}
+          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-black text-white border border-slate-700 shadow-xs shrink-0 select-none group-hover:border-amber-400/60 transition-all">
+            <span>PEDIDOS</span>
+            <span className="bg-slate-800 text-amber-400 px-1 py-0.2 rounded font-mono text-[9px]">
               {items.reduce((acc, it) => acc + (it.quantity || 1), 0)}
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 font-medium group-hover:text-amber-300 transition-colors">
-            Ver itens →
-          </span>
         </div>
+
+        {/* VALOR TOTAL */}
+        <span className="text-xs font-mono font-black text-emerald-400 shrink-0">
+          {formatPrice(order.totalPrice, showCurrencySymbol)}
+        </span>
       </div>
     );
   };
