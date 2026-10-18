@@ -26,7 +26,10 @@ import {
   Trash2,
   Check,
   Lock,
-  Unlock
+  Unlock,
+  Pencil,
+  LayoutGrid,
+  Save
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
 import { authService } from '../services/auth';
@@ -161,6 +164,16 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const [quickAddDesc, setQuickAddDesc] = useState('');
 
   const [quickDeleteModal, setQuickDeleteModal] = useState({ isOpen: false, category: null, itemToDelete: null });
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState('all');
+  const [quickEditModal, setQuickEditModal] = useState({
+    isOpen: false,
+    item: null,
+    category: null,
+    name: '',
+    price: '0,00',
+    pedacoPrice: '0,00',
+    inteiraPrice: '0,00'
+  });
 
   // Máscara monetária em Reais 0,00
   const formatCurrencyMask = (val) => {
@@ -266,6 +279,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
+        if (quickEditModal.isOpen) {
+          setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00' });
+          return;
+        }
         if (quickDeleteModal.isOpen) {
           setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null });
           return;
@@ -286,7 +303,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [quickDeleteModal.isOpen, quickAddModal.isOpen, selectedPizzaFlavor, cart.length]);
+  }, [quickEditModal.isOpen, quickDeleteModal.isOpen, quickAddModal.isOpen, selectedPizzaFlavor, cart.length]);
 
   // Totais e listas do rodapé (mais novos em cima)
   const todayOrders = orders.filter(o => {
@@ -847,6 +864,83 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   const isNameFilled = customerName.trim().length > 0;
 
+  const handleOpenQuickEdit = (category, item) => {
+    if (!category || !item) return;
+    const isPizza = category.id === 'pizza';
+    const pedacoVar = category.variations?.find(v => v.id === 'pedaco') || { price: 9 };
+    const inteiraVar = category.variations?.find(v => v.id === 'inteira') || { price: 48 };
+
+    setQuickEditModal({
+      isOpen: true,
+      item,
+      category,
+      name: item.name || '',
+      price: formatCurrencyMask(item.price || 0),
+      pedacoPrice: formatCurrencyMask(pedacoVar.price || 0),
+      inteiraPrice: formatCurrencyMask(inteiraVar.price || 0)
+    });
+  };
+
+  const handleSaveQuickEdit = (e) => {
+    e.preventDefault();
+    const { category, item, name, price, pedacoPrice, inteiraPrice } = quickEditModal;
+    if (!category || !item) return;
+
+    const isPizza = category.id === 'pizza';
+    const cleanName = name.trim() || item.name;
+
+    const updatedCategories = categories.map((c) => {
+      if (c.id === category.id) {
+        if (isPizza) {
+          const updatedVariations = (c.variations || []).map(v => {
+            if (v.id === 'pedaco') return { ...v, price: parseCurrencyMask(pedacoPrice) };
+            if (v.id === 'inteira') return { ...v, price: parseCurrencyMask(inteiraPrice) };
+            return v;
+          });
+          const updatedItems = (c.items || []).map(it => {
+            if (it.id === item.id) {
+              return { ...it, name: cleanName };
+            }
+            return it;
+          });
+          return { ...c, variations: updatedVariations, items: updatedItems };
+        } else {
+          const numericPrice = parseCurrencyMask(price);
+          const updatedItems = (c.items || []).map(it => {
+            if (it.id === item.id) {
+              return { ...it, name: cleanName, price: numericPrice };
+            }
+            return it;
+          });
+          return { ...c, items: updatedItems };
+        }
+      }
+      return c;
+    });
+
+    storageService.saveProducts(updatedCategories);
+    setCategories(updatedCategories);
+    setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00' });
+    setToast({
+      type: 'success',
+      title: 'PREÇO ATUALIZADO!',
+      orderNumber: 'OK',
+      customerName: cleanName.toUpperCase(),
+      destination: category.name,
+      terminal: cashierTerminal,
+      total: isPizza ? `Fatia: R$ ${pedacoPrice} | Inteira: R$ ${inteiraPrice}` : `R$ ${price}`
+    });
+  };
+
+  const getCategoryColor = (cat) => {
+    if (!cat) return '#eab308';
+    if (cat.color && isValidColorHex(cat.color)) return cat.color;
+    if (cat.id === 'pizza') return '#eab308';
+    if (cat.id === 'acai') return '#a855f7';
+    if (cat.id === 'batata') return '#f97316';
+    return '#06b6d4';
+  };
+
 
   // Renderizador de card do rodapé com SENHA ÚNICA e itens consolidados no mesmo card
   const renderFooterCard = (order, isDelivered = false) => {
@@ -912,6 +1006,19 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       </div>
     );
   };
+
+  const displayedItems = [];
+  const activeCategories = selectedTypeFilter === 'all'
+    ? categories
+    : categories.filter(c => c.id === selectedTypeFilter);
+
+  activeCategories.forEach((cat) => {
+    (cat.items || []).forEach((it) => {
+      displayedItems.push({ item: it, category: cat });
+    });
+  });
+
+  const totalItemsCount = categories.reduce((acc, c) => acc + (c.items?.length || 0), 0);
 
   return (
     <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden text-xs">
@@ -1229,403 +1336,243 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
       </section>
 
-      {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA) */}
-      <main className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-6">
+      {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA COM ORGANIZAÇÃO POR TIPO) */}
+      <main className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-3.5">
 
-        {/* ========================================================
-            SEÇÃO 1: PIZZA (CLICOU NO SABOR -> ESCOLHE PEDAÇO OU INTEIRA)
-           ======================================================== */}
-        {pizzaCategory && (
-          <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
-            <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg border border-yellow-500/30">
-                  <Pizza className="w-5 h-5" />
-                </span>
-                <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                  PIZZA
-                </h2>
-                <span className="text-[10px] text-slate-400 hidden sm:inline">
-                  (Clique no sabor e adicione Pedaço ou Inteira à comanda)
-                </span>
-              </div>
+        {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (ORGANIZAÇÃO INTELIGENTE POR TIPO) */}
+        <div className="flex items-center justify-between gap-2 flex-wrap bg-slate-950/80 p-2 sm:p-2.5 rounded-2xl border border-slate-800 shadow-md">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+              <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
+              Tipo:
+            </span>
 
-              {/* BOTÕES + E - PARA PIZZA */}
-              <div className="flex items-center gap-1.5">
+            {/* BOTÃO TODOS */}
+            <button
+              type="button"
+              onClick={() => setSelectedTypeFilter('all')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                selectedTypeFilter === 'all'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 ring-2 ring-amber-400'
+                  : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800'
+              }`}
+            >
+              <span>TODOS</span>
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                selectedTypeFilter === 'all'
+                  ? 'bg-slate-950/30 text-slate-950 font-bold'
+                  : 'bg-slate-950 text-amber-400 border border-slate-800'
+              }`}>
+                {totalItemsCount}
+              </span>
+            </button>
+
+            {/* BOTÕES DE CADA TIPO / CATEGORIA */}
+            {categories.map((c) => {
+              const count = c.items?.length || 0;
+              const isSelected = selectedTypeFilter === c.id;
+              const color = getCategoryColor(c);
+              return (
                 <button
+                  key={c.id}
                   type="button"
-                  onClick={() => handleOpenQuickAdd(pizzaCategory)}
-                  title="Adicionar novo sabor / opção de pizza"
-                  className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                  onClick={() => setSelectedTypeFilter(c.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-slate-800 text-white shadow-md ring-2 ring-amber-400/40 font-black'
+                      : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border-slate-800'
+                  }`}
+                  style={{ borderColor: isSelected ? color : undefined }}
                 >
-                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="uppercase text-[11px]" style={{ color: isSelected ? color : undefined }}>
+                    {c.name}
+                  </span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                    isSelected
+                      ? 'bg-amber-400 text-slate-950 font-black'
+                      : 'bg-slate-950 text-slate-400 border border-slate-800'
+                  }`}>
+                    {count}
+                  </span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleOpenQuickDelete(pizzaCategory)}
-                  title="Excluir sabor de pizza"
-                  className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                >
-                  <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-              </div>
-            </div>
+              );
+            })}
+          </div>
 
-            {/* CARDS VISUAIS HORIZONTAIS COM ÍCONES 2D GRANDES (+30%) E BOTÕES DIRETOS FATIA/INTEIRA */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-              {pizzaCategory.items.map((flavor) => {
-                const inCartQty = getItemCartQuantity(flavor.id);
-                const pedacoVar = pizzaCategory.variations?.find(v => v.id === 'pedaco') || pizzaCategory.variations?.[0] || { id: 'pedaco', price: 9 };
-                const inteiraVar = pizzaCategory.variations?.find(v => v.id === 'inteira') || pizzaCategory.variations?.[1] || { id: 'inteira', price: 48 };
+          {/* BOTÃO RÁPIDO PARA ADICIONAR NOVO ITEM */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const targetCat = (selectedTypeFilter !== 'all' && categories.find(c => c.id === selectedTypeFilter)) || categories[0];
+                handleOpenQuickAdd(targetCat);
+              }}
+              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+              title="Adicionar novo item ao cardápio"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span>Novo Item</span>
+            </button>
+          </div>
+        </div>
 
-                return (
-                  <div
-                    key={flavor.id}
-                    className="p-3 rounded-2xl bg-slate-900/90 hover:bg-yellow-950/20 border border-slate-700/80 hover:border-yellow-500/60 transition-all shadow-sm flex flex-col justify-between relative group min-h-[148px]"
+        {/* DASHBOARD INTELIGENTE DE CARDS: ZERO ESPAÇO LIVRE DESPERDIÇADO */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
+          {displayedItems.map(({ item, category }) => {
+            const inCartQty = getItemCartQuantity(item.id);
+            const isPizza = category.id === 'pizza';
+            const itemColor = item.color || getCategoryColor(category);
+
+            // Variações para pizza (Fatia e Inteira)
+            const pedacoVar = isPizza
+              ? (category.variations?.find(v => v.id === 'pedaco') || category.variations?.[0] || { id: 'pedaco', price: 9 })
+              : null;
+            const inteiraVar = isPizza
+              ? (category.variations?.find(v => v.id === 'inteira') || category.variations?.[1] || { id: 'inteira', price: 48 })
+              : null;
+
+            return (
+              <div
+                key={`${category.id}_${item.id}`}
+                className="p-3.5 rounded-2xl bg-slate-900/95 hover:bg-slate-900 border border-slate-700/80 hover:border-slate-600 border-l-4 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[165px]"
+                style={{ borderLeftColor: itemColor }}
+              >
+                {/* TOPO: CATEGORIA À ESQUERDA, LAPIZINHO ✏️ + X ✕ À DIREITA (+ BADGE SE ESTIVER NA COMANDA) */}
+                <div className="flex items-center justify-between gap-1.5 pb-1">
+                  <span 
+                    className="text-[10px] font-black uppercase tracking-wider block font-mono truncate"
+                    style={{ color: itemColor }}
                   >
-                    {/* Badge de Quantidade no topo direito */}
+                    {category.name}
+                  </span>
+
+                  <div className="flex items-center gap-1 z-10 shrink-0">
+                    {/* Badge de Quantidade se estiver na comanda */}
                     {inCartQty > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 text-[10px] font-black bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full shadow-lg shrink-0 z-10 animate-cart-item-birth border border-emerald-300/60">
+                      <span className="text-[10px] font-black bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full shadow-md font-mono border border-emerald-300/60 animate-cart-item-birth mr-0.5">
                         ✓ {inCartQty}x
                       </span>
                     )}
 
-                    {/* CORPO DO CARD: ÍCONE GRANDE À ESQUERDA (+30%) + TEXTOS À DIREITA */}
-                    <div className="flex items-center gap-3">
-                      {/* Ícone 2D Grande (+30%) */}
-                      <div className="w-18 h-18 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center p-1 bg-slate-950/70 rounded-2xl border border-slate-800 shadow-inner group-hover:scale-105 transition-transform">
-                        <ProductIcon2D item={flavor} category={pizzaCategory} className="w-16 h-16 sm:w-18 sm:h-18" />
-                      </div>
-
-                      {/* Informações: Categoria, Sabor e Descrição */}
-                      <div className="min-w-0 flex-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
-                          PIZZA
-                        </span>
-                        <h3 className="font-black text-xs sm:text-sm text-white uppercase tracking-wide truncate mt-0.5 leading-snug" title={flavor.name}>
-                          {flavor.name}
-                        </h3>
-                        <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
-                          {flavor.description || 'Sabor tradicional'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* BOTÕES DIRETOS FATIA E INTEIRA NA BASE DO CARD (1 TOQUE DIRETO) */}
-                    <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-slate-800/80">
-                      <button
-                        type="button"
-                        onClick={() => handleAddPizzaToCart(flavor, pedacoVar)}
-                        className="py-1.5 px-2 bg-slate-950 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/40 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center cursor-pointer shadow-xs active:scale-95 group/btn"
-                        title={`Adicionar Fatia de ${flavor.name} à comanda`}
-                      >
-                        <span className="text-[9px] uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 font-bold">
-                          🍕 Fatia
-                        </span>
-                        <span className="font-mono font-black text-[11px]">
-                          {formatPrice(pedacoVar.price, showCurrencySymbol)}
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleAddPizzaToCart(flavor, inteiraVar)}
-                        className="py-1.5 px-2 bg-slate-950 hover:bg-yellow-400 hover:text-slate-950 text-yellow-300 border border-yellow-500/40 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center cursor-pointer shadow-xs active:scale-95 group/btn"
-                        title={`Adicionar Pizza Inteira de ${flavor.name} à comanda`}
-                      >
-                        <span className="text-[9px] uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 font-bold">
-                          🍕 Inteira
-                        </span>
-                        <span className="font-mono font-black text-[11px]">
-                          {formatPrice(inteiraVar.price, showCurrencySymbol)}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================
-            GRID DINÂMICO AUTO-FLOW: AÇAÍ, BATATA E DEMAIS CATEGORIAS
-            (Quando houver espaço livre à direita, as seções fluem lado a lado)
-           ======================================================== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
-          {/* SEÇÃO 2: AÇAÍ */}
-          {acaiCategory && (
-            <div className={`bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md ${
-              (acaiCategory.items?.length || 0) >= 5 ? 'col-span-1 md:col-span-2 lg:col-span-3' : 'col-span-1'
-            }`}>
-              <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
-                <div className="flex items-center gap-2">
-                  <span className="p-1.5 bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/30">
-                    <IceCream className="w-5 h-5" />
-                  </span>
-                  <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                    AÇAÍ
-                  </h2>
-                  <span className="text-[10px] text-slate-400 hidden sm:inline">
-                    (Clique para adicionar diretamente à comanda)
-                  </span>
-                </div>
-
-                {/* BOTÕES + E - PARA AÇAÍ */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenQuickAdd(acaiCategory)}
-                    title="Adicionar nova opção de Açaí (ex: Copo 500ml)"
-                    className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenQuickDelete(acaiCategory)}
-                    title="Excluir opção de Açaí"
-                    className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                  >
-                    <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                  </button>
-                </div>
-              </div>
-
-              {/* CARDS VISUAIS DE AÇAÍ */}
-              <div className={`grid gap-2.5 ${
-                (acaiCategory.items?.length || 0) <= 2 
-                  ? 'grid-cols-2' 
-                  : (acaiCategory.items?.length || 0) <= 4 
-                    ? 'grid-cols-2 sm:grid-cols-3' 
-                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
-              }`}>
-                {acaiCategory.items.map((item) => {
-                  const inCartQty = getItemCartQuantity(item.id);
-                  return (
+                    {/* LAPIZINHO ✏️ PARA EDITAR PREÇO RÁPIDO */}
                     <button
-                      key={item.id}
                       type="button"
-                      onClick={() => handleAddItemToCart(acaiCategory, item)}
-                      className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-purple-950/40 text-slate-200 border-slate-700/80 hover:border-purple-500/70 shadow-sm active:scale-95 group relative"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenQuickEdit(category, item);
+                      }}
+                      className="w-6 h-6 rounded-lg bg-slate-950/90 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 border border-slate-700/80 hover:border-emerald-400 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-90"
+                      title="Editar preço e dados deste item rapidamente"
                     >
-                      {inCartQty > 0 && (
-                        <span className="absolute top-2 right-2 text-[10px] font-black bg-purple-500 text-white px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
-                          ✓ {inCartQty}x
-                        </span>
-                      )}
-
-                      <div className="my-1 transition-transform group-hover:scale-110 duration-200">
-                        <ProductIcon2D item={item} category={acaiCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
-                      </div>
-
-                      <div className="w-full">
-                        <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
-                          {item.name}
-                        </div>
-                      </div>
-
-                      <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-purple-500/30">
-                        <span className="text-xs sm:text-sm font-mono font-black text-purple-300">
-                          {formatPrice(item.price, showCurrencySymbol)}
-                        </span>
-                        <span className="text-[10px] font-black text-purple-300 group-hover:text-white uppercase tracking-wider">
-                          + Incluir
-                        </span>
-                      </div>
+                      <Pencil className="w-3 h-3 stroke-[2.5]" />
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
-          {/* SEÇÃO 3: BATATA FRITA */}
-          {batataCategory && (
-            <div className={`bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md ${
-              (batataCategory.items?.length || 0) >= 5 ? 'col-span-1 md:col-span-2 lg:col-span-3' : 'col-span-1'
-            }`}>
-              <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
-                <div className="flex items-center gap-2">
-                  <span className="p-1.5 bg-orange-500/20 text-orange-400 rounded-lg border border-orange-500/30">
-                    <UtensilsCrossed className="w-5 h-5" />
-                  </span>
-                  <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                    BATATA FRITA
-                  </h2>
-                  <span className="text-[10px] text-slate-400 hidden sm:inline">
-                    (Clique para adicionar diretamente à comanda)
-                  </span>
-                </div>
-
-                {/* BOTÕES + E - PARA BATATA */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenQuickAdd(batataCategory)}
-                    title="Adicionar nova opção de Batata"
-                    className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenQuickDelete(batataCategory)}
-                    title="Excluir opção de Batata"
-                    className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                  >
-                    <Minus className="w-3.5 h-3.5 stroke-[3]" />
-                  </button>
-                </div>
-              </div>
-
-              {/* CARDS VISUAIS DE BATATA */}
-              <div className={`grid gap-2.5 ${
-                (batataCategory.items?.length || 0) <= 2 
-                  ? 'grid-cols-2' 
-                  : (batataCategory.items?.length || 0) <= 4 
-                    ? 'grid-cols-2 sm:grid-cols-3' 
-                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
-              }`}>
-                {batataCategory.items.map((item) => {
-                  const inCartQty = getItemCartQuantity(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleAddItemToCart(batataCategory, item)}
-                      className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-orange-950/40 text-slate-200 border-slate-700/80 hover:border-orange-500/70 shadow-sm active:scale-95 group relative"
-                    >
-                      {inCartQty > 0 && (
-                        <span className="absolute top-2 right-2 text-[10px] font-black bg-orange-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
-                          ✓ {inCartQty}x
-                        </span>
-                      )}
-
-                      <div className="my-1 transition-transform group-hover:scale-110 duration-200">
-                        <ProductIcon2D item={item} category={batataCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
-                      </div>
-
-                      <div className="w-full">
-                        <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
-                          {item.name}
-                        </div>
-                      </div>
-
-                      <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-orange-500/30">
-                        <span className="text-xs sm:text-sm font-mono font-black text-orange-400">
-                          {formatPrice(item.price, showCurrencySymbol)}
-                        </span>
-                        <span className="text-[10px] font-black text-orange-300 group-hover:text-white uppercase tracking-wider">
-                          + Incluir
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* SEÇÃO 4: OUTRAS CATEGORIAS (SALADA DE FRUTAS, PASTEL, SALGADOS, BEBIDAS...) */}
-          {otherCategories.map((cat) => {
-            const itemCount = cat.items?.length || 0;
-            const isFullRow = itemCount >= 5;
-            return (
-              <div 
-                key={cat.id} 
-                className={`bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md ${
-                  isFullRow ? 'col-span-1 md:col-span-2 lg:col-span-3' : 'col-span-1'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30">
-                      <Utensils className="w-5 h-5" />
-                    </span>
-                    <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                      {cat.name}
-                    </h2>
-                    <span className="text-[10px] text-slate-400 hidden sm:inline">
-                      (Clique para adicionar diretamente à comanda)
-                    </span>
-                  </div>
-
-                  {/* BOTÕES + E - PARA OUTRAS CATEGORIAS */}
-                  <div className="flex items-center gap-1.5">
+                    {/* BOTÃO X ✕ PARA EXCLUIR ITEM DO CARDÁPIO */}
                     <button
                       type="button"
-                      onClick={() => handleOpenQuickAdd(cat)}
-                      title={`Adicionar opções de ${cat.name}`}
-                      className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-md shadow-emerald-500/40 hover:shadow-emerald-400/60 border border-emerald-300/50 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setQuickDeleteModal({ isOpen: true, category, itemToDelete: item });
+                      }}
+                      className="w-6 h-6 rounded-lg bg-slate-950/90 hover:bg-rose-500 hover:text-white text-slate-400 hover:text-white border border-slate-700/80 hover:border-rose-400 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-90"
+                      title={`Excluir "${item.name}" do cardápio`}
                     >
-                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenQuickDelete(cat)}
-                      title={`Excluir opções ou categoria ${cat.name}`}
-                      className="w-6 h-6 rounded-full bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-800/70 hover:border-rose-600/80 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                    >
-                      <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
                     </button>
                   </div>
                 </div>
 
-                {/* CARDS DOS ITENS COM ÍCONES 2D */}
-                {(!cat.items || cat.items.length === 0) ? (
-                  <div className="py-3 text-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-dashed border-slate-700/80">
-                    Nenhum item cadastrado em {cat.name}. Clique no botão <strong className="text-emerald-400 font-bold">+</strong> acima para cadastrar!
+                {/* CORPO DO CARD: ÍCONE TRANSPARENTE (SEM MOLDURA) À ESQUERDA + TEXTOS À DIREITA */}
+                <div className="flex items-center gap-3 my-1">
+                  {/* Ícone 2D / PNG Direto no fundo do card (sem moldura / sem caixa cinza) */}
+                  <div className="w-18 h-18 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <ProductIcon2D item={item} category={category} className="w-full h-full object-contain drop-shadow-md" />
+                  </div>
+
+                  {/* Informações: Nome e Descrição */}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-black text-xs sm:text-sm text-white uppercase tracking-wide truncate leading-snug" title={item.name}>
+                      {item.name}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5">
+                      {item.description || 'Disponível no cardápio'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* BASE DO CARD: BOTÕES DE AÇÃO COM TAMANHO DOBRADO (H-11 / H-12) */}
+                {isPizza && pedacoVar && inteiraVar ? (
+                  /* BOTÕES DIRETOS PARA PIZZA: FATIA (ESQ) E INTEIRA (DIR) COM PREÇO À DIREITA E SEM EMOJI */
+                  <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-800/80">
+                    <button
+                      type="button"
+                      onClick={() => handleAddPizzaToCart(item, pedacoVar)}
+                      className="h-11 sm:h-12 px-3 bg-slate-950 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/40 hover:border-amber-400 rounded-xl font-black transition-all flex items-center justify-between cursor-pointer shadow-xs active:scale-95 group/btn"
+                      title={`Adicionar Fatia de ${item.name} à comanda`}
+                    >
+                      <span className="text-xs sm:text-sm font-black uppercase tracking-wider group-hover/btn:text-slate-950">
+                        FATIA
+                      </span>
+                      <span className="font-mono font-black text-sm sm:text-base group-hover/btn:text-slate-950">
+                        {formatPrice(pedacoVar.price, showCurrencySymbol)}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleAddPizzaToCart(item, inteiraVar)}
+                      className="h-11 sm:h-12 px-3 bg-slate-950 hover:bg-yellow-400 hover:text-slate-950 text-yellow-300 border border-yellow-500/40 hover:border-yellow-300 rounded-xl font-black transition-all flex items-center justify-between cursor-pointer shadow-xs active:scale-95 group/btn"
+                      title={`Adicionar Pizza Inteira de ${item.name} à comanda`}
+                    >
+                      <span className="text-xs sm:text-sm font-black uppercase tracking-wider group-hover/btn:text-slate-950">
+                        INTEIRA
+                      </span>
+                      <span className="font-mono font-black text-sm sm:text-base group-hover/btn:text-slate-950">
+                        {formatPrice(inteiraVar.price, showCurrencySymbol)}
+                      </span>
+                    </button>
                   </div>
                 ) : (
-                  <div className={`grid gap-2.5 ${
-                    itemCount <= 2 
-                      ? 'grid-cols-2' 
-                      : itemCount <= 4 
-                        ? 'grid-cols-2 sm:grid-cols-3' 
-                        : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
-                  }`}>
-                    {cat.items.map((item) => {
-                      const inCartQty = getItemCartQuantity(item.id);
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => handleAddItemToCart(cat, item)}
-                          className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-cyan-950/40 text-slate-200 border-slate-700/80 hover:border-cyan-500/70 shadow-sm active:scale-95 group relative"
-                        >
-                          {inCartQty > 0 && (
-                            <span className="absolute top-2 right-2 text-[10px] font-black bg-cyan-400 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
-                              ✓ {inCartQty}x
-                            </span>
-                          )}
-
-                          <div className="my-1 transition-transform group-hover:scale-110 duration-200">
-                            <ProductIcon2D item={item} category={cat} className="w-14 h-14 sm:w-16 sm:h-16" />
-                          </div>
-
-                          <div className="w-full">
-                            <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
-                              {item.name}
-                            </div>
-                          </div>
-
-                          <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-cyan-500/30">
-                            <span className="text-xs sm:text-sm font-mono font-black text-cyan-300">
-                              {formatPrice(item.price, showCurrencySymbol)}
-                            </span>
-                            <span className="text-[10px] font-black text-cyan-300 group-hover:text-white uppercase tracking-wider">
-                              + Incluir
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
+                  /* BOTÃO PARA OUTROS ITENS: INCLUIR À ESQ E PREÇO À DIREITA COM TAMANHO DOBRADO */
+                  <div className="mt-2 pt-2 border-t border-slate-800/80">
+                    <button
+                      type="button"
+                      onClick={() => handleAddItemToCart(category, item)}
+                      className="w-full h-11 sm:h-12 px-3.5 bg-slate-950 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 border border-emerald-500/40 hover:border-emerald-400 rounded-xl font-black transition-all flex items-center justify-between cursor-pointer shadow-xs active:scale-95 group/btn"
+                      title={`Adicionar ${item.name} à comanda`}
+                    >
+                      <span className="text-xs sm:text-sm font-black uppercase tracking-wider group-hover/btn:text-slate-950">
+                        INCLUIR
+                      </span>
+                      <span className="font-mono font-black text-sm sm:text-base group-hover/btn:text-slate-950">
+                        {formatPrice(item.price, showCurrencySymbol)}
+                      </span>
+                    </button>
                   </div>
                 )}
               </div>
             );
           })}
+
+          {/* ESTADO VAZIO CASO NÃO HAJA ITENS CADASTRADOS */}
+          {displayedItems.length === 0 && (
+            <div className="col-span-full py-16 text-center bg-slate-900/40 rounded-3xl border border-dashed border-slate-800 flex flex-col items-center justify-center p-6">
+              <LayoutGrid className="w-12 h-12 text-slate-600 mb-3" />
+              <p className="text-slate-300 text-base font-bold">Nenhum item cadastrado para esta visualização.</p>
+              <p className="text-slate-500 text-xs mt-1">Clique abaixo para adicionar um item diretamente no cardápio.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const targetCat = (selectedTypeFilter !== 'all' && categories.find(c => c.id === selectedTypeFilter)) || categories[0];
+                  handleOpenQuickAdd(targetCat);
+                }}
+                className="mt-4 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl cursor-pointer transition-all shadow-md flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Adicionar Item Agora</span>
+              </button>
+            </div>
+          )}
         </div>
       </main>
 
@@ -2001,6 +1948,119 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODAL RÁPIDO: EDITAR PREÇO E NOME (LAPIZINHO ✏️)
+         ======================================================== */}
+      {quickEditModal.isOpen && quickEditModal.item && quickEditModal.category && (
+        <div 
+          onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00' })}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-emerald-500/80 w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl p-5 text-slate-100 font-sans cursor-default animate-scaleUp space-y-4"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                  <Pencil className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
+                    Editar Preço / Item
+                  </h3>
+                  <p className="text-[11px] text-amber-400 font-bold uppercase tracking-wider">
+                    {quickEditModal.category.name}
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00' })}
+                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuickEdit} className="space-y-4">
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-slate-300 block mb-1">
+                  Nome do Item / Sabor:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={quickEditModal.name}
+                  onChange={(e) => setQuickEditModal(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-emerald-400"
+                  autoFocus
+                />
+              </div>
+
+              {quickEditModal.category.id === 'pizza' ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-black uppercase tracking-wider text-amber-400 block mb-1">
+                      Fatia (R$):
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={quickEditModal.pedacoPrice}
+                      onChange={(e) => setQuickEditModal(prev => ({ ...prev, pedacoPrice: formatCurrencyMask(e.target.value) }))}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-base font-mono font-black text-amber-300 outline-none focus:border-amber-400 text-right"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black uppercase tracking-wider text-yellow-400 block mb-1">
+                      Inteira (R$):
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={quickEditModal.inteiraPrice}
+                      onChange={(e) => setQuickEditModal(prev => ({ ...prev, inteiraPrice: formatCurrencyMask(e.target.value) }))}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-base font-mono font-black text-yellow-300 outline-none focus:border-yellow-400 text-right"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-black uppercase tracking-wider text-emerald-400 block mb-1">
+                    Preço (R$):
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={quickEditModal.price}
+                    onChange={(e) => setQuickEditModal(prev => ({ ...prev, price: formatCurrencyMask(e.target.value) }))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-base font-mono font-black text-emerald-400 outline-none focus:border-emerald-400 text-right"
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00' })}
+                  className="py-2 px-4 bg-slate-800 hover:bg-slate-750 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="py-2 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Preço</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
