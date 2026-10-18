@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { authService, PERFIS } from '../services/auth';
 import { storageService } from '../services/storage';
-import AutoToast from './AutoToast';
 
 export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
   const [environments, setEnvironments] = useState(() => authService.getEnvironments());
@@ -24,10 +23,10 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
-  const [toast, setToast] = useState(null);
   const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [enteredPin, setEnteredPin] = useState('');
+  const [pinError, setPinError] = useState(false);
   
   const menuRef = useRef(null);
 
@@ -97,19 +96,11 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
   const handleConfirmPin = (e) => {
     if (e) e.preventDefault();
     if (enteredPin === '1234') {
+      setPinError(false);
       setPinModalOpen(false);
       setIsOpen(true);
-      setToast({
-        type: 'success',
-        title: 'PIN Correto',
-        message: 'Acesso liberado para troca de ambiente.'
-      });
     } else {
-      setToast({
-        type: 'error',
-        title: 'PIN Incorreto',
-        message: 'Senha incorreta. Acesso bloqueado.'
-      });
+      setPinError(true);
       setEnteredPin('');
     }
   };
@@ -135,12 +126,7 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
       }
       setIsOpen(false);
     } catch (err) {
-      setToast({
-        type: 'error',
-        title: 'Login Google',
-        message: 'Não foi possível autenticar com o Google.',
-        subtext: err.message || 'Verifique se o Google Sign-In está ativado no Firebase Console.'
-      });
+      console.error('Erro no login Google:', err);
     } finally {
       setLoadingGoogle(false);
     }
@@ -381,15 +367,29 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
                   autoFocus
                   placeholder="PIN de Segurança"
                   value={enteredPin}
-                  onChange={(e) => setEnteredPin(e.target.value)}
-                  className="w-full bg-slate-950 border-2 border-slate-700 focus:border-rose-500 rounded-xl py-2.5 pl-10 pr-4 text-center font-mono text-base font-black tracking-widest text-white outline-none"
+                  onChange={(e) => {
+                    setEnteredPin(e.target.value);
+                    if (pinError) setPinError(false);
+                  }}
+                  className={`w-full bg-slate-950 border-2 rounded-xl py-2.5 pl-10 pr-4 text-center font-mono text-base font-black tracking-widest text-white outline-none ${
+                    pinError ? 'border-rose-500 animate-shake' : 'border-slate-700 focus:border-rose-500'
+                  }`}
                 />
               </div>
+
+              {pinError && (
+                <p className="text-[11px] font-bold text-rose-400 text-center">
+                  PIN incorreto! Tente novamente.
+                </p>
+              )}
 
               <div className="flex items-center justify-end gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setPinModalOpen(false)}
+                  onClick={() => {
+                    setPinModalOpen(false);
+                    setPinError(false);
+                  }}
                   className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
                 >
                   Cancelar
@@ -405,9 +405,6 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
           </div>
         </div>
       )}
-
-      {/* MODAL BONITO DE 2 SEGUNDOS */}
-      <AutoToast toast={toast} onClose={() => setToast(null)} duration={2000} />
 
     </div>
   );

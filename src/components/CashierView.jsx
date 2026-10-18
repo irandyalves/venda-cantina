@@ -82,36 +82,16 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const handleToggleScreensLock = async () => {
     const nextState = !screensLocked;
     await storageService.setScreensLocked(nextState);
-    setToast({
-      title: nextState ? 'Telas Travadas! 🔒' : 'Telas Destravadas! 🔓',
-      message: nextState 
-        ? 'Monitores da Cozinha e Telão foram bloqueados contra alterações indevidas.'
-        : 'Monitores e tablets liberados para acesso e configurações.',
-      type: 'success'
-    });
   };
 
   const handleDestinationKitchenChange = (newDest) => {
     setDestinationKitchen(newDest);
     localStorage.setItem('cantina_cashier_destination_kitchen', newDest);
-    const targetName = newDest === 'auto'
-      ? 'Automático (Por Regra de Produto)'
-      : (environments.find(e => e.id === newDest)?.name || newDest);
-    setToast({
-      type: 'info',
-      title: 'Cozinha de Destino',
-      message: `Pedidos deste caixa serão despachados para: ${targetName}`
-    });
   };
 
   const handleTerminalChange = (newTerm) => {
     setCashierTerminal(newTerm);
     localStorage.setItem('cantina_cashier_terminal', newTerm);
-    setToast({
-      type: 'info',
-      title: 'Terminal Configurado',
-      message: `Este computador está identificado como: ${newTerm}`
-    });
   };
 
   // ========================================================
@@ -645,11 +625,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     }
 
     if (cart.length === 0) {
-      setToast({
-        type: 'error',
-        title: 'Comanda Vazia',
-        message: 'Clique nos produtos para adicionar ao pedido de ' + cleanName
-      });
       return;
     }
 
@@ -743,11 +718,15 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
       const created = await storageService.createOrder(newOrder);
 
+      // NOVO RENDER CÍRCULO / BOLA PULSANTE E GIRANDO (EXCLUSIVAMENTE PARA PEDIDOS)
       setToast({
         type: 'success',
-        title: `Venda de ${cleanName.toUpperCase()} Concluída!`,
-        message: `Comanda ${created.orderNumber} enviada para ${destKitchenObj?.name || primaryTargetEnv}!`,
-        subtext: `Terminal: ${cashierTerminal} | Total: ${formatPrice(cartTotal, showCurrencySymbol)} (${paymentMethod})`
+        title: 'PEDIDO ENVIADO!',
+        orderNumber: created.orderNumber,
+        customerName: cleanName.toUpperCase(),
+        destination: destKitchenObj?.name || primaryTargetEnv,
+        terminal: cashierTerminal,
+        total: formatPrice(cartTotal, showCurrencySymbol)
       });
 
       // Limpar tudo para o próximo cliente
@@ -759,9 +738,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       console.error(err);
       setToast({
         type: 'error',
-        title: 'Erro ao Enviar Pedidos',
-        message: 'Ocorreu uma falha ao registrar a venda.',
-        subtext: err.message
+        title: 'ERRO AO ENVIAR',
+        message: err.message || 'Falha ao registrar venda'
       });
     } finally {
       setIsSubmittingCart(false);
@@ -810,11 +788,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     storageService.saveProducts(updatedCategories);
     setCategories(updatedCategories);
     setQuickAddModal({ isOpen: false, category: null });
-    setToast({
-      title: 'Item Adicionado!',
-      message: `"${cleanName.toUpperCase()}" agora está disponível para venda em ${cat.name}!`,
-      type: 'success'
-    });
   };
 
   const handleOpenQuickDelete = (category) => {
@@ -842,21 +815,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     if (selectedPizzaFlavor?.id === item.id) setSelectedPizzaFlavor(null);
 
     setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null });
-    setToast({
-      title: 'Item Excluído!',
-      message: `"${item.name}" foi removido de ${cat.name}!`,
-      type: 'info'
-    });
   };
 
   const handleDeleteCategory = (cat) => {
     if (!cat) return;
     if (['pizza', 'acai', 'batata'].includes(cat.id)) {
-      setToast({
-        title: 'Atenção',
-        message: 'Categorias padrão do sistema não podem ser excluídas.',
-        type: 'error'
-      });
       return;
     }
 
@@ -865,11 +828,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     setCategories(updatedCategories);
 
     setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null });
-    setToast({
-      title: 'Categoria Excluída!',
-      message: `A categoria "${cat.name}" foi excluída com sucesso!`,
-      type: 'success'
-    });
   };
 
   const pizzaCategory = categories.find(c => c.id === 'pizza');
@@ -1051,8 +1009,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
       </header>
 
-      {/* MODAL BONITO RÁPIDO (1 SEGUNDO) */}
-      <AutoToast toast={toast} onClose={() => setToast(null)} duration={1000} />
+      {/* NOVO RENDER CÍRCULO / BOLA GIRANDO E PULSANDO (1.5 SEGUNDOS) EXCLUSIVO PARA PEDIDOS */}
+      <AutoToast toast={toast} onClose={() => setToast(null)} duration={1500} />
 
       {/* ========================================================
           BARRA DE ATENDIMENTO AO CLIENTE (FLUXO PEDIDO MULTI-ITENS)

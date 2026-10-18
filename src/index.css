@@ -189,4 +189,60 @@ input[type="number"] {
   animation: progress-6s 6s linear forwards;
 }
 
+/* Efeito Círculo / Bola Pulsando e Girando para Envio de Pedidos (1.5 segundos) */
+@keyframes order-circle-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  18% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  28% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  85% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes order-ring-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes order-circle-glow {
+  0%, 100% {
+    box-shadow: 0 0 35px rgba(16, 185, 129, 0.45), 0 0 75px rgba(16, 185, 129, 0.25), inset 0 0 25px rgba(16, 185, 129, 0.3);
+    border-color: rgba(52, 211, 153, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 65px rgba(16, 185, 129, 0.85), 0 0 110px rgba(16, 185, 129, 0.5), inset 0 0 40px rgba(52, 211, 153, 0.55);
+    border-color: rgba(110, 231, 183, 1);
+  }
+}
+
+.animate-order-circle-pop {
+  animation: order-circle-pop 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-order-ring-spin {
+  animation: order-ring-spin 1.5s linear infinite;
+}
+
+.animate-order-circle-glow {
+  animation: order-circle-glow 0.75s infinite ease-in-out;
+}
+
 

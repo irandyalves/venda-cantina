@@ -48,7 +48,6 @@ import {
 import { storageService, formatPrice } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
 import { DEFAULT_CATEGORIES } from '../data/defaultProducts';
-import AutoToast from './AutoToast';
 
 export const ITEM_COLOR_PALETTE = [
   { id: 'red', name: 'Vermelho', hex: '#ef4444' },
@@ -100,11 +99,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     );
   };
   
-  // Modal Bonito de 2 Segundos (AutoToast)
-  const [toast, setToast] = useState(null);
-  const showToast = (message, title = 'Sucesso!', type = 'success', subtext = null) => {
-    setToast({ message, title, type, subtext });
-  };
+  // Silencioso - toasts desativados para configurações
+  const showToast = () => {};
 
   // Máscara monetária em Reais 0,00
   const formatCurrencyMask = (val) => {
@@ -4962,9 +4958,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           </div>
         </div>
       )}
-
-      {/* TOAST COM RODA DE GIRO FLUÍDO (1 SEGUNDO) PARA CONFIGURAÇÕES */}
-      <AutoToast toast={toast} onClose={() => setToast(null)} duration={1000} variant="spinner" />
 
     </div>
   );
