@@ -83,6 +83,25 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const [showNameError, setShowNameError] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // Estado para o hint bonito dos pedidos ao passar o mouse no card do rodapé
+  const [hoveredOrderHint, setHoveredOrderHint] = useState(null);
+  const [hintCoords, setHintCoords] = useState({ x: 0, y: 0, placeAbove: true });
+
+  const handleCardMouseEnter = (e, order) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const placeAbove = rect.top > 160;
+    setHintCoords({
+      x: Math.min(Math.max(rect.left, 12), window.innerWidth - 330),
+      y: placeAbove ? rect.top : rect.bottom,
+      placeAbove
+    });
+    setHoveredOrderHint(order);
+  };
+
+  const handleCardMouseLeave = () => {
+    setHoveredOrderHint(null);
+  };
+
   // Modais rápidos na linha da categoria: + (verde) e - (vermelho)
   const [quickAddModal, setQuickAddModal] = useState({ isOpen: false, category: null });
   const [quickAddName, setQuickAddName] = useState('');
@@ -717,7 +736,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     return (
       <div 
         key={order.id || order.orderIds?.[0] || order.orderNumber}
-        className={`px-3 py-2 rounded-xl border ${style.border} ${style.bg} transition-all shadow-md text-xs flex flex-col gap-1.5`}
+        onMouseEnter={(e) => handleCardMouseEnter(e, order)}
+        onMouseLeave={handleCardMouseLeave}
+        className={`px-3 py-2 rounded-xl border ${style.border} ${style.bg} transition-all shadow-md text-xs flex flex-col gap-1.5 cursor-pointer relative group`}
       >
         {/* CABEÇALHO DO CARD: B-01 | JOÃO + VALOR TOTAL */}
         <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1">
@@ -741,24 +762,17 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </span>
         </div>
 
-        {/* ITENS NO FORMATO: 01 Cone Individual • 01 Copo 500ml açaí • 01 Copo 300ml açaí */}
-        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-          {items.map((it, idx) => (
-            <span
-              key={idx}
-              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[11px] font-bold shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
-            >
-              <strong className="text-orange-400 font-mono font-black text-xs">
-                {String(it.quantity).padStart(2, '0')}
-              </strong>
-              <span className="text-slate-100">
-                {it.description || it.name || it.itemName}
-              </span>
-              {idx < items.length - 1 && (
-                <span className="text-slate-400 font-black ml-1 select-none">•</span>
-              )}
+        {/* CAPTION COLORIDO: PEDIDOS DO CLIENTE */}
+        <div className="flex items-center justify-between pt-0.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white shadow-xs group-hover:brightness-110 transition-all select-none">
+            <span>PEDIDOS DO CLIENTE</span>
+            <span className="bg-black/30 px-1.5 py-0.2 rounded-full font-mono text-[9px]">
+              {items.reduce((acc, it) => acc + (it.quantity || 1), 0)}
             </span>
-          ))}
+          </div>
+          <span className="text-[10px] text-slate-400 font-medium group-hover:text-amber-300 transition-colors">
+            Ver itens →
+          </span>
         </div>
       </div>
     );
@@ -1728,6 +1742,68 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* HINT FLUTUANTE BONITO COM OS PEDIDOS DO CLIENTE AO PASSAR O MOUSE */}
+      {hoveredOrderHint && (
+        <div
+          className="fixed z-[9999] pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95"
+          style={{
+            left: `${hintCoords.x}px`,
+            top: hintCoords.placeAbove ? 'auto' : `${hintCoords.y + 6}px`,
+            bottom: hintCoords.placeAbove ? `${Math.max(8, window.innerHeight - hintCoords.y + 6)}px` : 'auto',
+            width: '320px',
+            maxWidth: 'calc(100vw - 24px)',
+          }}
+        >
+          <div className="bg-slate-950/95 backdrop-blur-md border border-amber-500/50 rounded-2xl p-3 shadow-2xl shadow-black/90 text-white">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-black text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  {hoveredOrderHint.orderNumber}
+                </span>
+                <span className="font-black text-xs uppercase tracking-wider text-white truncate max-w-[140px]">
+                  {hoveredOrderHint.customerName}
+                </span>
+              </div>
+              <span className="font-mono font-black text-xs text-emerald-400">
+                {formatPrice(hoveredOrderHint.totalPrice, showCurrencySymbol)}
+              </span>
+            </div>
+
+            <div className="text-[10px] font-black uppercase tracking-wider text-amber-400/90 mb-1.5 flex items-center justify-between">
+              <span>PEDIDOS DO CLIENTE:</span>
+              <span className="text-[9px] text-slate-400 font-mono">
+                {(hoveredOrderHint.items && hoveredOrderHint.items.length > 0
+                  ? hoveredOrderHint.items
+                  : getOrderItems(hoveredOrderHint)
+                ).reduce((acc, it) => acc + (it.quantity || 1), 0)} itens
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1 max-h-56 overflow-y-auto pr-1">
+              {(hoveredOrderHint.items && hoveredOrderHint.items.length > 0
+                ? hoveredOrderHint.items
+                : getOrderItems(hoveredOrderHint)
+              ).map((it, idx) => {
+                const qtyStr = String(it.quantity || 1).padStart(2, '0');
+                const nameStr = it.description || it.name || it.itemName || 'Item';
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2 py-1 px-2 rounded-lg bg-slate-900/90 border border-slate-800 font-mono text-xs"
+                  >
+                    <span className="text-amber-400 font-black shrink-0">{qtyStr}</span>
+                    <span className="text-slate-500 font-bold shrink-0">-</span>
+                    <span className="text-slate-100 font-bold tracking-wide break-words">
+                      {nameStr}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
