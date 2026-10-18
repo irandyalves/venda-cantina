@@ -226,45 +226,47 @@ export default function DisplayView({ environment, onNavigate }) {
     <div className="flex flex-col h-screen w-full bg-slate-950 text-white font-sans overflow-hidden select-none relative">
       
       {/* CABEÇALHO DA TV */}
-      <header className="bg-slate-900/90 border-b border-slate-800 px-6 py-2.5 flex items-center justify-between shrink-0 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-tr from-amber-500 to-red-600 rounded-xl shadow-lg">
-            <Tv className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-widest text-white uppercase flex items-center gap-2">
-              PEDIDOS
-            </h1>
+      <header className="bg-slate-900/90 border-b border-slate-800 px-6 py-2.5 flex items-center justify-between shrink-0 shadow-lg gap-4">
+        {/* LADO ESQUERDO: SELETOR DE AMBIENTE + RECEBE PEDIDOS DO */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <ProfileSelector 
+            title="PAINEL TELÃO"
+            align="left"
+            onProfileChange={(profileId) => {
+              if (onNavigate) onNavigate(profileId);
+            }}
+          />
+
+          <div className="flex items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-xl border border-slate-800">
+            <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap">
+              Recebe pedidos do
+            </span>
+            <span className="bg-black text-white text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg border border-slate-700 shadow-sm whitespace-nowrap">
+              Todos os Caixas
+            </span>
           </div>
         </div>
 
-        {/* CONTROLES: APENAS TELA CHEIA E SELETOR DE PERFIL */}
+        {/* CONTROLES À DIREITA: STATUS TRAVADO E TELA CHEIA */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={toggleFullscreen}
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 text-xs font-bold"
-            title="Alternar Modo Tela Cheia"
-          >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            <span className="hidden sm:inline">{isFullscreen ? 'Sair Tela Cheia' : 'Tela Cheia'}</span>
-          </button>
-
           {screensLocked && (
             <div 
               className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/80 border border-rose-500/60 rounded-xl text-rose-300 text-xs font-bold shadow-sm"
-              title="Telão travado remotamente pelo Administrador. Para trocar de ambiente, use o PIN."
+              title="Telão travado remotamente pelo Administrador."
             >
               <Lock className="w-4 h-4 text-rose-400" />
               <span className="hidden sm:inline">Telão Travado</span>
             </div>
           )}
 
-          {/* PERFIL NO CANTO SUPERIOR DIREITO */}
-          <ProfileSelector 
-            onProfileChange={(profileId) => {
-              if (onNavigate) onNavigate(profileId);
-            }}
-          />
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+            title="Alternar Modo Tela Cheia"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            <span className="hidden sm:inline">{isFullscreen ? 'Sair Tela Cheia' : 'Tela Cheia'}</span>
+          </button>
         </div>
       </header>
 

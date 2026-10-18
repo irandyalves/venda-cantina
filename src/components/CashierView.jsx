@@ -87,11 +87,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const handleDestinationKitchenChange = (newDest) => {
     setDestinationKitchen(newDest);
     localStorage.setItem('cantina_cashier_destination_kitchen', newDest);
+    storageService.setCashierTerminalDestination(cashierTerminal, newDest);
   };
 
   const handleTerminalChange = (newTerm) => {
     setCashierTerminal(newTerm);
     localStorage.setItem('cantina_cashier_terminal', newTerm);
+    storageService.setCashierTerminalDestination(newTerm, destinationKitchen);
   };
 
   // ========================================================
@@ -914,24 +916,19 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       
       {/* BARRA SUPERIOR DO CAIXA */}
       <header className="bg-slate-800/90 border-b border-slate-700/80 px-3 py-1.5 flex items-center justify-between shrink-0 shadow-sm gap-2">
+        {/* LADO ESQUERDO: TERMINAL + ADMIN (MENOR) + ENVIA PEDIDOS PARA + COZINHA DESTINO */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="bg-gradient-to-tr from-amber-500 to-red-600 p-1.5 rounded-lg shadow shrink-0">
             <Pizza className="w-4 h-4 text-white" />
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <h1 className="text-base font-black tracking-widest text-white uppercase leading-none">
-              CAIXA
-            </h1>
-          </div>
 
-          {/* SELETOR DO TERMINAL DESTE CAIXA */}
+          {/* 1. SELETOR DO TERMINAL: CAIXA XX */}
           <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/90 rounded-xl px-2.5 py-1 text-xs shadow-xs shrink-0">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider hidden sm:inline">Terminal:</span>
             <select
               value={cashierTerminal}
               onChange={(e) => handleTerminalChange(e.target.value)}
-              className="bg-transparent text-emerald-400 font-black text-xs outline-none cursor-pointer font-mono"
-              title="Identificação deste computador/terminal de caixa"
+              className="bg-transparent text-emerald-400 font-black text-xs sm:text-sm outline-none cursor-pointer font-mono"
+              title="Identificação deste terminal de caixa"
             >
               <option value="Caixa 1" className="bg-slate-900 text-emerald-300">Caixa 1</option>
               <option value="Caixa 2" className="bg-slate-900 text-emerald-300">Caixa 2</option>
@@ -941,25 +938,31 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             </select>
           </div>
 
-          {/* SELETOR DA COZINHA DE DESTINO DESTE CAIXA */}
-          <div className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs shadow-xs border transition-all shrink-0 ${
-            destinationKitchen !== 'auto'
-              ? 'bg-amber-950/70 border-amber-500/80 text-amber-300 ring-1 ring-amber-500/30'
-              : 'bg-slate-900/90 border-slate-700/90 text-slate-300'
-          }`}>
-            <UtensilsCrossed className={`w-3.5 h-3.5 shrink-0 ${destinationKitchen !== 'auto' ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider hidden md:inline">
-              Cozinha Destino:
-            </span>
+          {/* 2. ADMIN (MENOR) ENTRE O CAIXA XX E O ENVIANDO PEDIDOS PARA */}
+          <ProfileSelector 
+            compact={true}
+            align="left"
+            onProfileChange={(profileId) => {
+              if (onNavigate) onNavigate(profileId);
+            }}
+            onOpenConfig={onOpenConfig}
+          />
+
+          {/* 3. ENVIA PEDIDOS PARA (EM VERDE) */}
+          <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap ml-0.5">
+            Envia pedidos para
+          </span>
+
+          {/* 4. COZINHA DE DESTINO COM FUNDO PRETO, LETRA BRANCA */}
+          <div className="flex items-center gap-1.5 bg-black text-white text-xs sm:text-sm font-black px-2.5 py-1 rounded-lg border border-slate-700 shadow-sm shrink-0">
+            <UtensilsCrossed className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <select
               value={destinationKitchen}
               onChange={(e) => handleDestinationKitchenChange(e.target.value)}
-              className={`bg-transparent font-black text-xs outline-none cursor-pointer ${
-                destinationKitchen !== 'auto' ? 'text-amber-300' : 'text-slate-200'
-              }`}
+              className="bg-transparent text-white font-black text-xs sm:text-sm outline-none cursor-pointer"
               title="Para qual cozinha os pedidos deste caixa serão despachados"
             >
-              <option value="auto" className="bg-slate-900 text-slate-300">
+              <option value="auto" className="bg-slate-900 text-slate-300 font-bold">
                 🔀 Automático (Por Produto)
               </option>
               {kitchenEnvironments.map((env) => (
@@ -971,7 +974,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </div>
         </div>
 
-        {/* CONTROLES SUPERIORES */}
+        {/* CONTROLES SUPERIORES À DIREITA */}
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center px-1" title={isFirebaseOnline ? 'Conexão Nuvem Online' : 'Modo Local'}>
             <span className={`w-2.5 h-2.5 rounded-full ${isFirebaseOnline ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
@@ -1012,13 +1015,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             <Settings className="w-3.5 h-3.5 animate-spin-slow" />
             <span className="hidden sm:inline">CONFIGURAÇÕES ⚙️</span>
           </button>
-
-          <ProfileSelector 
-            onProfileChange={(profileId) => {
-              if (onNavigate) onNavigate(profileId);
-            }}
-            onOpenConfig={onOpenConfig}
-          />
         </div>
       </header>
 
@@ -1027,20 +1023,20 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
       {/* ========================================================
           BARRA DE ATENDIMENTO AO CLIENTE (FLUXO PEDIDO MULTI-ITENS)
-          PRIMEIRO DIGITA O NOME DO CLIENTE, E DEPOIS ESCOLHE OS ITENS!
+          SEÇÃO FIXA COM ALTURA 70% MAIOR (122px) E SEM LINHA LARANJA
          ======================================================== */}
-      <section className="bg-slate-950/95 border-b-2 border-amber-500/60 px-3 py-3.5 sm:py-4 shrink-0 shadow-xl z-20 min-h-[72px] flex flex-col justify-center">
+      <section className="bg-slate-950/95 border-b border-slate-800/80 px-3 sm:px-4 shrink-0 shadow-xl z-20 h-[122px] max-h-[122px] flex flex-col justify-center">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
           
           {/* 1. NOME DO CLIENTE & FORMA DE PAGAMENTO */}
           <div className="flex items-center gap-2 flex-1 flex-wrap sm:flex-nowrap">
             <div className={`relative flex-1 min-w-[200px] ${nameShake ? 'animate-shake' : ''}`}>
               {!isNameFocused && !customerName && (
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white">
                   {showNameError ? (
-                    <AlertCircle className="w-4 h-4 text-rose-400 animate-pulse" />
+                    <AlertCircle className="w-5 h-5 text-rose-400 animate-pulse" />
                   ) : (
-                    <User className="w-4 h-4 text-white" />
+                    <User className="w-5 h-5 text-white" />
                   )}
                 </div>
               )}
@@ -1080,9 +1076,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     }
                   }
                 }}
-                className={`w-full h-11 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase ${
-                  !isNameFocused && !customerName ? 'pl-9' : 'pl-3'
-                } pr-8 rounded-xl outline-none transition-all placeholder:font-bold placeholder:text-xs sm:placeholder:text-sm focus:placeholder:text-transparent border-2 ${
+                className={`w-full h-14 sm:h-16 bg-slate-900 text-white text-sm sm:text-base font-black uppercase ${
+                  !isNameFocused && !customerName ? 'pl-11' : 'pl-4'
+                } pr-10 rounded-xl outline-none transition-all placeholder:font-bold placeholder:text-xs sm:placeholder:text-sm focus:placeholder:text-transparent border-2 ${
                   showNameError
                     ? 'border-rose-500 ring-2 ring-rose-500/50 bg-rose-950/40 text-rose-200 placeholder:text-rose-400 glow-required-name'
                     : !isNameFilled 
@@ -1097,19 +1093,19 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     setCustomerName('');
                     nameInputRef.current?.focus();
                   }}
-                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               )}
             </div>
 
             {/* FORMA DE PAGAMENTO */}
-            <div className="w-36 shrink-0">
+            <div className="w-36 sm:w-40 shrink-0">
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full h-11 bg-slate-900 border-2 border-slate-700 text-white font-black text-xs px-2.5 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 transition-all cursor-pointer"
+                className="w-full h-14 sm:h-16 bg-slate-900 border-2 border-slate-700 text-white font-black text-xs sm:text-sm px-3 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 transition-all cursor-pointer"
               >
                 <option value="PIX">💳 PIX</option>
                 <option value="DINHEIRO">💵 Dinheiro</option>
@@ -1123,10 +1119,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               <button
                 type="button"
                 onClick={() => setCart([])}
-                className="h-11 px-2.5 bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white rounded-xl border border-rose-800 transition-all flex items-center justify-center gap-1 text-xs font-bold cursor-pointer shrink-0"
+                className="h-14 sm:h-16 px-3 bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white rounded-xl border border-rose-800 transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer shrink-0"
                 title="Limpar todos os itens da comanda atual"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
                 <span className="hidden sm:inline">Limpar</span>
               </button>
             )}
@@ -1138,16 +1134,16 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               type="button"
               onClick={handleFinalizeCart}
               disabled={isSubmittingCart || cart.length === 0}
-              className={`h-11 px-4 sm:px-6 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
+              className={`h-14 sm:h-16 px-5 sm:px-7 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-3 transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
                 cart.length > 0
                   ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 border-emerald-300 shadow-emerald-950/80'
                   : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-60'
               }`}
             >
-              <Send className="w-4 h-4 fill-current" />
+              <Send className="w-5 h-5 fill-current" />
               <span>FINALIZAR PEDIDOS</span>
               {cart.length > 0 && (
-                <span className="bg-yellow-400 text-slate-950 px-2.5 py-0.5 rounded-lg font-mono text-sm sm:text-base font-black shadow-md border border-yellow-300">
+                <span className="bg-yellow-400 text-slate-950 px-3 py-1 rounded-lg font-mono text-base sm:text-lg font-black shadow-md border border-yellow-300">
                   {formatPrice(cartTotal, showCurrencySymbol)}
                 </span>
               )}

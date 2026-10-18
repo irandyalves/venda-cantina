@@ -368,21 +368,40 @@ export default function KitchenView({ environment, onNavigate }) {
   return (
     <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-100 font-sans overflow-hidden">
       
-      {/* CABEÇALHO DA COZINHA (COM BOTÕES ESPERA E ENTREGUES NO CABEÇALHO) */}
-      <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between shrink-0 shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-tr from-orange-500 to-amber-600 rounded-xl shadow-lg">
-            <UtensilsCrossed className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-base font-black text-white tracking-wide uppercase">
-              {environment?.name || 'COZINHA & PRODUÇÃO'}
-            </h1>
+      {/* CABEÇALHO DA COZINHA (SELETOR À ESQUERDA + DESTINO DOS CAIXAS + ESPERA/ENTREGUES À DIREITA) */}
+      <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between shrink-0 shadow-xl gap-3">
+        {/* LADO ESQUERDO: SELETOR DE AMBIENTE + RECEBE PEDIDOS DO */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <ProfileSelector 
+            title={environment?.name || 'COZINHA & PRODUÇÃO'}
+            align="left"
+            onProfileChange={(profileId) => {
+              if (onNavigate) onNavigate(profileId);
+            }}
+          />
+
+          <div className="flex items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-xl border border-slate-800">
+            <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap">
+              Recebe pedidos do
+            </span>
+            <span className="bg-black text-white text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg border border-slate-700 shadow-sm whitespace-nowrap">
+              {storageService.getCashiersForKitchen(environment?.id || 'COZINHA')}
+            </span>
           </div>
         </div>
 
-        {/* BOTÕES: FILA EM LINHA PASSA PARA ESPERA E ENTREGUES NO CABEÇALHO */}
+        {/* LADO DIREITO: STATUS TRAVADO + ESPERA E ENTREGUES */}
         <div className="flex items-center gap-3">
+          {screensLocked && (
+            <div 
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-950/80 border border-rose-500/60 rounded-xl text-rose-300 text-xs font-bold shadow-sm"
+              title="Tela travada remotamente pelo Administrador."
+            >
+              <Lock className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden sm:inline">Travado</span>
+            </div>
+          )}
+
           <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setActiveFilter('active')}
@@ -406,22 +425,6 @@ export default function KitchenView({ environment, onNavigate }) {
               ✓ Entregues ({deliveredOrders.length})
             </button>
           </div>
-
-          {screensLocked && (
-            <div 
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-950/80 border border-rose-500/60 rounded-xl text-rose-300 text-xs font-bold shadow-sm"
-              title="Tela travada remotamente pelo Administrador. Para trocar, use o PIN."
-            >
-              <Lock className="w-3.5 h-3.5 text-rose-400" />
-              <span className="hidden sm:inline">Travado</span>
-            </div>
-          )}
-
-          <ProfileSelector 
-            onProfileChange={(profileId) => {
-              if (onNavigate) onNavigate(profileId);
-            }}
-          />
         </div>
       </header>
 

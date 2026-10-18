@@ -861,7 +861,8 @@ class StorageService {
         return {
           sendToKitchen: parsed.sendToKitchen || {},
           showOnTV: parsed.showOnTV || {},
-          destinationEnv: parsed.destinationEnv || {}
+          destinationEnv: parsed.destinationEnv || {},
+          cashierDestinations: parsed.cashierDestinations || {}
         };
       }
     } catch (e) {
@@ -892,8 +893,42 @@ class StorageService {
         'acai': 'none',
         'batata': 'none',
         'outros': 'none'
-      }
+      },
+      cashierDestinations: {}
     };
+  }
+
+  setCashierTerminalDestination(terminal, kitchenId) {
+    try {
+      const current = this.getProductionRouting();
+      const updated = {
+        ...current,
+        cashierDestinations: {
+          ...(current.cashierDestinations || {}),
+          [terminal]: kitchenId
+        }
+      };
+      this.saveProductionRouting(updated);
+    } catch (e) {
+      console.error('Erro ao salvar destino do caixa:', e);
+    }
+  }
+
+  getCashiersForKitchen(kitchenId) {
+    try {
+      const routing = this.getProductionRouting();
+      const map = routing.cashierDestinations || {};
+      const matches = [];
+      for (const [term, dest] of Object.entries(map)) {
+        if (dest === kitchenId) {
+          matches.push(term);
+        }
+      }
+      if (matches.length > 0) {
+        return matches.sort().join(', ');
+      }
+    } catch (_) {}
+    return 'Todos os Caixas';
   }
 
   saveProductionRouting(routing) {

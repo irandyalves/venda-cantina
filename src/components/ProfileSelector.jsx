@@ -10,23 +10,19 @@ import {
   Mail, 
   Settings,
   Lock,
-  KeyRound,
-  Check,
+  Check, 
   X
 } from 'lucide-react';
 import { authService, PERFIS } from '../services/auth';
 import { storageService } from '../services/storage';
 
-export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
+export default function ProfileSelector({ onProfileChange, onOpenConfig, compact = false, align = 'left', title: overrideTitle }) {
   const [environments, setEnvironments] = useState(() => authService.getEnvironments());
   const [activeProfile, setActiveProfile] = useState(authService.getActiveProfile());
   const [currentUser, setCurrentUser] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
-  const [pinModalOpen, setPinModalOpen] = useState(false);
-  const [enteredPin, setEnteredPin] = useState('');
-  const [pinError, setPinError] = useState(false);
   
   const menuRef = useRef(null);
 
@@ -82,27 +78,14 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
   const isSecondaryLocked = screensLocked && (currentEnv.type === 'kitchen' || currentEnv.type === 'display');
 
   const handleToggle = () => {
-    if (isSecondaryLocked && !isOpen) {
-      setEnteredPin('');
-      setPinModalOpen(true);
+    // SE AS TELAS ESTIVEREM TRAVADAS: DESABILITADO TOTALMENTE! Travou, travou! Só abre destravando.
+    if (isSecondaryLocked) {
       return;
     }
     if (!isOpen) {
       setEnvironments(authService.getEnvironments());
     }
     setIsOpen(!isOpen);
-  };
-
-  const handleConfirmPin = (e) => {
-    if (e) e.preventDefault();
-    if (enteredPin === '1234') {
-      setPinError(false);
-      setPinModalOpen(false);
-      setIsOpen(true);
-    } else {
-      setPinError(true);
-      setEnteredPin('');
-    }
   };
 
   const handleSelectProfile = (profileId) => {
@@ -144,54 +127,80 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
     return <ShieldCheck className="w-4 h-4 text-amber-400" />;
   };
 
-  const getEnvColor = (env) => {
-    if (!env) return 'text-amber-400';
-    if (env.type === 'kitchen') return 'text-orange-400';
-    if (env.type === 'display') return 'text-emerald-400';
-    return 'text-amber-400';
-  };
+  const displayName = overrideTitle || currentEnv.name || currentEnv.shortName || 'AMBIENTE';
 
   return (
     <div className="relative inline-block text-left" ref={menuRef}>
       
-      {/* BOTÃO DO AMBIENTE NO CANTO SUPERIOR DIREITO */}
-      <button
-        type="button"
-        onClick={handleToggle}
-        className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-xl border border-slate-700 hover:border-slate-500 shadow-md transition-all active:scale-95 cursor-pointer"
-        title="Alternar ambiente de trabalho"
-      >
-        {/* Foto do usuário se logado com o Google ou ícone do perfil */}
-        {currentUser?.photoURL ? (
-          <img 
-            src={currentUser.photoURL} 
-            alt="Foto" 
-            className="w-5 h-5 rounded-full border border-amber-400"
-          />
-        ) : (
-          getEnvIcon(currentEnv)
-        )}
-
-        <div className="flex flex-col text-left">
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider leading-none">
-            Ambiente
-          </span>
-          <span className={`text-xs font-black tracking-wide leading-tight ${getEnvColor(currentEnv)}`}>
-            {currentEnv.shortName || currentEnv.name}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {isSecondaryLocked && (
-            <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" title="Tela travada pelo Administrador" />
+      {/* BOTÃO DO SELETOR: VERSÃO COMPACTA (ADMIN PARA CAIXAS) OU VERSÃO TÍTULO (COZINHAS / TELÃO) */}
+      {compact ? (
+        <button
+          type="button"
+          disabled={isSecondaryLocked}
+          onClick={handleToggle}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border shadow-xs transition-all text-xs font-black uppercase tracking-wider ${
+            isSecondaryLocked
+              ? 'bg-slate-900/60 border-rose-500/40 opacity-70 cursor-not-allowed text-rose-300'
+              : 'bg-slate-900/90 hover:bg-slate-800 text-amber-400 border-amber-500/50 hover:border-amber-400 active:scale-95 cursor-pointer'
+          }`}
+          title={isSecondaryLocked ? 'Tela travada pelo Administrador' : 'Alternar ambiente de trabalho'}
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-[11px] font-black">ADMIN</span>
+          {isSecondaryLocked ? (
+            <Lock className="w-3 h-3 text-rose-400 shrink-0" />
+          ) : (
+            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           )}
-          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        </div>
-      </button>
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={isSecondaryLocked}
+          onClick={handleToggle}
+          className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border shadow-sm transition-all ${
+            isSecondaryLocked 
+              ? 'bg-slate-900/60 border-rose-500/40 opacity-80 cursor-not-allowed text-slate-300' 
+              : 'bg-slate-900/90 hover:bg-slate-850 border-slate-700/80 hover:border-slate-500 text-white cursor-pointer active:scale-95'
+          }`}
+          title={isSecondaryLocked ? 'Tela travada pelo Administrador. Desabilidado.' : 'Alternar ambiente de trabalho'}
+        >
+          {/* Ícone */}
+          <div className="p-1.5 bg-gradient-to-tr from-amber-500 to-red-600 rounded-lg shadow shrink-0">
+            {currentUser?.photoURL ? (
+              <img 
+                src={currentUser.photoURL} 
+                alt="Foto" 
+                className="w-4 h-4 rounded-full border border-amber-400"
+              />
+            ) : (
+              <span className="text-white">
+                {getEnvIcon(currentEnv)}
+              </span>
+            )}
+          </div>
+
+          {/* Nome do ambiente (sem a palavra AMBIENTE em cima, mesmo tamanho de COZINHA BATATA) */}
+          <span className="text-sm sm:text-base font-black tracking-wide text-white uppercase leading-none">
+            {displayName}
+          </span>
+
+          {/* Indicador de trava ou chevron */}
+          <div className="flex items-center gap-1 ml-0.5">
+            {isSecondaryLocked ? (
+              <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" title="Tela travada pelo Administrador" />
+            ) : (
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            )}
+          </div>
+        </button>
+      )}
 
       {/* DROPDOWN DE AMBIENTES E LOGIN GOOGLE */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-2xl bg-slate-900 border-2 border-slate-700 shadow-2xl p-2 z-50 animate-fadeIn text-slate-100">
+        <div className={`absolute mt-2 w-80 rounded-2xl bg-slate-900 border-2 border-slate-700 shadow-2xl p-2 z-50 animate-fadeIn text-slate-100 ${
+          align === 'left' ? 'left-0 origin-top-left' : 'right-0 origin-top-right'
+        }`}>
           
           {/* CABEÇALHO DO DROPDOWN */}
           <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
@@ -262,147 +271,52 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
                       {getEnvIcon(env)}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs font-black text-white flex items-center gap-1.5 truncate">
+                      <div className="text-xs font-bold text-slate-100 truncate flex items-center gap-1.5">
                         <span>{env.name}</span>
-                        {isSelected && (
-                          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-bold shrink-0">
-                            ATIVO
+                        {env.shortName && (
+                          <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-900 text-slate-400 border border-slate-700">
+                            {env.shortName}
                           </span>
                         )}
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate">{env.description || `Ambiente ${env.name}`}</div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        {env.description || (env.type === 'kitchen' ? 'Tela da Cozinha' : env.type === 'display' ? 'Painel TV' : 'Operação de Caixa')}
+                      </div>
                     </div>
                   </div>
 
-                  {isSelected && <Check className="w-4 h-4 text-emerald-400 stroke-[3] shrink-0" />}
+                  {isSelected && (
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 ml-2" />
+                  )}
                 </button>
               );
             })}
           </div>
 
-          {/* ÁREA DE AUTENTICAÇÃO COM GOOGLE (PREPARADA) */}
-          <div className="mt-2 pt-2 border-t border-slate-800 px-1">
-            {!currentUser ? (
+          {/* RODAPÉ DO MENU COM LOGIN GOOGLE */}
+          <div className="p-2 border-t border-slate-800 flex flex-col gap-1.5">
+            {currentUser ? (
               <button
-                onClick={handleGoogleLogin}
-                disabled={loadingGoogle}
-                className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-900 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow transition-all active:scale-98 disabled:opacity-50"
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-750 text-rose-400 hover:text-rose-300 text-xs font-bold transition-colors cursor-pointer"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                <span>{loadingGoogle ? 'Conectando...' : 'Fazer Logon com Google'}</span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Desconectar da Conta Google</span>
               </button>
             ) : (
               <button
-                onClick={handleLogout}
-                className="w-full py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-rose-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={loadingGoogle}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Desconectar Conta Google</span>
-              </button>
-            )}
-
-            {/* ATALHO PARA GERENCIAR EMAILS */}
-            {onOpenConfig && (
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  onOpenConfig('emails');
-                }}
-                className="w-full mt-1.5 py-1 text-[11px] text-slate-400 hover:text-amber-300 flex items-center justify-center gap-1 transition-colors"
-              >
-                <Mail className="w-3 h-3" />
-                <span>Cadastrar E-mails dos Perfis</span>
+                <LogIn className="w-3.5 h-3.5" />
+                <span>{loadingGoogle ? 'Conectando...' : 'Conectar com Google'}</span>
               </button>
             )}
           </div>
 
-        </div>
-      )}
-
-      {/* MODAL DE DESBLOQUEIO DE TELA POR PIN DO ADMIN */}
-      {pinModalOpen && (
-        <div 
-          onClick={() => setPinModalOpen(false)}
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-slate-900 border-2 border-rose-500/80 w-full max-w-sm rounded-3xl shadow-2xl p-6 text-slate-100 font-sans cursor-default animate-scaleUp space-y-4"
-          >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="p-2 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/40">
-                  <Lock className="w-5 h-5" />
-                </span>
-                <div>
-                  <h3 className="font-black text-sm text-white uppercase tracking-wider">
-                    Tela Travada
-                  </h3>
-                  <p className="text-[11px] text-slate-400">Proteção de monitores e tablets</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setPinModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-300">
-              Este aparelho está protegido contra trocas indevidas de tela. Digite o PIN de Administrador (padrão <span className="font-mono font-bold text-amber-400">1234</span>) para liberar o acesso:
-            </p>
-
-            <form onSubmit={handleConfirmPin} className="space-y-4">
-              <div className="relative">
-                <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="password"
-                  maxLength={6}
-                  autoFocus
-                  placeholder="PIN de Segurança"
-                  value={enteredPin}
-                  onChange={(e) => {
-                    setEnteredPin(e.target.value);
-                    if (pinError) setPinError(false);
-                  }}
-                  className={`w-full bg-slate-950 border-2 rounded-xl py-2.5 pl-10 pr-4 text-center font-mono text-base font-black tracking-widest text-white outline-none ${
-                    pinError ? 'border-rose-500 animate-shake' : 'border-slate-700 focus:border-rose-500'
-                  }`}
-                />
-              </div>
-
-              {pinError && (
-                <p className="text-[11px] font-bold text-rose-400 text-center">
-                  PIN incorreto! Tente novamente.
-                </p>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPinModalOpen(false);
-                    setPinError(false);
-                  }}
-                  className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="py-2 px-5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-rose-950/50 cursor-pointer"
-                >
-                  Liberar Acesso
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
 
