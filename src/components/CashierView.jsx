@@ -1036,11 +1036,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <div className={`relative flex-1 min-w-[180px] max-w-xl ${nameShake ? 'animate-shake' : ''}`}>
               {!isNameFocused && !customerName && (
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white">
+                <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors ${
+                  cart.length > 0 ? 'text-amber-400' : 'text-slate-400'
+                }`}>
                   {showNameError ? (
                     <AlertCircle className="w-4 h-4 text-rose-400 animate-pulse" />
                   ) : (
-                    <User className="w-4 h-4 text-white" />
+                    <User className="w-4 h-4" />
                   )}
                 </div>
               )}
@@ -1085,9 +1087,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 } pr-8 rounded-xl outline-none transition-all placeholder:font-bold placeholder:text-[11px] sm:placeholder:text-xs focus:placeholder:text-transparent border-2 ${
                   showNameError
                     ? 'border-rose-500 ring-2 ring-rose-500/50 bg-rose-950/40 text-rose-200 placeholder:text-rose-400 glow-required-name'
-                    : !isNameFilled 
-                      ? 'border-amber-500/80 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30 placeholder:text-white' 
-                      : 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-950/20 placeholder:text-white'
+                    : customerName.trim()
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-950/20 placeholder:text-white'
+                      : isNameFocused || cart.length > 0
+                        ? 'border-amber-400 ring-2 ring-amber-400/50 bg-amber-950/10 placeholder:text-white shadow-[0_0_12px_rgba(251,191,36,0.25)]'
+                        : 'border-amber-500/40 hover:border-amber-500/60 placeholder:text-slate-400'
                 }`}
               />
               {customerName && (
