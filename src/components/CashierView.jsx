@@ -32,6 +32,7 @@ import { storageService, formatPrice } from '../services/storage';
 import { authService } from '../services/auth';
 import ProfileSelector from './ProfileSelector';
 import AutoToast from './AutoToast';
+import ProductIcon2D from './ProductIcon2D';
 
 export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   // Estado do Caixa
@@ -1270,8 +1271,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
             </div>
 
-            {/* BOTÕES DOS SABORES DE PIZZA */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+            {/* CARDS VISUAIS COM ÍCONES 2D DOS SABORES DE PIZZA */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
               {pizzaCategory.items.map((flavor) => {
                 const isSelected = selectedPizzaFlavor?.id === flavor.id;
                 const inCartQty = getItemCartQuantity(flavor.id);
@@ -1288,47 +1289,61 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                         handleFlavorMouseEnter();
                         setSelectedPizzaFlavor(isSelected ? null : flavor);
                       }}
-                      className={`w-full p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] group ${
+                      className={`w-full p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] group relative ${
                         isSelected
-                          ? 'bg-yellow-500 text-slate-950 border-yellow-300 shadow ring-2 ring-yellow-400 scale-[1.01]'
-                          : 'bg-slate-900/90 hover:bg-yellow-950/70 text-slate-200 border-slate-700 hover:border-yellow-500/70'
+                          ? 'bg-yellow-500/20 text-white border-yellow-400 shadow-xl ring-2 ring-yellow-400/50 scale-[1.02]'
+                          : 'bg-slate-900/90 hover:bg-yellow-950/40 text-slate-200 border-slate-700/80 hover:border-yellow-500/60 shadow-sm'
                       }`}
                     >
-                      <div>
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="font-extrabold text-xs leading-tight">{flavor.name}</div>
-                          {inCartQty > 0 && (
-                            <span className="text-[9px] font-black bg-emerald-500 text-slate-950 px-1 rounded-full shadow shrink-0">
-                              ✓ {inCartQty}x
-                            </span>
-                          )}
+                      {/* Badge de Quantidade no topo direito */}
+                      {inCartQty > 0 && (
+                        <span className="absolute top-2 right-2 text-[10px] font-black bg-emerald-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
+                          ✓ {inCartQty}x
+                        </span>
+                      )}
+
+                      {/* Arte 2D / Ícone do Sabor de Pizza */}
+                      <div className="my-1 transition-transform group-hover:scale-110 duration-200">
+                        <ProductIcon2D item={flavor} category={pizzaCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
+                      </div>
+
+                      {/* Título e Descrição */}
+                      <div className="w-full">
+                        <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
+                          {flavor.name}
                         </div>
-                        <div className={`text-[9px] line-clamp-1 mt-0.5 ${isSelected ? 'text-slate-900 font-medium' : 'text-slate-400 group-hover:text-yellow-200/80'}`}>
+                        <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5 px-0.5">
                           {flavor.description || 'Sabor tradicional'}
                         </div>
                       </div>
-                      <div className="mt-1.5 flex items-center justify-end">
-                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded transition-colors ${
+
+                      {/* Botão de Ação / Escolher */}
+                      <div className="mt-2 w-full">
+                        <span className={`w-full py-1 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider block transition-colors ${
                           isSelected 
-                            ? 'bg-slate-950 text-yellow-300' 
+                            ? 'bg-yellow-400 text-slate-950 shadow' 
                             : 'bg-slate-800 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-slate-950'
                         }`}>
-                          {isSelected ? '✓ Opções' : 'Escolher'}
+                          {isSelected ? '▲ Fechar' : '🍕 Escolher'}
                         </span>
                       </div>
                     </button>
 
-                    {/* CORTINA SUAVE REVELADA APENAS EMBAIXO DO CARD SELECIONADO (SEM TÍTULO REPETIDO, ZERO GAP) */}
+                    {/* CORTINA SUAVE REVELADA EMBAIXO DO CARD SELECIONADO */}
                     {isSelected && (
                       <div 
-                        className="absolute top-full left-0 right-0 sm:-left-[4%] sm:w-[108%] min-w-[155px] pt-1 z-40 animate-curtain-down"
+                        className="absolute top-full left-0 right-0 sm:-left-[4%] sm:w-[108%] min-w-[175px] pt-1.5 z-40 animate-curtain-down"
                         onMouseEnter={handleFlavorMouseEnter}
                         onMouseLeave={handleFlavorMouseLeave}
                       >
-                        <div className="bg-black border border-zinc-700 rounded-xl shadow-[0_16px_36px_rgba(0,0,0,0.95)] p-2 flex flex-col gap-1.5">
+                        <div className="bg-black/95 border-2 border-yellow-400/80 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.95)] p-2.5 flex flex-col gap-2 backdrop-blur-md">
+                          <div className="text-[10px] font-black uppercase tracking-wider text-yellow-400 text-center pb-1 border-b border-zinc-800">
+                            Adicionar à Comanda
+                          </div>
                           {pizzaCategory.variations.map((variation) => {
                             const isPedaco = variation.id === 'pedaco';
-                            const label = isPedaco ? 'Fatia' : (variation.name.charAt(0).toUpperCase() + variation.name.slice(1).toLowerCase());
+                            const label = isPedaco ? 'Fatia / Pedaço' : 'Pizza Inteira';
+                            const iconPreset = isPedaco ? 'pizza-pedaco' : 'pizza-inteira';
                             return (
                               <button
                                 key={variation.id}
@@ -1339,10 +1354,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                                   handleAddPizzaToCart(flavor, variation);
                                   setSelectedPizzaFlavor(null);
                                 }}
-                                className="w-full py-2 px-2.5 bg-black hover:bg-zinc-900 active:bg-zinc-800 text-white border border-zinc-700/80 hover:border-zinc-500 rounded-lg flex items-center justify-between font-bold text-xs shadow transition-all cursor-pointer active:scale-95 group/btn"
+                                className="w-full py-2 px-2.5 bg-zinc-900 hover:bg-yellow-500 hover:text-slate-950 text-white border border-zinc-700/80 hover:border-yellow-400 rounded-xl flex items-center justify-between font-black text-xs shadow transition-all cursor-pointer active:scale-95 group/btn"
                               >
-                                <span className="group-hover/btn:text-yellow-300 transition-colors">{label}</span>
-                                <span className="font-mono font-bold text-zinc-100 bg-zinc-800/90 px-1.5 py-0.5 rounded border border-zinc-700 text-[11px]">
+                                <div className="flex items-center gap-2">
+                                  <ProductIcon2D overrideKey={iconPreset} className="w-6 h-6 shrink-0" />
+                                  <span>{label}</span>
+                                </div>
+                                <span className="font-mono font-black text-white group-hover/btn:text-slate-950 bg-black/50 group-hover/btn:bg-black/20 px-2 py-0.5 rounded-lg border border-white/10 text-xs">
                                   {formatPrice(variation.price, showCurrencySymbol)}
                                 </span>
                               </button>
@@ -1397,8 +1415,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
             </div>
 
-            {/* CARDS DE AÇAÍ */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+            {/* CARDS VISUAIS DE AÇAÍ */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
               {acaiCategory.items.map((item) => {
                 const inCartQty = getItemCartQuantity(item.id);
                 return (
@@ -1406,24 +1424,30 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     key={item.id}
                     type="button"
                     onClick={() => handleAddItemToCart(acaiCategory, item)}
-                    className="p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] bg-slate-900/90 hover:bg-purple-950/70 text-slate-200 border-slate-700 hover:border-purple-500/70 active:scale-98"
+                    className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-purple-950/40 text-slate-200 border-slate-700/80 hover:border-purple-500/70 shadow-sm active:scale-95 group relative"
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
-                        {inCartQty > 0 && (
-                          <span className="text-[9px] font-black bg-purple-500 text-white px-1.5 py-0.2 rounded-full shadow shrink-0">
-                            ✓ {inCartQty}x
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-purple-300">
-                        {formatPrice(item.price, showCurrencySymbol)}
+                    {inCartQty > 0 && (
+                      <span className="absolute top-2 right-2 text-[10px] font-black bg-purple-500 text-white px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
+                        ✓ {inCartQty}x
+                      </span>
+                    )}
+
+                    <div className="my-1 transition-transform group-hover:scale-110 duration-200">
+                      <ProductIcon2D item={item} category={acaiCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
+                    </div>
+
+                    <div className="w-full">
+                      <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
+                        {item.name}
                       </div>
                     </div>
-                    <div className="mt-1.5 flex items-center justify-end">
-                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-800 hover:bg-purple-600 text-purple-300 hover:text-white transition-colors">
-                        + Adicionar
+
+                    <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-purple-500/30">
+                      <span className="text-xs sm:text-sm font-mono font-black text-purple-300">
+                        {formatPrice(item.price, showCurrencySymbol)}
+                      </span>
+                      <span className="text-[10px] font-black text-purple-300 group-hover:text-white uppercase tracking-wider">
+                        + Incluir
                       </span>
                     </div>
                   </button>
@@ -1472,8 +1496,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
             </div>
 
-            {/* CARDS DE BATATA */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+            {/* CARDS VISUAIS DE BATATA */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
               {batataCategory.items.map((item) => {
                 const inCartQty = getItemCartQuantity(item.id);
                 return (
@@ -1481,24 +1505,30 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     key={item.id}
                     type="button"
                     onClick={() => handleAddItemToCart(batataCategory, item)}
-                    className="p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] bg-slate-900/90 hover:bg-orange-950/70 text-slate-200 border-slate-700 hover:border-orange-500/70 active:scale-98"
+                    className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-orange-950/40 text-slate-200 border-slate-700/80 hover:border-orange-500/70 shadow-sm active:scale-95 group relative"
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
-                        {inCartQty > 0 && (
-                          <span className="text-[9px] font-black bg-orange-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow shrink-0">
-                            ✓ {inCartQty}x
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-orange-400">
-                        {formatPrice(item.price, showCurrencySymbol)}
+                    {inCartQty > 0 && (
+                      <span className="absolute top-2 right-2 text-[10px] font-black bg-orange-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
+                        ✓ {inCartQty}x
+                      </span>
+                    )}
+
+                    <div className="my-1 transition-transform group-hover:scale-110 duration-200">
+                      <ProductIcon2D item={item} category={batataCategory} className="w-14 h-14 sm:w-16 sm:h-16" />
+                    </div>
+
+                    <div className="w-full">
+                      <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
+                        {item.name}
                       </div>
                     </div>
-                    <div className="mt-1.5 flex items-center justify-end">
-                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-800 hover:bg-orange-500 text-orange-300 hover:text-white transition-colors">
-                        + Adicionar
+
+                    <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-orange-500/30">
+                      <span className="text-xs sm:text-sm font-mono font-black text-orange-400">
+                        {formatPrice(item.price, showCurrencySymbol)}
+                      </span>
+                      <span className="text-[10px] font-black text-orange-300 group-hover:text-white uppercase tracking-wider">
+                        + Incluir
                       </span>
                     </div>
                   </button>
@@ -1547,13 +1577,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
             </div>
 
-            {/* CARDS DOS ITENS */}
+            {/* CARDS DOS ITENS COM ÍCONES 2D */}
             {(!cat.items || cat.items.length === 0) ? (
               <div className="py-3 text-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-dashed border-slate-700/80">
                 Nenhum item cadastrado em {cat.name}. Clique no botão <strong className="text-emerald-400 font-bold">+</strong> acima para cadastrar!
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
                 {cat.items.map((item) => {
                   const inCartQty = getItemCartQuantity(item.id);
                   return (
@@ -1561,24 +1591,30 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       key={item.id}
                       type="button"
                       onClick={() => handleAddItemToCart(cat, item)}
-                      className="p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] bg-slate-900/90 hover:bg-cyan-950/70 text-slate-200 border-slate-700 hover:border-cyan-500/70 active:scale-98"
+                      className="p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between border cursor-pointer min-h-[124px] bg-slate-900/90 hover:bg-cyan-950/40 text-slate-200 border-slate-700/80 hover:border-cyan-500/70 shadow-sm active:scale-95 group relative"
                     >
-                      <div>
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
-                          {inCartQty > 0 && (
-                            <span className="text-[9px] font-black bg-cyan-400 text-slate-950 px-1.5 py-0.2 rounded-full shadow shrink-0">
-                              ✓ {inCartQty}x
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-cyan-300">
-                          {formatPrice(item.price, showCurrencySymbol)}
+                      {inCartQty > 0 && (
+                        <span className="absolute top-2 right-2 text-[10px] font-black bg-cyan-400 text-slate-950 px-1.5 py-0.2 rounded-full shadow-md shrink-0 z-10 animate-cart-item-birth">
+                          ✓ {inCartQty}x
+                        </span>
+                      )}
+
+                      <div className="my-1 transition-transform group-hover:scale-110 duration-200">
+                        <ProductIcon2D item={item} category={cat} className="w-14 h-14 sm:w-16 sm:h-16" />
+                      </div>
+
+                      <div className="w-full">
+                        <div className="font-black text-xs sm:text-sm leading-tight uppercase tracking-wide truncate">
+                          {item.name}
                         </div>
                       </div>
-                      <div className="mt-1.5 flex items-center justify-end">
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-800 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 transition-colors">
-                          + Adicionar
+
+                      <div className="mt-2 w-full flex items-center justify-between gap-1 bg-black/60 px-2 py-1 rounded-xl border border-cyan-500/30">
+                        <span className="text-xs sm:text-sm font-mono font-black text-cyan-300">
+                          {formatPrice(item.price, showCurrencySymbol)}
+                        </span>
+                        <span className="text-[10px] font-black text-cyan-300 group-hover:text-white uppercase tracking-wider">
+                          + Incluir
                         </span>
                       </div>
                     </button>

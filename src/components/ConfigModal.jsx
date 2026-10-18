@@ -43,11 +43,16 @@ import {
   Clock,
   Download,
   Palette,
-  Search
+  Search,
+  Upload,
+  Image as ImageIcon,
+  Eraser
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
 import { DEFAULT_CATEGORIES } from '../data/defaultProducts';
+import ProductIcon2D, { PRODUCT_2D_PRESETS } from './ProductIcon2D';
+import { processProductImage } from '../utils/imageProcessor';
 
 export const ITEM_COLOR_PALETTE = [
   { id: 'red', name: 'Vermelho', hex: '#ef4444' },
@@ -288,9 +293,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     categoryId: 'acai',
     isVariation: false,
     variationId: null,
-    color: '#eab308'
+    color: '#eab308',
+    image: null,
+    icon2d: null
   });
   const [confirmDeleteGear, setConfirmDeleteGear] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [autoRemoveBg, setAutoRemoveBg] = useState(true);
+  const [showPresetPicker, setShowPresetPicker] = useState(false);
 
   // Estado do Modal Bonito de Confirmação de Exclusão de Venda (Substitui window.confirm)
   const [cancelConfirmModal, setCancelConfirmModal] = useState({
@@ -789,6 +799,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   // Abrir Modal de Configurações Completas do Item (Engrenagem ⚙️ / Lápis ✏️)
   const handleOpenGearModal = (item) => {
     setConfirmDeleteGear(false);
+    setShowPresetPicker(false);
     const targetId = item.isVariation ? item.variationId : item.id;
     const catId = item.categoryId || 'acai';
     const routing = storageService.getProductionRouting();
@@ -810,9 +821,56 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       variationId: item.variationId || null,
       sendToKitchen: isToKitchen,
       showOnTV: isToTV,
-      color: item.color || '#eab308'
+      color: item.color || '#eab308',
+      image: item.image || null,
+      icon2d: item.icon2d || null
     });
     setShowGearModal(true);
+  };
+
+  // Funções de processamento de imagem e presets de arte 2D
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsProcessingImage(true);
+      const result = await processProductImage(file, {
+        removeBackground: autoRemoveBg,
+        maxSize: 180,
+        quality: 0.85
+      });
+      setGearItemData(prev => ({
+        ...prev,
+        image: result.dataUrl,
+        icon2d: null
+      }));
+      showToast('Foto do produto processada e fundo removido com sucesso!', 'Imagem do Produto', 'success');
+    } catch (err) {
+      console.error('Erro ao processar imagem:', err);
+      showToast('Não foi possível processar a imagem do produto.', 'Erro ao Carregar', 'error');
+    } finally {
+      setIsProcessingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleSelectPreset = (presetId) => {
+    setGearItemData(prev => ({
+      ...prev,
+      icon2d: presetId,
+      image: null
+    }));
+    setShowPresetPicker(false);
+    showToast('Ícone 2D selecionado com sucesso!', 'Ícone Definido');
+  };
+
+  const handleClearCustomArt = () => {
+    setGearItemData(prev => ({
+      ...prev,
+      image: null,
+      icon2d: null
+    }));
+    showToast('Arte restaurada para o ícone padrão automático.', 'Padrão Restaurado');
   };
 
   // Salvar alterações da Engrenagem ⚙️ / Lápis ✏️
@@ -827,6 +885,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const cleanPrefix = gearItemData.prefix.trim();
     const cleanDesc = gearItemData.description.trim();
     const itemColor = gearItemData.color || '#eab308';
+    const itemImage = gearItemData.image || null;
+    const itemIcon2d = gearItemData.icon2d || null;
 
     const updated = categories.map(cat => {
       // Se for variação de pizza (Pedaço ou Inteira)
@@ -840,7 +900,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 name: cleanName.replace(/^Pizza\s+/i, ''),
                 price: priceNum,
                 prefix: cleanPrefix,
-                color: itemColor
+                color: itemColor,
+                image: itemImage,
+                icon2d: itemIcon2d
               };
             }
             return v;
@@ -860,7 +922,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 price: priceNum,
                 prefix: cleanPrefix,
                 description: cleanDesc,
-                color: itemColor
+                color: itemColor,
+                image: itemImage,
+                icon2d: itemIcon2d
               };
             }
             return it;
@@ -2164,13 +2228,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     >
                       {/* TOPO: NOME, CATEGORIA EM LARANJA E BOTÕES (INCLUINDO ÍCONE DE COR) */}
                       <div className="flex items-start justify-between gap-1.5">
-                        <div className="min-w-0 pr-1">
-                          <span className="text-xs font-black text-white uppercase truncate block" title={item.name}>
-                            {item.name}
-                          </span>
-                          <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wide truncate block mt-0.5">
-                            {item.categoryName}
-                          </span>
+                        <div className="flex items-center gap-2 min-w-0 pr-1">
+                          <ProductIcon2D item={item} category={{ id: item.categoryId }} className="w-8 h-8 shrink-0" />
+                          <div className="min-w-0">
+                            <span className="text-xs font-black text-white uppercase truncate block" title={item.name}>
+                              {item.name}
+                            </span>
+                            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wide truncate block mt-0.5">
+                              {item.categoryName}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0 pt-0.5 relative">
                           {/* BOTÃO DE COR: BOLINHA COLORIDA / ÍCONE DE COR */}
@@ -3951,6 +4018,116 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   onChange={(e) => setGearItemData(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
                 />
+              </div>
+
+              {/* FOTO REAL OU ÍCONE 2D VETORIAL DO PRODUTO (CARDS INTUITIVOS) */}
+              <div className="bg-slate-950/90 p-3 rounded-xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Arte / Foto do Produto (Card Intuitivo):</span>
+                  </label>
+                  {(gearItemData.image || gearItemData.icon2d) && (
+                    <button
+                      type="button"
+                      onClick={handleClearCustomArt}
+                      className="text-[11px] font-bold text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Voltar ao ícone padrão automático"
+                    >
+                      <Eraser className="w-3 h-3" />
+                      <span>Restaurar Padrão</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3.5 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800/80">
+                  {/* Prévia do Ícone em formato de Card */}
+                  <div className="w-16 h-16 rounded-xl bg-slate-950 border border-slate-700/80 flex items-center justify-center p-1.5 shrink-0 shadow-inner relative group">
+                    <ProductIcon2D item={gearItemData} category={{ id: gearItemData.categoryId }} className="w-14 h-14" />
+                    {isProcessingImage && (
+                      <div className="absolute inset-0 bg-slate-950/80 rounded-xl flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ações de Upload e Seleção */}
+                  <div className="flex-1 space-y-2 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Botão de Upload de Foto */}
+                      <label className="cursor-pointer px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{isProcessingImage ? 'Processando...' : 'Carregar Foto'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageUpload}
+                          disabled={isProcessingImage}
+                        />
+                      </label>
+
+                      {/* Botão Escolher Ícone 2D */}
+                      <button
+                        type="button"
+                        onClick={() => setShowPresetPicker(prev => !prev)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all border cursor-pointer ${
+                          showPresetPicker
+                            ? 'bg-blue-600/30 text-blue-300 border-blue-500/60'
+                            : 'bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700'
+                        }`}
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>{showPresetPicker ? 'Fechar Galeria' : 'Galeria 2D'}</span>
+                      </button>
+                    </div>
+
+                    {/* Toggle de Remoção Automática de Fundo */}
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={autoRemoveBg}
+                        onChange={(e) => setAutoRemoveBg(e.target.checked)}
+                        className="rounded border-slate-700 text-amber-500 focus:ring-0 focus:ring-offset-0 bg-slate-900 cursor-pointer w-3.5 h-3.5"
+                      />
+                      <span className="text-[11px] text-slate-300">
+                        Remover fundo automaticamente (efeito adesivo)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Galeria Expansível de Ícones 2D Presets */}
+                {showPresetPicker && (
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Toque para escolher um ícone vetorial 2D:
+                    </span>
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-1.5 bg-slate-950 rounded-xl border border-slate-800/80">
+                      {PRODUCT_2D_PRESETS.map((preset) => {
+                        const isSelected = gearItemData.icon2d === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => handleSelectPreset(preset.id)}
+                            className={`p-1.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/50 scale-105'
+                                : 'bg-slate-900/60 border-slate-800 hover:border-slate-600 hover:bg-slate-850'
+                            }`}
+                            title={preset.label}
+                          >
+                            <ProductIcon2D iconKey={preset.id} className="w-8 h-8" />
+                            <span className="text-[9px] font-bold text-slate-300 text-center truncate w-full">
+                              {preset.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* SELETOR DE COR DO ITEM (24 BOLINHAS) */}
