@@ -3,6 +3,7 @@
 export const PERFIS = {
   ADMIN: 'ADMIN',
   COZINHA: 'COZINHA',
+  COZINHA_2: 'COZINHA_2',
   PUBLICO: 'PUBLICO'
 };
 
@@ -25,7 +26,17 @@ export const DEFAULT_ENVIRONMENTS = [
     icon: 'UtensilsCrossed',
     color: 'orange',
     isSystem: true,
-    description: 'Cozinha, Fogões & Fornos'
+    description: 'Cozinha 1, Fogões & Fornos'
+  },
+  {
+    id: 'COZINHA_2',
+    name: 'COZINHA 2',
+    shortName: 'COZINHA 2',
+    type: 'kitchen',
+    icon: 'UtensilsCrossed',
+    color: 'rose',
+    isSystem: true,
+    description: 'Segunda Cozinha / Estação 2'
   },
   {
     id: 'PUBLICO',
@@ -42,5 +53,6 @@ export const DEFAULT_ENVIRONMENTS = [
 export const DEFAULT_EMAIL_RULES = {
   ADMIN: ['irandyalves@gmail.com'],
   COZINHA: [],
+  COZINHA_2: [],
   PUBLICO: []
 };

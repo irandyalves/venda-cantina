@@ -27,6 +27,7 @@ import {
   Check
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
+import { authService } from '../services/auth';
 import ProfileSelector from './ProfileSelector';
 import AutoToast from './AutoToast';
 
@@ -38,13 +39,58 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const [currentEvent, setCurrentEvent] = useState(() => storageService.getCurrentEvent());
   const [showCurrencySymbol, setShowCurrencySymbol] = useState(storageService.getShowCurrencySymbol());
 
+  // Ambientes de Trabalho (Cozinhas, Caixas, TVs)
+  const [environments, setEnvironments] = useState(() => authService.getEnvironments());
+
+  // Cozinha de destino dos pedidos deste terminal (persistido no localStorage deste navegador)
+  const [destinationKitchen, setDestinationKitchen] = useState(() => {
+    return localStorage.getItem('cantina_cashier_destination_kitchen') || 'auto';
+  });
+
+  // Identificação deste terminal de Caixa (ex: Caixa 1, Caixa 2, etc.)
+  const [cashierTerminal, setCashierTerminal] = useState(() => {
+    return localStorage.getItem('cantina_cashier_terminal') || 'Caixa 1';
+  });
+
+  const kitchenEnvironments = environments.filter(e => e.type === 'kitchen');
+
   useEffect(() => {
     const handleCurrencyChanged = (e) => {
       setShowCurrencySymbol(Boolean(e.detail));
     };
+    const handleEnvsChange = (e) => {
+      setEnvironments(e.detail || authService.getEnvironments());
+    };
     window.addEventListener('cantina_currency_changed', handleCurrencyChanged);
-    return () => window.removeEventListener('cantina_currency_changed', handleCurrencyChanged);
+    window.addEventListener('cantina_environments_changed', handleEnvsChange);
+    return () => {
+      window.removeEventListener('cantina_currency_changed', handleCurrencyChanged);
+      window.removeEventListener('cantina_environments_changed', handleEnvsChange);
+    };
   }, []);
+
+  const handleDestinationKitchenChange = (newDest) => {
+    setDestinationKitchen(newDest);
+    localStorage.setItem('cantina_cashier_destination_kitchen', newDest);
+    const targetName = newDest === 'auto'
+      ? 'Automático (Por Regra de Produto)'
+      : (environments.find(e => e.id === newDest)?.name || newDest);
+    setToast({
+      type: 'info',
+      title: 'Cozinha de Destino',
+      message: `Pedidos deste caixa serão despachados para: ${targetName}`
+    });
+  };
+
+  const handleTerminalChange = (newTerm) => {
+    setCashierTerminal(newTerm);
+    localStorage.setItem('cantina_cashier_terminal', newTerm);
+    setToast({
+      type: 'info',
+      title: 'Terminal Configurado',
+      message: `Este computador está identificado como: ${newTerm}`
+    });
+  };
 
   // ========================================================
   // NOVO FLUXO DE ATENDIMENTO AO CLIENTE (MULTI-PEDIDOS)
@@ -600,21 +646,29 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         const catId = category.id;
 
         let sendToKitchen = true;
-        if (routing.sendToKitchen?.[targetId] !== undefined) {
-          sendToKitchen = routing.sendToKitchen[targetId];
-        } else if (routing.sendToKitchen?.[catId] !== undefined) {
-          sendToKitchen = routing.sendToKitchen[catId];
-        } else {
-          sendToKitchen = catId === 'pizza';
-        }
-
         let targetEnvironment = 'COZINHA';
-        if (routing.destinationEnv?.[targetId] !== undefined) {
-          targetEnvironment = routing.destinationEnv[targetId];
-        } else if (routing.destinationEnv?.[catId] !== undefined) {
-          targetEnvironment = routing.destinationEnv[catId];
+
+        // SE ESTE CAIXA ESTIVER CONFIGURADO PARA UMA COZINHA ESPECÍFICA (EX: COZINHA 1 OU COZINHA 2):
+        if (destinationKitchen && destinationKitchen !== 'auto') {
+          sendToKitchen = true;
+          targetEnvironment = destinationKitchen;
         } else {
-          targetEnvironment = sendToKitchen ? 'COZINHA' : 'none';
+          // Roteamento padrão inteligente por item/categoria
+          if (routing.sendToKitchen?.[targetId] !== undefined) {
+            sendToKitchen = routing.sendToKitchen[targetId];
+          } else if (routing.sendToKitchen?.[catId] !== undefined) {
+            sendToKitchen = routing.sendToKitchen[catId];
+          } else {
+            sendToKitchen = catId === 'pizza';
+          }
+
+          if (routing.destinationEnv?.[targetId] !== undefined) {
+            targetEnvironment = routing.destinationEnv[targetId];
+          } else if (routing.destinationEnv?.[catId] !== undefined) {
+            targetEnvironment = routing.destinationEnv[catId];
+          } else {
+            targetEnvironment = sendToKitchen ? 'COZINHA' : 'none';
+          }
         }
 
         return {
@@ -636,6 +690,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         };
       });
 
+      const primaryTargetEnv = (destinationKitchen && destinationKitchen !== 'auto')
+        ? destinationKitchen
+        : (orderItems.find(it => it.targetEnvironment && it.targetEnvironment !== 'none')?.targetEnvironment || 'COZINHA');
+
+      const destKitchenObj = environments.find(e => e.id === primaryTargetEnv);
+
       const newOrder = {
         orderNumber: primaryOrderNumber, // SENHA ÚNICA
         customerName: cleanName,
@@ -651,8 +711,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         unitPrice: cart[0].unitPrice,
         totalPrice: cartTotal,
         paymentMethod,
-        sendToKitchen: true,
-        targetEnvironment: 'COZINHA',
+        sendToKitchen: (destinationKitchen && destinationKitchen !== 'auto') ? true : orderItems.some(it => it.sendToKitchen),
+        targetEnvironment: primaryTargetEnv,
+        targetKitchenName: destKitchenObj?.name || primaryTargetEnv,
+        cashierTerminal: cashierTerminal || 'Caixa 1',
         showOnTV: true,
         status: 'em_preparo'
       };
@@ -662,8 +724,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       setToast({
         type: 'success',
         title: `Venda de ${cleanName.toUpperCase()} Concluída!`,
-        message: `Comanda ${created.orderNumber} gerada com ${orderItems.length} item(ns)!`,
-        subtext: `Total: ${formatPrice(cartTotal, showCurrencySymbol)} (${paymentMethod})`
+        message: `Comanda ${created.orderNumber} enviada para ${destKitchenObj?.name || primaryTargetEnv}!`,
+        subtext: `Terminal: ${cashierTerminal} | Total: ${formatPrice(cartTotal, showCurrencySymbol)} (${paymentMethod})`
       });
 
       // Limpar tudo para o próximo cliente
@@ -859,15 +921,61 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden text-xs">
       
       {/* BARRA SUPERIOR DO CAIXA */}
-      <header className="bg-slate-800/90 border-b border-slate-700/80 px-3 py-1.5 flex items-center justify-between shrink-0 shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="bg-gradient-to-tr from-amber-500 to-red-600 p-1.5 rounded-lg shadow">
+      <header className="bg-slate-800/90 border-b border-slate-700/80 px-3 py-1.5 flex items-center justify-between shrink-0 shadow-sm gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="bg-gradient-to-tr from-amber-500 to-red-600 p-1.5 rounded-lg shadow shrink-0">
             <Pizza className="w-4 h-4 text-white" />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <h1 className="text-base font-black tracking-widest text-white uppercase leading-none">
               CAIXA
             </h1>
+          </div>
+
+          {/* SELETOR DO TERMINAL DESTE CAIXA */}
+          <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/90 rounded-xl px-2.5 py-1 text-xs shadow-xs shrink-0">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider hidden sm:inline">Terminal:</span>
+            <select
+              value={cashierTerminal}
+              onChange={(e) => handleTerminalChange(e.target.value)}
+              className="bg-transparent text-emerald-400 font-black text-xs outline-none cursor-pointer font-mono"
+              title="Identificação deste computador/terminal de caixa"
+            >
+              <option value="Caixa 1" className="bg-slate-900 text-emerald-300">Caixa 1</option>
+              <option value="Caixa 2" className="bg-slate-900 text-emerald-300">Caixa 2</option>
+              <option value="Caixa 3" className="bg-slate-900 text-emerald-300">Caixa 3</option>
+              <option value="Caixa 4" className="bg-slate-900 text-emerald-300">Caixa 4</option>
+              <option value="Caixa 5" className="bg-slate-900 text-emerald-300">Caixa 5</option>
+            </select>
+          </div>
+
+          {/* SELETOR DA COZINHA DE DESTINO DESTE CAIXA */}
+          <div className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs shadow-xs border transition-all shrink-0 ${
+            destinationKitchen !== 'auto'
+              ? 'bg-amber-950/70 border-amber-500/80 text-amber-300 ring-1 ring-amber-500/30'
+              : 'bg-slate-900/90 border-slate-700/90 text-slate-300'
+          }`}>
+            <UtensilsCrossed className={`w-3.5 h-3.5 shrink-0 ${destinationKitchen !== 'auto' ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider hidden md:inline">
+              Cozinha Destino:
+            </span>
+            <select
+              value={destinationKitchen}
+              onChange={(e) => handleDestinationKitchenChange(e.target.value)}
+              className={`bg-transparent font-black text-xs outline-none cursor-pointer ${
+                destinationKitchen !== 'auto' ? 'text-amber-300' : 'text-slate-200'
+              }`}
+              title="Para qual cozinha os pedidos deste caixa serão despachados"
+            >
+              <option value="auto" className="bg-slate-900 text-slate-300">
+                🔀 Automático (Por Produto)
+              </option>
+              {kitchenEnvironments.map((env) => (
+                <option key={env.id} value={env.id} className="bg-slate-900 text-amber-300 font-bold">
+                  🍳 {env.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

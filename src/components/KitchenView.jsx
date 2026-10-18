@@ -81,10 +81,10 @@ export default function KitchenView({ environment, onNavigate }) {
         }
         if (it.sendToKitchen === false) return false;
         const cat = String(it.categoryId || it.category || '').toLowerCase();
-        if (currentEnvId.includes('COZINHA') || currentEnvId.includes('PIZZA')) {
+        if (currentEnvId === 'COZINHA') {
           return cat.includes('pizza');
         }
-        return true;
+        return false;
       });
     }
 
@@ -517,8 +517,13 @@ export default function KitchenView({ environment, onNavigate }) {
                   {/* BLOCO 1: SENHA ÚNICA GERAL + NOME DO CLIENTE (SEM ÍCONE) */}
                   <div className="shrink-0 flex flex-col justify-center min-w-[70px]">
                     {/* CÓDIGO DA SENHA ÚNICA */}
-                    <div className="text-sm sm:text-base font-black text-orange-400 font-mono tracking-tight flex items-center leading-none">
+                    <div className="text-sm sm:text-base font-black text-orange-400 font-mono tracking-tight flex items-center leading-none gap-1.5">
                       <span>{order.orderNumber}</span>
+                      {order.cashierTerminal && (
+                        <span className="text-[9px] font-sans font-bold px-1 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700 tracking-normal">
+                          {order.cashierTerminal}
+                        </span>
+                      )}
                     </div>
                     {/* NOME DO CLIENTE */}
                     <div className="text-[10px] sm:text-[11px] font-normal text-slate-100 leading-tight uppercase truncate max-w-[130px] mt-0.5">
