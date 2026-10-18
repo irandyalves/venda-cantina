@@ -274,13 +274,24 @@ export default function KitchenView({ environment, onNavigate }) {
     ? activeOrders
     : deliveredOrders;
 
-  // Formatação de tempo decorrido
+  // Formatação de tempo decorrido no formato 0:00:00 (limite máximo de 9h, sem m e s)
   const getElapsedTime = (timestamp) => {
+    if (!timestamp) return '0:00:00';
     const diffMs = currentTime - timestamp;
-    const diffSec = Math.floor(diffMs / 1000);
-    const min = Math.floor(diffSec / 60);
-    const sec = diffSec % 60;
-    return `${min}m ${sec < 10 ? '0' : ''}${sec}s`;
+    if (diffMs < 0) return '0:00:00';
+    const totalSec = Math.floor(diffMs / 1000);
+    // Limite máximo de 9 horas (9:59:59)
+    const maxSec = 9 * 3600 + 59 * 60 + 59;
+    const cappedSec = Math.min(totalSec, maxSec);
+
+    const hours = Math.floor(cappedSec / 3600);
+    const minutes = Math.floor((cappedSec % 3600) / 60);
+    const seconds = cappedSec % 60;
+
+    const mStr = String(minutes).padStart(2, '0');
+    const sStr = String(seconds).padStart(2, '0');
+
+    return `${hours}:${mStr}:${sStr}`;
   };
 
   // Classificação de tempo por faixas configuradas: Verde -> Azul -> Amarelo -> Laranja -> Vermelho
@@ -505,13 +516,13 @@ export default function KitchenView({ environment, onNavigate }) {
                   <div className="flex items-center justify-between md:justify-end gap-1.5 shrink-0">
                     {!isDelivered ? (
                       <div className="flex items-center gap-1.5">
-                        {/* TEMPO BASEADO NAS CORES CONFIGURADAS */}
+                        {/* TEMPO BASEADO NAS CORES CONFIGURADAS (LARGURA FIXA E FORMATO 0:00:00) */}
                         <div 
-                          className={`text-[9px] font-mono font-bold px-2 h-[22px] rounded-lg border flex items-center justify-center gap-1 transition-all shadow-sm ${timeStatus.classes}`}
+                          className={`w-[78px] h-[22px] pl-1.5 pr-1.5 rounded-lg border flex items-center justify-between font-mono font-bold text-[10px] tabular-nums transition-all shadow-sm shrink-0 select-none ${timeStatus.classes}`}
                           title={`Tempo em preparo: ${getElapsedTime(order.createdAt)}`}
                         >
-                          <Clock className="w-2.5 h-2.5" />
-                          <span>{getElapsedTime(order.createdAt)}</span>
+                          <Clock className="w-2.5 h-2.5 shrink-0" />
+                          <span className="leading-none">{getElapsedTime(order.createdAt)}</span>
                         </div>
 
                         {/* PRONTO (SINO) */}
