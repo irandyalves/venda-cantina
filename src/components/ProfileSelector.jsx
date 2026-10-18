@@ -73,6 +73,12 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
     };
   }, []);
 
+  const currentEnv = environments.find(e => e.id === activeProfile) || environments[0] || {
+    name: 'ADMIN',
+    shortName: 'ADMIN',
+    type: 'cashier'
+  };
+
   const isSecondaryLocked = screensLocked && (currentEnv.type === 'kitchen' || currentEnv.type === 'display');
 
   const handleToggle = () => {
@@ -156,12 +162,6 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
     if (env.type === 'kitchen') return 'text-orange-400';
     if (env.type === 'display') return 'text-emerald-400';
     return 'text-amber-400';
-  };
-
-  const currentEnv = environments.find(e => e.id === activeProfile) || environments[0] || {
-    name: 'ADMIN',
-    shortName: 'ADMIN',
-    type: 'cashier'
   };
 
   return (

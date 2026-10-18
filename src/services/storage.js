@@ -1251,6 +1251,56 @@ class StorageService {
     return snapshot;
   }
 
+  // Restaura um turno arquivado de volta como o caixa ativo atual
+  async restoreTurnoAsActive(turnoId) {
+    const history = this.getTurnoHistory();
+    const turno = history.find(t => t.id === turnoId);
+    if (!turno) {
+      throw new Error('Turno arquivado não encontrado no histórico.');
+    }
+
+    const ordersToRestore = Array.isArray(turno.orders) ? turno.orders : [];
+
+    // 1. Atualiza e salva localmente
+    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(ordersToRestore));
+    this.notifyOrderSubscribers(ordersToRestore);
+
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'ORDERS_RESTORED', payload: ordersToRestore });
+    }
+
+    // 2. Se Firebase estiver conectado, atualiza no Cloud Firestore
+    if (this.isFirebaseReady && this.db) {
+      try {
+        const colRef = collection(this.db, COLLECTION_ORDERS);
+        const snap = await getDocs(colRef);
+        const deletePromises = [];
+        snap.forEach(docSnap => {
+          if (!docSnap.id.startsWith('__config_')) {
+            deletePromises.push(deleteDoc(docSnap.ref));
+          }
+        });
+        await Promise.all(deletePromises);
+
+        const savePromises = ordersToRestore.map(ord => {
+          const docId = ord.firestoreDocId || ord.id || `ped_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+          const orderRef = doc(this.db, COLLECTION_ORDERS, docId);
+          return setDoc(orderRef, {
+            ...ord,
+            id: docId,
+            restoredAt: serverTimestamp()
+          });
+        });
+        await Promise.all(savePromises);
+        console.log(`♻️ [Restaurar Turno] ${ordersToRestore.length} pedidos restaurados com sucesso no Firestore!`);
+      } catch (err) {
+        console.error('⚠️ Erro ao restaurar turno no Firestore:', err);
+      }
+    }
+
+    return ordersToRestore;
+  }
+
   // Limpar TODOS os pedidos (Local + Cloud Firestore)
   async clearAllOrders() {
     localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify([]));

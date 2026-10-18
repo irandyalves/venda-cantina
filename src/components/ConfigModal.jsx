@@ -42,7 +42,8 @@ import {
   BellRing,
   Clock,
   Download,
-  Palette
+  Palette,
+  Search
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -261,6 +262,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [isResetting, setIsResetting] = useState(false);
   const [turnoHistory, setTurnoHistory] = useState(() => storageService.getTurnoHistory());
   const [showHistoryList, setShowHistoryList] = useState(false);
+  const [selectedTurnoForConference, setSelectedTurnoForConference] = useState(null);
+  const [reopenTurnoConfirmModal, setReopenTurnoConfirmModal] = useState({ isOpen: false, turno: null });
+  const [isReopeningTurno, setIsReopeningTurno] = useState(false);
 
   // Preços de pizza (Pedaço e Inteira com máscara 0,00)
   const [pedacoPrice, setPedacoPrice] = useState('9,00');
@@ -1529,6 +1533,76 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
   };
 
+  const handleOpenConference = (hist) => {
+    setSelectedTurnoForConference(hist);
+  };
+
+  const handleRequestReopenTurno = (hist) => {
+    setReopenTurnoConfirmModal({ isOpen: true, turno: hist });
+  };
+
+  const handleConfirmReopenTurno = async () => {
+    if (!reopenTurnoConfirmModal.turno) return;
+    setIsReopeningTurno(true);
+    try {
+      const restored = await storageService.restoreTurnoAsActive(reopenTurnoConfirmModal.turno.id);
+      setOrders(restored);
+      setReopenTurnoConfirmModal({ isOpen: false, turno: null });
+      setSelectedTurnoForConference(null);
+      showToast(
+        `Caixa reaberto com sucesso! ${restored.length} vendas deste turno foram restauradas.`,
+        'Caixa Reaberto',
+        'success'
+      );
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao reabrir caixa: ' + (err.message || 'Tente novamente'), 'Erro', 'error');
+    } finally {
+      setIsReopeningTurno(false);
+    }
+  };
+
+  // Calcula agrupamento detalhado de produtos vendidos no turno para conferência aprofundada
+  const getTurnoItemBreakdown = (ordersList = []) => {
+    const itemMap = new Map();
+    ordersList.forEach(order => {
+      if (order.status === 'cancelado') return;
+      const items = order.items && order.items.length > 0 
+        ? order.items 
+        : [{ 
+            name: order.itemName || order.fullDescription || 'Item', 
+            quantity: order.quantity || 1, 
+            unitPrice: order.unitPrice || order.totalPrice || 0,
+            category: order.category
+          }];
+      
+      items.forEach(it => {
+        const name = it.description || it.name || it.itemName || 'Item';
+        const qty = Number(it.quantity) || 1;
+        const unitP = Number(it.unitPrice) || 0;
+        const total = unitP > 0 ? unitP * qty : (Number(order.totalPrice) || 0);
+        
+        if (itemMap.has(name)) {
+          const prev = itemMap.get(name);
+          itemMap.set(name, {
+            ...prev,
+            quantity: prev.quantity + qty,
+            totalValue: prev.totalValue + total
+          });
+        } else {
+          itemMap.set(name, {
+            name,
+            quantity: qty,
+            unitPrice: unitP,
+            totalValue: total,
+            category: it.category || ''
+          });
+        }
+      });
+    });
+    return Array.from(itemMap.values()).sort((a, b) => b.quantity - a.quantity);
+  };
+
   const pizzaCat = categories.find(c => c.id === 'pizza');
   const acaiCat = categories.find(c => c.id === 'acai');
   const batataCat = categories.find(c => c.id === 'batata');
@@ -2269,7 +2343,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pr-1">
                     {turnoHistory.map((hist) => (
-                      <div key={hist.id} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors flex flex-col justify-between gap-1.5 shadow-sm">
+                      <div key={hist.id} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors flex flex-col justify-between gap-2 shadow-sm">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="text-xs font-black text-amber-300 truncate">
@@ -2291,6 +2365,29 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           <span>PIX: {formatPrice(hist.paymentBreakdown?.pix, showCurrencySymbol)}</span>
                           <span>Din: {formatPrice(hist.paymentBreakdown?.dinheiro, showCurrencySymbol)}</span>
                           <span>Cart: {formatPrice((hist.paymentBreakdown?.debito || 0) + (hist.paymentBreakdown?.credito || 0), showCurrencySymbol)}</span>
+                        </div>
+
+                        {/* AÇÕES: CONFERÊNCIA APROFUNDADA & REABRIR CAIXA */}
+                        <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-slate-800/60">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenConference(hist)}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 text-[10px] font-bold rounded-lg border border-slate-700 hover:border-amber-400/50 transition-all flex items-center gap-1 cursor-pointer"
+                            title="Conferência aprofundada: todos os itens vendidos, faturamento por produto e comandas"
+                          >
+                            <Search className="w-3 h-3 text-amber-400" />
+                            <span>Conferir</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRequestReopenTurno(hist)}
+                            className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 active:scale-95 text-emerald-300 hover:text-white text-[10px] font-black rounded-lg border border-emerald-500/50 hover:border-emerald-400 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
+                            title="Reabrir este caixa: restaura todas as comandas deste turno de volta para o Caixa e Cozinha"
+                          >
+                            <RotateCcw className="w-3 h-3 text-emerald-400" />
+                            <span>Reabrir Caixa</span>
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -4595,6 +4692,271 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               >
                 <Trash2 className="w-4 h-4" />
                 <span>SIM, EXCLUIR</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO: REABRIR CAIXA DE TURNO ANTERIOR */}
+      {reopenTurnoConfirmModal.isOpen && reopenTurnoConfirmModal.turno && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isReopeningTurno) setReopenTurnoConfirmModal({ isOpen: false, turno: null });
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn"
+        >
+          <div className="bg-slate-900 border-2 border-emerald-500/60 rounded-3xl p-6 max-w-md w-full shadow-2xl shadow-black space-y-4 text-slate-100">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <span className="p-3 bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/30">
+                <RotateCcw className="w-6 h-6" />
+              </span>
+              <div>
+                <h3 className="text-lg font-black text-white tracking-wide uppercase">
+                  Reabrir Caixa
+                </h3>
+                <p className="text-xs text-emerald-400 font-mono">
+                  {reopenTurnoConfirmModal.turno.archivedAtFormatted || 'Turno Arquivado'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-1.5 text-left">
+                <div className="text-xs font-bold text-slate-300">
+                  Evento: <strong className="text-amber-400">{reopenTurnoConfirmModal.turno.event?.name || 'Cantina Geral'}</strong>
+                </div>
+                <div className="text-xs text-slate-400 font-mono flex items-center justify-between">
+                  <span>Total Vendas: <strong>{reopenTurnoConfirmModal.turno.totalOrders} comandas</strong></span>
+                  <span className="text-emerald-400 font-black">{formatPrice(reopenTurnoConfirmModal.turno.totalRevenue, showCurrencySymbol)}</span>
+                </div>
+              </div>
+
+              <div className="bg-amber-950/40 border border-amber-500/40 rounded-2xl p-3.5 text-left text-xs text-amber-200/90 leading-relaxed">
+                Ao reabrir este caixa, <strong>todas as comandas deste turno voltarão a ficar ativas</strong> nas telas do Caixa, Cozinha e Painel TV para que você possa continuar lançando, alterando ou conferindo vendas.
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                disabled={isReopeningTurno}
+                onClick={() => setReopenTurnoConfirmModal({ isOpen: false, turno: null })}
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={isReopeningTurno}
+                onClick={handleConfirmReopenTurno}
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer border border-emerald-400/50 flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <RotateCcw className={`w-4 h-4 ${isReopeningTurno ? 'animate-spin' : ''}`} />
+                <span>{isReopeningTurno ? 'Reabrindo...' : 'Sim, Reabrir Caixa'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFERÊNCIA APROFUNDADA DO TURNO */}
+      {selectedTurnoForConference && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedTurnoForConference(null);
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 z-[9999] animate-fadeIn"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-amber-500/60 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl shadow-black text-slate-100 overflow-hidden"
+          >
+            {/* CABEÇALHO DO MODAL DE CONFERÊNCIA */}
+            <div className="p-4 sm:p-5 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <span className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/40">
+                  <Search className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wide flex items-center gap-2">
+                    <span>Conferência Aprofundada do Turno</span>
+                    <span className="text-xs font-mono font-bold text-amber-400 bg-amber-950/90 px-2 py-0.5 rounded-lg border border-amber-500/40">
+                      {selectedTurnoForConference.event?.name || 'Cantina Geral'}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">
+                    Arquivado em: 📅 {selectedTurnoForConference.archivedAtFormatted || (selectedTurnoForConference.archivedAt ? new Date(selectedTurnoForConference.archivedAt).toLocaleString('pt-BR') : '')}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedTurnoForConference(null)}
+                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* CORPO ROLÁVEL DA CONFERÊNCIA */}
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 min-h-0 custom-scrollbar">
+              
+              {/* GRID FINANCEIRO DETALHADO */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                <div className="bg-slate-950/90 p-3 rounded-2xl border border-emerald-500/40 shadow-sm">
+                  <div className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Faturamento Total</div>
+                  <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
+                    {formatPrice(selectedTurnoForConference.totalRevenue, showCurrencySymbol)}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{selectedTurnoForConference.totalOrders} comandas</div>
+                </div>
+
+                <div className="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 shadow-sm">
+                  <div className="text-[10px] font-black text-purple-400 uppercase tracking-wider">PIX</div>
+                  <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
+                    {formatPrice(selectedTurnoForConference.paymentBreakdown?.pix, showCurrencySymbol)}
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 shadow-sm">
+                  <div className="text-[10px] font-black text-teal-400 uppercase tracking-wider">Dinheiro</div>
+                  <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
+                    {formatPrice(selectedTurnoForConference.paymentBreakdown?.dinheiro, showCurrencySymbol)}
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 shadow-sm">
+                  <div className="text-[10px] font-black text-blue-400 uppercase tracking-wider">Cartão Débito</div>
+                  <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
+                    {formatPrice(selectedTurnoForConference.paymentBreakdown?.debito, showCurrencySymbol)}
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 shadow-sm">
+                  <div className="text-[10px] font-black text-indigo-400 uppercase tracking-wider">Cartão Crédito</div>
+                  <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
+                    {formatPrice(selectedTurnoForConference.paymentBreakdown?.credito, showCurrencySymbol)}
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO 1: BALANÇO DE PRODUTOS VENDIDOS (AUDITORIA DE ITENS) */}
+              <div className="bg-slate-950/60 rounded-2xl border border-slate-800 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <h4 className="text-xs sm:text-sm font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                    <Pizza className="w-4 h-4 text-amber-400" />
+                    <span>Produtos e Quantidades Vendidas neste Turno</span>
+                  </h4>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {getTurnoItemBreakdown(selectedTurnoForConference.orders || []).length} produtos diferentes
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {getTurnoItemBreakdown(selectedTurnoForConference.orders || []).map((prod, idx) => (
+                    <div 
+                      key={idx}
+                      className="bg-slate-900/90 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-200 truncate" title={prod.name}>
+                          {prod.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          Un: {formatPrice(prod.unitPrice, showCurrencySymbol)}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-black text-amber-400 font-mono bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                          {prod.quantity}x
+                        </span>
+                        <div className="text-xs font-black text-emerald-400 font-mono mt-1">
+                          {formatPrice(prod.totalValue, showCurrencySymbol)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* SEÇÃO 2: LISTA COMPLETA DE COMANDAS DO TURNO */}
+              <div className="bg-slate-950/60 rounded-2xl border border-slate-800 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                    <span>Todas as Comandas Deste Turno ({(selectedTurnoForConference.orders || []).length})</span>
+                  </h4>
+                </div>
+
+                <div className="border border-slate-800 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider z-10">
+                      <tr>
+                        <th className="p-2.5">Comanda</th>
+                        <th className="p-2.5">Cliente</th>
+                        <th className="p-2.5">Itens</th>
+                        <th className="p-2.5">Pagamento</th>
+                        <th className="p-2.5 text-right">Valor</th>
+                        <th className="p-2.5 text-center">Horário</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80 font-mono">
+                      {(selectedTurnoForConference.orders || []).map((ord, idx) => {
+                        const items = ord.items && ord.items.length > 0 
+                          ? ord.items 
+                          : [{ name: ord.itemName || ord.fullDescription || 'Item', quantity: ord.quantity || 1 }];
+                        return (
+                          <tr key={idx} className="hover:bg-slate-900/60 transition-colors">
+                            <td className="p-2.5 font-black text-orange-400">{ord.orderNumber}</td>
+                            <td className="p-2.5 font-sans font-bold text-slate-100 uppercase">{ord.customerName}</td>
+                            <td className="p-2.5 font-sans text-[11px] text-slate-300">
+                              {items.map(it => `${it.quantity}x ${it.description || it.name || it.itemName}`).join(', ')}
+                            </td>
+                            <td className="p-2.5">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                {ord.paymentMethod || 'PIX'}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-right font-black text-emerald-400">
+                              {formatPrice(ord.totalPrice, showCurrencySymbol)}
+                            </td>
+                            <td className="p-2.5 text-center text-slate-500 text-[10px]">
+                              {ord.createdAt ? new Date(ord.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            {/* RODAPÉ DO MODAL DE CONFERÊNCIA */}
+            <div className="p-4 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedTurnoForConference(null)}
+                className="py-2.5 px-5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+              >
+                Fechar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleRequestReopenTurno(selectedTurnoForConference);
+                }}
+                className="py-2.5 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center gap-2 border border-emerald-400"
+              >
+                <RotateCcw className="w-4 h-4 stroke-[3]" />
+                <span>Reabrir Este Caixa</span>
               </button>
             </div>
           </div>
