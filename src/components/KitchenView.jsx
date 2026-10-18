@@ -305,36 +305,31 @@ export default function KitchenView({ environment, onNavigate }) {
         name: 'verde',
         label: 'Normal',
         borderLeftClass: 'border-l-emerald-500',
-        classes: 'text-emerald-400 bg-emerald-950/70 border-emerald-500/50',
-        badge: null
+        classes: 'text-emerald-400 bg-emerald-950/70 border-emerald-500/50'
       },
       {
         name: 'azul',
         label: 'No prazo',
         borderLeftClass: 'border-l-sky-500',
-        classes: 'text-sky-400 bg-sky-950/70 border-sky-500/50',
-        badge: null
+        classes: 'text-sky-400 bg-sky-950/70 border-sky-500/50'
       },
       {
         name: 'amarelo',
         label: 'Alerta 1',
         borderLeftClass: 'border-l-amber-400',
-        classes: 'text-amber-300 bg-amber-950/70 border-amber-500/50',
-        badge: 'Alerta 1'
+        classes: 'text-amber-300 bg-amber-950/70 border-amber-500/50'
       },
       {
         name: 'laranja',
         label: 'Atrasado',
         borderLeftClass: 'border-l-orange-500',
-        classes: 'text-orange-400 bg-orange-950/70 border-orange-500/50',
-        badge: 'Atrasado'
+        classes: 'text-orange-400 bg-orange-950/70 border-orange-500/50'
       },
       {
         name: 'vermelho',
         label: 'Muito Atrasado',
         borderLeftClass: 'border-l-rose-500',
-        classes: 'text-rose-300 bg-rose-950/80 border-rose-500/80 animate-pulse font-black shadow-md shadow-rose-950/50',
-        badge: 'Muito Atrasado'
+        classes: 'text-rose-300 bg-rose-950/80 border-rose-500/80 animate-pulse font-black shadow-md shadow-rose-950/50'
       }
     ];
 
@@ -480,13 +475,13 @@ export default function KitchenView({ environment, onNavigate }) {
                     <span className="text-xs font-black text-orange-400 font-mono tracking-tight shrink-0">
                       {order.orderNumber}
                     </span>
-                    {order.cashierTerminal && (
+                    {activeFilter !== 'active' && order.cashierTerminal && (
                       <span className="text-[8px] font-sans font-bold px-1 py-0 rounded bg-slate-800 text-slate-300 border border-slate-700 tracking-normal shrink-0">
                         {order.cashierTerminal}
                       </span>
                     )}
                     <span className="text-slate-600 font-bold select-none text-[10px] shrink-0">|</span>
-                    <span className="text-[10px] sm:text-[11px] font-normal text-slate-100 uppercase truncate" title={order.customerName}>
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-100 uppercase truncate" title={order.customerName}>
                       {order.customerName}
                     </span>
                   </div>
@@ -517,16 +512,11 @@ export default function KitchenView({ environment, onNavigate }) {
                       <div className="flex items-center gap-1.5">
                         {/* TEMPO BASEADO NAS CORES CONFIGURADAS */}
                         <div 
-                          className={`text-[9px] font-mono font-bold px-1.5 h-[22px] rounded-lg border flex items-center justify-center gap-1 transition-all shadow-sm ${timeStatus.classes}`}
+                          className={`text-[9px] font-mono font-bold px-2 h-[22px] rounded-lg border flex items-center justify-center gap-1 transition-all shadow-sm ${timeStatus.classes}`}
                           title={`Tempo em preparo: ${getElapsedTime(order.createdAt)}`}
                         >
                           <Clock className="w-2.5 h-2.5" />
                           <span>{getElapsedTime(order.createdAt)}</span>
-                          {timeStatus.badge && (
-                            <span className="text-[7px] font-black uppercase tracking-wider bg-black/40 px-1 py-0.2 rounded border border-white/20">
-                              {timeStatus.badge}
-                            </span>
-                          )}
                         </div>
 
                         {/* PRONTO (SINO) */}
