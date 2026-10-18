@@ -486,7 +486,7 @@ export default function KitchenView({ environment, onNavigate }) {
 
                   {/* BLOCO 1: NÚMERO DO PEDIDO ANTES DO NOME, NA MESMA LINHA */}
                   <div className="shrink-0 flex items-center gap-1.5 min-w-[105px] max-w-[210px]">
-                    <span className="text-xs font-black text-orange-400 font-mono tracking-tight shrink-0">
+                    <span className="text-xs font-black text-orange-400 font-mono tracking-tight shrink-0 inline-flex items-center justify-center w-[6ch] text-center select-none">
                       {order.orderNumber}
                     </span>
                     {activeFilter !== 'active' && order.cashierTerminal && (
