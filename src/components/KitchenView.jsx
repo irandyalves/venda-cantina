@@ -12,7 +12,8 @@ import {
   Flame, 
   Check, 
   Sparkles,
-  User
+  User,
+  AlertTriangle
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
@@ -264,11 +265,104 @@ export default function KitchenView({ environment, onNavigate }) {
     return `${min}m ${sec < 10 ? '0' : ''}${sec}s`;
   };
 
-  const getTimeColor = (timestamp) => {
-    const min = Math.floor((currentTime - timestamp) / 60000);
-    if (min < 5) return 'text-emerald-400 bg-emerald-950/60 border-emerald-500/40';
-    if (min < 10) return 'text-amber-400 bg-amber-950/60 border-amber-500/40';
-    return 'text-rose-400 bg-rose-950/60 border-rose-500/50 animate-pulse';
+  // Normalizador de nome de item para comparação inteligente
+  const getItemKeywords = (it) => {
+    return (it.description || it.itemName || it.name || '').trim().toLowerCase();
+  };
+
+  // Verifica se outro pedido feito DEPOIS contendo o mesmo item já foi entregue antes (dedurar atraso)
+  const getBypassedInfo = (order, allOrders) => {
+    if (!order || !order.createdAt) return { isBypassed: false, count: 0, deliveredOrders: [] };
+
+    const currentItems = order.items && order.items.length > 0 ? order.items : getOrderItems(order);
+    const myItemNames = currentItems.map(getItemKeywords).filter(Boolean);
+
+    // Pedidos entregues que foram criados DEPOIS deste pedido e contêm pelo menos um item igual
+    const deliveredNewer = allOrders.filter(other => {
+      if (other.status !== 'entregue') return false;
+      if (other.id === order.id || (order.orderIds && order.orderIds.includes(other.id))) return false;
+      const otherTime = other.createdAt || 0;
+      const thisTime = order.createdAt || 0;
+      if (otherTime < thisTime) return false;
+
+      const otherItems = other.items && other.items.length > 0 ? other.items : getOrderItems(other);
+      return otherItems.some(it => {
+        const otherName = getItemKeywords(it);
+        return myItemNames.some(mine => mine.includes(otherName) || otherName.includes(mine));
+      });
+    });
+
+    return {
+      isBypassed: deliveredNewer.length > 0,
+      count: deliveredNewer.length,
+      deliveredOrders: deliveredNewer
+    };
+  };
+
+  // Tempo inteligente com 5 cores: Verde -> Azul -> Amarelo -> Laranja -> Vermelho (dedura se outro do mesmo saiu antes)
+  const getOrderTimeStatus = (order) => {
+    const elapsedMinutes = Math.floor((currentTime - (order.createdAt || 0)) / 60000);
+    const bypass = getBypassedInfo(order, orders);
+
+    // Severidade base por tempo: 0=Verde (<3m), 1=Azul (<6m), 2=Amarelo (<10m), 3=Laranja (<15m), 4=Vermelho (>=15m)
+    let severity = 0;
+    if (elapsedMinutes < 3) {
+      severity = 0; // Verde
+    } else if (elapsedMinutes < 6) {
+      severity = 1; // Azul
+    } else if (elapsedMinutes < 10) {
+      severity = 2; // Amarelo
+    } else if (elapsedMinutes < 15) {
+      severity = 3; // Laranja
+    } else {
+      severity = 4; // Vermelho
+    }
+
+    // Se outro pedido do mesmo item foi feito depois e já saiu antes: DEDURA ATRASO!
+    if (bypass.isBypassed) {
+      if (bypass.count >= 2) {
+        severity = 4; // Vermelho direto!
+      } else {
+        // Pula para Laranja (3) no mínimo, ou Vermelho (4) se já tiver mais de 6 min
+        severity = Math.max(severity, 3);
+        if (elapsedMinutes >= 6) severity = 4;
+      }
+    }
+
+    const colorConfigs = [
+      {
+        name: 'verde',
+        classes: 'text-emerald-400 bg-emerald-950/70 border-emerald-500/50',
+        badge: null
+      },
+      {
+        name: 'azul',
+        classes: 'text-sky-400 bg-sky-950/70 border-sky-500/50',
+        badge: null
+      },
+      {
+        name: 'amarelo',
+        classes: 'text-amber-300 bg-amber-950/70 border-amber-500/50',
+        badge: null
+      },
+      {
+        name: 'laranja',
+        classes: 'text-orange-400 bg-orange-950/70 border-orange-500/50',
+        badge: bypass.isBypassed ? 'Atrasado' : null
+      },
+      {
+        name: 'vermelho',
+        classes: 'text-rose-300 bg-rose-950/80 border-rose-500/80 animate-pulse font-black shadow-md shadow-rose-950/50',
+        badge: bypass.isBypassed ? 'Crítico (passou na frente)' : 'Atrasado'
+      }
+    ];
+
+    return {
+      ...colorConfigs[severity],
+      severity,
+      isBypassed: bypass.isBypassed,
+      bypassedCount: bypass.count
+    };
   };
 
   const getCategoryIcon = (category) => {
@@ -369,6 +463,7 @@ export default function KitchenView({ environment, onNavigate }) {
               const isPreparing = order.status === 'em_preparo';
               const isNewestHighlight = newestOrderId === order.id && !isDelivered;
               const itemsList = getOrderItems(order);
+              const timeStatus = getOrderTimeStatus(order);
 
               return (
                 <div
@@ -380,7 +475,9 @@ export default function KitchenView({ environment, onNavigate }) {
                         ? 'glow-new-order-line border-amber-400'
                         : isReady
                           ? 'bg-emerald-950/40 border-emerald-500 shadow-emerald-500/10'
-                          : 'bg-slate-900/90 border-slate-700/80 hover:border-orange-500/60'
+                          : timeStatus.isBypassed
+                            ? 'bg-rose-950/30 border-rose-500/80 shadow-md shadow-rose-950/40'
+                            : 'bg-slate-900/90 border-slate-700/80 hover:border-orange-500/60'
                   }`}
                 >
                   {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
@@ -433,10 +530,26 @@ export default function KitchenView({ environment, onNavigate }) {
                   <div className="flex items-center justify-between md:justify-end gap-1.5 sm:gap-2 shrink-0">
                     {!isDelivered ? (
                       <div className="flex items-center gap-1.5 sm:gap-2">
-                        {/* TEMPO */}
-                        <div className={`text-[11px] font-mono font-bold px-2.5 h-[32px] rounded-lg border flex items-center justify-center gap-1 ${getTimeColor(order.createdAt)}`}>
-                          <Clock className="w-3.5 h-3.5" />
+                        {/* TEMPO INTELIGENTE */}
+                        <div 
+                          className={`text-[11px] font-mono font-bold px-2.5 h-[32px] rounded-lg border flex items-center justify-center gap-1.5 transition-all shadow-sm ${timeStatus.classes}`}
+                          title={
+                            timeStatus.isBypassed
+                              ? `ATENÇÃO: Outro pedido com item igual foi feito depois e já saiu/entregue antes! (${timeStatus.bypassedCount}x)`
+                              : `Tempo em preparo: ${getElapsedTime(order.createdAt)}`
+                          }
+                        >
+                          {timeStatus.isBypassed ? (
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0 animate-bounce" />
+                          ) : (
+                            <Clock className="w-3.5 h-3.5" />
+                          )}
                           <span>{getElapsedTime(order.createdAt)}</span>
+                          {timeStatus.badge && (
+                            <span className="text-[8px] font-black uppercase tracking-wider bg-black/40 px-1 py-0.2 rounded border border-white/20">
+                              {timeStatus.badge}
+                            </span>
+                          )}
                         </div>
 
                         {/* PRONTO (SINO) */}
