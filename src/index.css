@@ -245,4 +245,24 @@ input[type="number"] {
   animation: order-circle-glow 0.75s infinite ease-in-out;
 }
 
+/* Efeito fluído para itens nascendo na comanda */
+@keyframes cart-item-birth {
+  0% {
+    opacity: 0;
+    transform: scale(0.65) translateY(-6px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.04) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-cart-item-birth {
+  animation: cart-item-birth 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 
