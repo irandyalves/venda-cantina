@@ -62,6 +62,21 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   // Sabor de pizza ativo para escolha de Pedaço ou Inteira
   const [selectedPizzaFlavor, setSelectedPizzaFlavor] = useState(null);
+  const closeFlavorTimerRef = useRef(null);
+
+  const handleFlavorMouseEnter = () => {
+    if (closeFlavorTimerRef.current) {
+      clearTimeout(closeFlavorTimerRef.current);
+      closeFlavorTimerRef.current = null;
+    }
+  };
+
+  const handleFlavorMouseLeave = () => {
+    if (closeFlavorTimerRef.current) clearTimeout(closeFlavorTimerRef.current);
+    closeFlavorTimerRef.current = setTimeout(() => {
+      setSelectedPizzaFlavor(null);
+    }, 280);
+  };
 
   // Validação e feedback
   const [nameShake, setNameShake] = useState(false);
@@ -1030,15 +1045,15 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <div
                     key={flavor.id}
                     className="relative"
-                    onMouseLeave={() => {
-                      if (selectedPizzaFlavor?.id === flavor.id) {
-                        setSelectedPizzaFlavor(null);
-                      }
-                    }}
+                    onMouseEnter={handleFlavorMouseEnter}
+                    onMouseLeave={handleFlavorMouseLeave}
                   >
                     <button
                       type="button"
-                      onClick={() => setSelectedPizzaFlavor(isSelected ? null : flavor)}
+                      onClick={() => {
+                        handleFlavorMouseEnter();
+                        setSelectedPizzaFlavor(isSelected ? null : flavor);
+                      }}
                       className={`w-full p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] group ${
                         isSelected
                           ? 'bg-yellow-500 text-slate-950 border-yellow-300 shadow ring-2 ring-yellow-400 scale-[1.01]'
@@ -1069,16 +1084,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       </div>
                     </button>
 
-                    {/* CORTINA SUAVE REVELADA APENAS EMBAIXO DO CARD SELECIONADO (SOBREPÕE CARDS ABAIXO) */}
+                    {/* CORTINA SUAVE REVELADA APENAS EMBAIXO DO CARD SELECIONADO (SEM TÍTULO REPETIDO, ZERO GAP) */}
                     {isSelected && (
                       <div 
-                        className="absolute top-full left-0 right-0 sm:-left-[4%] sm:w-[108%] min-w-[150px] mt-1 bg-black border border-zinc-700 rounded-xl shadow-[0_16px_36px_rgba(0,0,0,0.95)] p-2 z-40 animate-curtain-down flex flex-col gap-1.5"
+                        className="absolute top-full left-0 right-0 sm:-left-[4%] sm:w-[108%] min-w-[155px] pt-1 z-40 animate-curtain-down"
+                        onMouseEnter={handleFlavorMouseEnter}
+                        onMouseLeave={handleFlavorMouseLeave}
                       >
-                        <div className="text-[10px] text-zinc-400 font-black uppercase tracking-wider text-center border-b border-zinc-800 pb-1 truncate">
-                          {flavor.name}
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
+                        <div className="bg-black border border-zinc-700 rounded-xl shadow-[0_16px_36px_rgba(0,0,0,0.95)] p-2 flex flex-col gap-1.5">
                           {pizzaCategory.variations.map((variation) => {
                             const isPedaco = variation.id === 'pedaco';
                             const label = isPedaco ? 'Fatia' : (variation.name.charAt(0).toUpperCase() + variation.name.slice(1).toLowerCase());
@@ -1088,10 +1101,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (closeFlavorTimerRef.current) clearTimeout(closeFlavorTimerRef.current);
                                   handleAddPizzaToCart(flavor, variation);
                                   setSelectedPizzaFlavor(null);
                                 }}
-                                className="w-full py-1.5 px-2.5 bg-black hover:bg-zinc-900 active:bg-zinc-800 text-white border border-zinc-700/80 hover:border-zinc-500 rounded-lg flex items-center justify-between font-bold text-xs shadow transition-all cursor-pointer active:scale-95 group/btn"
+                                className="w-full py-2 px-2.5 bg-black hover:bg-zinc-900 active:bg-zinc-800 text-white border border-zinc-700/80 hover:border-zinc-500 rounded-lg flex items-center justify-between font-bold text-xs shadow transition-all cursor-pointer active:scale-95 group/btn"
                               >
                                 <span className="group-hover/btn:text-yellow-300 transition-colors">{label}</span>
                                 <span className="font-mono font-bold text-zinc-100 bg-zinc-800/90 px-1.5 py-0.5 rounded border border-zinc-700 text-[11px]">
