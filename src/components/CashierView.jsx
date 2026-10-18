@@ -355,8 +355,64 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   const totalFaturado = todayOrders.filter(o => o.status !== 'cancelado').reduce((acc, curr) => acc + (Number(curr.totalPrice) || 0), 0);
 
+  // Resolução inteligente da cor do item para os mini cards e pedidos
+  const getOrderItemColor = (order) => {
+    if (order.color) return order.color;
+    const items = order.items && order.items.length > 0 ? order.items : getOrderItems(order);
+    const firstItem = items?.[0];
+    if (firstItem?.color) return firstItem.color;
+
+    const numClean = (order.orderNumber || '').toUpperCase();
+    const itemId = firstItem?.itemId || order.itemId;
+    const variationId = firstItem?.variationId || order.variationId;
+    const itemName = firstItem?.itemName || order.itemName;
+
+    if (categories && categories.length > 0) {
+      if (variationId) {
+        for (const cat of categories) {
+          const v = (cat.variations || []).find(x => x.id === variationId);
+          if (v?.color) return v.color;
+        }
+      }
+      if (itemId) {
+        for (const cat of categories) {
+          const it = (cat.items || []).find(x => x.id === itemId);
+          if (it?.color) return it.color;
+        }
+      }
+      if (itemName) {
+        for (const cat of categories) {
+          const it = (cat.items || []).find(x => x.name?.toLowerCase() === itemName?.toLowerCase());
+          if (it?.color) return it.color;
+        }
+      }
+      for (const cat of categories) {
+        const v = (cat.variations || []).find(x => x.prefix && numClean.startsWith(x.prefix.toUpperCase()));
+        if (v?.color) return v.color;
+        const it = (cat.items || []).find(x => x.prefix && numClean.startsWith(x.prefix.toUpperCase()));
+        if (it?.color) return it.color;
+        if (cat.prefixDefault && numClean.startsWith(cat.prefixDefault.toUpperCase()) && cat.color) {
+          return cat.color;
+        }
+      }
+    }
+
+    const cat = (order.category || order.categoryName || '').toLowerCase();
+    if (cat.includes('pizza') || numClean.startsWith('P') || numClean.startsWith('PP') || numClean.startsWith('PI')) {
+      return '#eab308';
+    }
+    if (cat.includes('acai') || cat.includes('açaí') || numClean.startsWith('A')) {
+      return '#a855f7';
+    }
+    if (cat.includes('batata') || cat.includes('frita') || numClean.startsWith('B')) {
+      return '#f97316';
+    }
+    return '#06b6d4';
+  };
+
   // Cores distintas para Pizza, Açaí e Batata nos Cards do Rodapé
   const getOrderCategoryStyle = (order) => {
+    const itemColor = getOrderItemColor(order);
     const cat = (order.category || order.categoryName || '').toLowerCase();
     if (cat.includes('pizza') || cat.includes('ped') || cat.includes('int')) {
       return {
@@ -364,7 +420,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         border: 'border-yellow-500/50 hover:border-yellow-400',
         bg: 'bg-yellow-950/40 hover:bg-yellow-950/60',
         badgeColor: 'text-yellow-300 bg-yellow-950/90 border-yellow-500/50',
-        textColor: 'text-yellow-200'
+        textColor: 'text-yellow-200',
+        color: itemColor
       };
     }
     if (cat.includes('acai') || cat.includes('açaí')) {
@@ -373,7 +430,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         border: 'border-purple-500/50 hover:border-purple-400',
         bg: 'bg-purple-950/40 hover:bg-purple-950/60',
         badgeColor: 'text-purple-300 bg-purple-950/90 border-purple-500/50',
-        textColor: 'text-purple-200'
+        textColor: 'text-purple-200',
+        color: itemColor
       };
     }
     if (cat.includes('batata') || cat.includes('frita')) {
@@ -382,7 +440,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         border: 'border-orange-500/50 hover:border-orange-400',
         bg: 'bg-orange-950/40 hover:bg-orange-950/60',
         badgeColor: 'text-orange-300 bg-orange-950/90 border-orange-500/50',
-        textColor: 'text-orange-200'
+        textColor: 'text-orange-200',
+        color: itemColor
       };
     }
     return {
@@ -390,7 +449,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       border: 'border-slate-700 hover:border-slate-500',
       bg: 'bg-slate-900/60 hover:bg-slate-850',
       badgeColor: 'text-slate-300 bg-slate-800 border-slate-600',
-      textColor: 'text-slate-200'
+      textColor: 'text-slate-200',
+      color: itemColor
     };
   };
 
@@ -413,6 +473,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const unitPrice = variation.price;
     const description = `${variation.name.toUpperCase()}: ${flavor.name}`;
     const cartItemId = `pizza_${flavor.id}_${variation.id}`;
+    const color = flavor.color || variation.color || '#eab308';
 
     setCart(prev => {
       const existingIndex = prev.findIndex(i => i.cartItemId === cartItemId);
@@ -429,7 +490,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         description,
         prefix,
         unitPrice,
-        quantity: 1
+        quantity: 1,
+        color
       }];
     });
 
@@ -444,6 +506,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const unitPrice = item.price || 0;
     const description = item.name;
     const cartItemId = `${category.id}_${item.id}`;
+    const color = item.color || category.color || (
+      category.id === 'acai' ? '#a855f7' : category.id === 'batata' ? '#f97316' : '#06b6d4'
+    );
 
     setCart(prev => {
       const existingIndex = prev.findIndex(i => i.cartItemId === cartItemId);
@@ -460,7 +525,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         description,
         prefix,
         unitPrice,
-        quantity: 1
+        quantity: 1,
+        color
       }];
     });
 
@@ -565,7 +631,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           unitPrice,
           totalPrice: unitPrice * qty,
           sendToKitchen,
-          targetEnvironment
+          targetEnvironment,
+          color: cartItem.color
         };
       });
 
@@ -578,6 +645,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         categoryName: cart[0].category.name,
         itemId: cart[0].item.id,
         itemName: cart[0].item.name,
+        color: cart[0].color,
         fullDescription: orderItems.map(it => `${String(it.quantity).padStart(2, '0')} ${it.description}`).join(' | '),
         quantity: cartItemCount,
         unitPrice: cart[0].unitPrice,
@@ -730,17 +798,32 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   // Renderizador de card do rodapé com SENHA ÚNICA e itens consolidados no mesmo card
   const renderFooterCard = (order, isDelivered = false) => {
-    const style = getOrderCategoryStyle(order);
+    const itemColor = getOrderItemColor(order);
     const items = order.items && order.items.length > 0 ? order.items : getOrderItems(order);
+    const itemBorderColor = itemColor ? `${itemColor}55` : 'rgba(100, 116, 139, 0.4)';
 
     return (
       <div 
         key={order.id || order.orderIds?.[0] || order.orderNumber}
-        className={`px-2.5 py-1.5 rounded-xl border ${style.border} ${style.bg} transition-all shadow-md text-xs flex items-center justify-between gap-2 relative`}
+        style={{
+          borderLeftColor: itemColor,
+          borderTopColor: itemBorderColor,
+          borderBottomColor: itemBorderColor
+        }}
+        className={`px-2.5 py-1.5 rounded-l-xl rounded-r-none border-y border-l-[6px] border-r-0 transition-all shadow-md text-xs flex items-center justify-between gap-2 relative bg-slate-900/90 hover:bg-slate-850 ${
+          isDelivered ? 'opacity-70 hover:opacity-100' : ''
+        }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
           {/* NÚMERO / SENHA DO PEDIDO (SEM ÍCONE ANTES) */}
-          <span className={`font-mono font-black text-xs px-2 py-0.5 rounded-lg border ${style.badgeColor} shrink-0`}>
+          <span 
+            className="font-mono font-black text-xs px-2 py-0.5 rounded-lg border shrink-0"
+            style={{
+              borderColor: `${itemColor}80`,
+              backgroundColor: `${itemColor}20`,
+              color: itemColor
+            }}
+          >
             {order.orderNumber}
           </span>
 
@@ -1408,8 +1491,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5 flex-1 min-h-0 pt-1">
           
           {/* COLUNA 1: EM PREPARAÇÃO */}
-          <div className="bg-slate-900/80 rounded-xl border border-amber-500/40 p-2 flex flex-col shadow-inner min-h-0">
-            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-amber-500/25 shrink-0">
+          <div className="bg-slate-900/80 rounded-xl border border-amber-500/40 py-2 pl-2 pr-0 flex flex-col shadow-inner min-h-0 overflow-hidden">
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-amber-500/25 shrink-0 pr-2">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
                 <span className="text-[11px] font-black uppercase tracking-wider text-amber-300">
@@ -1421,9 +1504,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-1.5 pr-0 min-h-0 custom-scrollbar">
               {preparingList.length === 0 ? (
-                <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
+                <div className="py-4 text-center text-slate-500 text-[10px] font-medium pr-2">
                   Nenhum pedido em preparo
                 </div>
               ) : (
@@ -1433,8 +1516,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </div>
 
           {/* COLUNA 2: PRONTAS */}
-          <div className="bg-slate-900/80 rounded-xl border border-emerald-500/40 p-2 flex flex-col shadow-inner min-h-0">
-            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-emerald-500/25 shrink-0">
+          <div className="bg-slate-900/80 rounded-xl border border-emerald-500/40 py-2 pl-2 pr-0 flex flex-col shadow-inner min-h-0 overflow-hidden">
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-emerald-500/25 shrink-0 pr-2">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
@@ -1446,9 +1529,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-1.5 pr-0 min-h-0 custom-scrollbar">
               {readyList.length === 0 ? (
-                <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
+                <div className="py-4 text-center text-slate-500 text-[10px] font-medium pr-2">
                   Nenhum pedido pronto
                 </div>
               ) : (
@@ -1458,8 +1541,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </div>
 
           {/* COLUNA 3: RETIRADAS / ENTREGUES */}
-          <div className="bg-slate-900/80 rounded-xl border border-slate-700/60 p-2 flex flex-col shadow-inner min-h-0">
-            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800 shrink-0">
+          <div className="bg-slate-900/80 rounded-xl border border-slate-700/60 py-2 pl-2 pr-0 flex flex-col shadow-inner min-h-0 overflow-hidden">
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800 shrink-0 pr-2">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3 h-3 text-slate-400" />
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
@@ -1471,9 +1554,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-1.5 pr-0 min-h-0 custom-scrollbar">
               {deliveredList.length === 0 ? (
-                <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
+                <div className="py-4 text-center text-slate-500 text-[10px] font-medium pr-2">
                   Nenhum pedido entregue
                 </div>
               ) : (
