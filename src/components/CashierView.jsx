@@ -1467,8 +1467,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             return (
               <div
                 key={`${category.id}_${item.id}`}
-                className="rounded-2xl bg-slate-900/95 hover:bg-slate-900 border border-slate-700/80 hover:border-slate-600 border-l-4 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[168px] overflow-hidden"
-                style={{ borderLeftColor: itemColor }}
+                className="rounded-2xl bg-slate-900/95 hover:bg-slate-900 border border-slate-700/80 hover:border-slate-600 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[168px] overflow-hidden"
               >
                 {/* CONTEÚDO SUPERIOR E CORPO DO CARD COM PADDING */}
                 <div className="p-3.5 pb-2.5 flex-1 flex flex-col justify-between">

@@ -2300,8 +2300,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   {filteredSaleItems.map((item) => (
                     <div 
                       key={`${item.categoryId}_${item.id}`} 
-                      className="bg-slate-900/95 hover:bg-slate-900 p-3.5 rounded-2xl border border-slate-700/80 hover:border-slate-600 border-l-4 space-y-3 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group"
-                      style={{ borderLeftColor: item.color || '#eab308' }}
+                      className="bg-slate-900/95 hover:bg-slate-900 p-3.5 rounded-2xl border border-slate-700/80 hover:border-slate-600 space-y-3 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group"
                     >
                       {/* TOPO: ÍCONE 2D GRANDE, NOME, CATEGORIA E BOTÕES DE AÇÃO */}
                       <div className="flex items-start justify-between gap-2">
