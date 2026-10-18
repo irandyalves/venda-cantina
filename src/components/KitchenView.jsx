@@ -235,13 +235,13 @@ export default function KitchenView({ environment, onNavigate }) {
     const d = String(desc || '').toLowerCase();
 
     if (cat.includes('batata') || d.includes('batata') || d.includes('cone') || d.includes('cheddar')) {
-      return 'bg-yellow-950/70 border border-yellow-500/50 text-yellow-200';
+      return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
     }
     if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai') || d.includes('copo') || d.includes('tigela')) {
       return 'bg-purple-950/70 border border-purple-500/50 text-purple-200';
     }
     if (cat.includes('pizza') || d.includes('pizza') || d.includes('pedaço') || d.includes('inteira') || d.includes('marguerita') || d.includes('calabresa')) {
-      return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
+      return 'bg-yellow-950/70 border border-yellow-500/50 text-yellow-200';
     }
     return 'bg-cyan-950/70 border border-cyan-500/50 text-cyan-200';
   };

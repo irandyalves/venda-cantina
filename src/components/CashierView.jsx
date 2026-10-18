@@ -218,11 +218,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const cat = (order.category || order.categoryName || '').toLowerCase();
     if (cat.includes('pizza') || cat.includes('ped') || cat.includes('int')) {
       return {
-        icon: <Pizza className="w-3.5 h-3.5 text-orange-400 shrink-0" />,
-        border: 'border-orange-500/50 hover:border-orange-400',
-        bg: 'bg-orange-950/40 hover:bg-orange-950/60',
-        badgeColor: 'text-orange-300 bg-orange-950/90 border-orange-500/50',
-        textColor: 'text-orange-200'
+        icon: <Pizza className="w-3.5 h-3.5 text-yellow-400 shrink-0" />,
+        border: 'border-yellow-500/50 hover:border-yellow-400',
+        bg: 'bg-yellow-950/40 hover:bg-yellow-950/60',
+        badgeColor: 'text-yellow-300 bg-yellow-950/90 border-yellow-500/50',
+        textColor: 'text-yellow-200'
       };
     }
     if (cat.includes('acai') || cat.includes('açaí')) {
@@ -236,11 +236,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     }
     if (cat.includes('batata') || cat.includes('frita')) {
       return {
-        icon: <UtensilsCrossed className="w-3.5 h-3.5 text-yellow-400 shrink-0" />,
-        border: 'border-yellow-500/50 hover:border-yellow-400',
-        bg: 'bg-yellow-950/40 hover:bg-yellow-950/60',
-        badgeColor: 'text-yellow-300 bg-yellow-950/90 border-yellow-500/50',
-        textColor: 'text-yellow-200'
+        icon: <UtensilsCrossed className="w-3.5 h-3.5 text-orange-400 shrink-0" />,
+        border: 'border-orange-500/50 hover:border-orange-400',
+        bg: 'bg-orange-950/40 hover:bg-orange-950/60',
+        badgeColor: 'text-orange-300 bg-orange-950/90 border-orange-500/50',
+        textColor: 'text-orange-200'
       };
     }
     return {
@@ -359,13 +359,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const d = String(desc || '').toLowerCase();
 
     if (cat.includes('batata') || d.includes('batata') || d.includes('cone') || d.includes('cheddar')) {
-      return 'bg-yellow-950/70 border border-yellow-500/50 text-yellow-200';
+      return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
     }
     if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai') || d.includes('copo') || d.includes('tigela')) {
       return 'bg-purple-950/70 border border-purple-500/50 text-purple-200';
     }
     if (cat.includes('pizza') || d.includes('pizza') || d.includes('pedaço') || d.includes('inteira') || d.includes('marguerita') || d.includes('calabresa')) {
-      return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
+      return 'bg-yellow-950/70 border border-yellow-500/50 text-yellow-200';
     }
     return 'bg-cyan-950/70 border border-cyan-500/50 text-cyan-200';
   };
@@ -712,7 +712,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           BARRA DE ATENDIMENTO AO CLIENTE (FLUXO PEDIDO MULTI-ITENS)
           PRIMEIRO DIGITA O NOME DO CLIENTE, E DEPOIS ESCOLHE OS ITENS!
          ======================================================== */}
-      <section className="bg-slate-950/95 border-b-2 border-amber-500/60 p-2.5 sm:p-3 shrink-0 shadow-xl z-20">
+      <section className="bg-slate-950/95 border-b-2 border-amber-500/60 px-3 py-3.5 sm:py-4 shrink-0 shadow-xl z-20 min-h-[72px] flex flex-col justify-center">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
           
           {/* 1. NOME DO CLIENTE & FORMA DE PAGAMENTO */}
@@ -788,7 +788,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
           {/* 2. TOTALIZADOR E BOTÃO FINALIZAR VENDA */}
           <div className="flex items-center gap-2 shrink-0 justify-between sm:justify-end">
-            <div className="bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2">
+            <div className="h-11 bg-slate-900 px-3.5 rounded-xl border border-slate-700 flex items-center gap-2">
               <span className="text-[10px] text-slate-400 font-bold uppercase">Total:</span>
               <span className="text-base sm:text-lg font-black text-emerald-400 font-mono">
                 R$ {cartTotal.toFixed(2)}
@@ -821,7 +821,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
 
         {/* ITENS DA COMANDA ATUAL (CHIPS ROLÁVEIS COM QUANTIDADE E EXCLUIR) */}
-        {cart.length > 0 ? (
+        {cart.length > 0 && (
           <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto pb-1">
             <span className="text-[10px] font-black uppercase text-amber-400 shrink-0 flex items-center gap-1">
               <ShoppingCart className="w-3.5 h-3.5" />
@@ -871,17 +871,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
             ))}
           </div>
-        ) : (
-          <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-400">
-            <span>
-              💡 <strong className="text-slate-300">Como funciona:</strong> Digite o nome da pessoa acima (ex: <strong className="text-amber-300">JOÃO</strong>) e clique nos produtos abaixo (Pastel, Batata, Pizza, etc.) para montar a comanda completa!
-            </span>
-            {selectedPizzaFlavor && (
-              <span className="text-amber-400 font-bold animate-pulse">
-                Sabor selecionado: {selectedPizzaFlavor.name} &bull; Escolha Pedaço ou Inteira abaixo!
-              </span>
-            )}
-          </div>
         )}
 
         {showNameError && (
@@ -896,13 +885,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       <main className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-6">
 
         {/* ========================================================
-            SEÇÃO 1: PIZZA (CLICOU NO SABOR -> ESCOLHE PEDAÇO OU INTEIRO)
+            SEÇÃO 1: PIZZA (CLICOU NO SABOR -> ESCOLHE PEDAÇO OU INTEIRA)
            ======================================================== */}
         {pizzaCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
             <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-orange-500/20 text-orange-400 rounded-lg border border-orange-500/30">
+                <span className="p-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg border border-yellow-500/30">
                   <Pizza className="w-5 h-5" />
                 </span>
                 <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
@@ -943,10 +932,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <button
                     key={flavor.id}
                     onClick={() => setSelectedPizzaFlavor(flavor)}
-                    className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] ${
+                    className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] group ${
                       isSelected
-                        ? 'bg-amber-500 text-slate-950 border-amber-300 shadow ring-2 ring-amber-400 scale-[1.01]'
-                        : 'bg-slate-900/90 hover:bg-slate-750 text-slate-200 border-slate-700 hover:border-slate-500'
+                        ? 'bg-yellow-500 text-slate-950 border-yellow-300 shadow ring-2 ring-yellow-400 scale-[1.01]'
+                        : 'bg-slate-900/90 hover:bg-yellow-950/70 text-slate-200 border-slate-700 hover:border-yellow-500/70'
                     }`}
                   >
                     <div>
@@ -958,12 +947,16 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                           </span>
                         )}
                       </div>
-                      <div className={`text-[9px] line-clamp-1 mt-0.5 ${isSelected ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
+                      <div className={`text-[9px] line-clamp-1 mt-0.5 ${isSelected ? 'text-slate-900 font-medium' : 'text-slate-400 group-hover:text-yellow-200/80'}`}>
                         {flavor.description || 'Sabor tradicional'}
                       </div>
                     </div>
                     <div className="mt-1.5 flex items-center justify-end">
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-slate-950 text-amber-300' : 'bg-slate-800 text-amber-400'}`}>
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded transition-colors ${
+                        isSelected 
+                          ? 'bg-slate-950 text-yellow-300' 
+                          : 'bg-slate-800 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-slate-950'
+                      }`}>
                         {isSelected ? '✓ Selecionado' : 'Escolher'}
                       </span>
                     </div>
@@ -1103,7 +1096,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
             <div className="flex items-center justify-between mb-2.5 border-b border-slate-700/60 pb-2">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg border border-yellow-500/30">
+                <span className="p-1.5 bg-orange-500/20 text-orange-400 rounded-lg border border-orange-500/30">
                   <UtensilsCrossed className="w-5 h-5" />
                 </span>
                 <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
@@ -1144,23 +1137,23 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     key={item.id}
                     type="button"
                     onClick={() => handleAddItemToCart(batataCategory, item)}
-                    className="p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] bg-slate-900/90 hover:bg-yellow-950/70 text-slate-200 border-slate-700 hover:border-yellow-500/70 active:scale-98"
+                    className="p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] bg-slate-900/90 hover:bg-orange-950/70 text-slate-200 border-slate-700 hover:border-orange-500/70 active:scale-98"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-1">
                         <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
                         {inCartQty > 0 && (
-                          <span className="text-[9px] font-black bg-yellow-400 text-slate-950 px-1.5 py-0.2 rounded-full shadow shrink-0">
+                          <span className="text-[9px] font-black bg-orange-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow shrink-0">
                             ✓ {inCartQty}x
                           </span>
                         )}
                       </div>
-                      <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-yellow-400">
+                      <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-orange-400">
                         R$ {item.price.toFixed(2)}
                       </div>
                     </div>
                     <div className="mt-1.5 flex items-center justify-end">
-                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-800 hover:bg-yellow-500 text-yellow-300 hover:text-slate-950 transition-colors">
+                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-800 hover:bg-orange-500 text-orange-300 hover:text-white transition-colors">
                         + Adicionar
                       </span>
                     </div>
