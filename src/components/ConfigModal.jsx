@@ -41,12 +41,40 @@ import {
   Maximize2,
   BellRing,
   Clock,
-  Download
+  Download,
+  Palette
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
 import { DEFAULT_CATEGORIES } from '../data/defaultProducts';
 import AutoToast from './AutoToast';
+
+export const ITEM_COLOR_PALETTE = [
+  { id: 'red', name: 'Vermelho', hex: '#ef4444' },
+  { id: 'rose', name: 'Rosa Claro', hex: '#f43f5e' },
+  { id: 'pink', name: 'Pink', hex: '#ec4899' },
+  { id: 'fuchsia', name: 'Fúcsia', hex: '#d946ef' },
+  { id: 'purple', name: 'Roxo', hex: '#a855f7' },
+  { id: 'violet', name: 'Violeta', hex: '#8b5cf6' },
+  { id: 'indigo', name: 'Índigo', hex: '#6366f1' },
+  { id: 'blue', name: 'Azul', hex: '#3b82f6' },
+  { id: 'sky', name: 'Celeste', hex: '#0ea5e9' },
+  { id: 'cyan', name: 'Ciano', hex: '#06b6d4' },
+  { id: 'teal', name: 'Verde Petróleo', hex: '#14b8a6' },
+  { id: 'emerald', name: 'Esmeralda', hex: '#10b981' },
+  { id: 'green', name: 'Verde', hex: '#22c55e' },
+  { id: 'lime', name: 'Lima', hex: '#84cc16' },
+  { id: 'yellow', name: 'Amarelo', hex: '#eab308' },
+  { id: 'amber', name: 'Âmbar', hex: '#f59e0b' },
+  { id: 'orange', name: 'Laranja', hex: '#f97316' },
+  { id: 'terracotta', name: 'Terracota', hex: '#ea580c' },
+  { id: 'ruby', name: 'Rubi', hex: '#be123c' },
+  { id: 'wine', name: 'Vinho', hex: '#881337' },
+  { id: 'mint', name: 'Menta', hex: '#059669' },
+  { id: 'ocean', name: 'Oceano', hex: '#0284c7' },
+  { id: 'slate', name: 'Chumbo', hex: '#64748b' },
+  { id: 'zinc', name: 'Grafite', hex: '#3f3f46' },
+];
 
 export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }) {
   const [activeTab, setActiveTab] = useState(initialTab); // 'products', 'firebase', 'reports', 'emails'
@@ -246,6 +274,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [newItemPrice, setNewItemPrice] = useState('0,00');
   const [newItemPrefix, setNewItemPrefix] = useState('Pp-');
   const [newItemDesc, setNewItemDesc] = useState('');
+  const [newItemColor, setNewItemColor] = useState('#eab308');
+  const [colorPickerItemId, setColorPickerItemId] = useState(null);
 
   // Modal de Configurações Completas do Item (Engrenagem ⚙️)
   const [showGearModal, setShowGearModal] = useState(false);
@@ -257,7 +287,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     description: '',
     categoryId: 'acai',
     isVariation: false,
-    variationId: null
+    variationId: null,
+    color: '#eab308'
   });
   const [confirmDeleteGear, setConfirmDeleteGear] = useState(false);
 
@@ -778,7 +809,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       isVariation: Boolean(item.isVariation),
       variationId: item.variationId || null,
       sendToKitchen: isToKitchen,
-      showOnTV: isToTV
+      showOnTV: isToTV,
+      color: item.color || '#eab308'
     });
     setShowGearModal(true);
   };
@@ -794,6 +826,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const priceNum = parseCurrencyMask(gearItemData.price);
     const cleanPrefix = gearItemData.prefix.trim();
     const cleanDesc = gearItemData.description.trim();
+    const itemColor = gearItemData.color || '#eab308';
 
     const updated = categories.map(cat => {
       // Se for variação de pizza (Pedaço ou Inteira)
@@ -806,7 +839,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 ...v,
                 name: cleanName.replace(/^Pizza\s+/i, ''),
                 price: priceNum,
-                prefix: cleanPrefix
+                prefix: cleanPrefix,
+                color: itemColor
               };
             }
             return v;
@@ -825,7 +859,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 name: cleanName,
                 price: priceNum,
                 prefix: cleanPrefix,
-                description: cleanDesc
+                description: cleanDesc,
+                color: itemColor
               };
             }
             return it;
@@ -958,7 +993,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       name: cleanName,
       price: priceNum,
       prefix: cleanPrefix,
-      description: cleanDesc
+      description: cleanDesc,
+      color: newItemColor || '#eab308'
     };
 
     let updated = [...categories];
@@ -988,7 +1024,30 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setNewItemCategory('pizza');
     setNewCategoryName('');
     setNewItemDesc('');
+    setNewItemColor('#eab308');
     showToast(`"${cleanName}" adicionado em "${finalCatName || finalCatId.toUpperCase()}" com sucesso!`, 'Item Cadastrado');
+  };
+
+  // Atualização direta da cor do item pelo cardápio
+  const handleUpdateItemColor = (newColor, item) => {
+    const updated = categories.map(cat => {
+      if (item.isVariation && cat.id === 'pizza') {
+        return {
+          ...cat,
+          variations: (cat.variations || []).map(v => v.id === item.variationId ? { ...v, color: newColor } : v)
+        };
+      }
+      if (cat.id === item.categoryId) {
+        return {
+          ...cat,
+          items: (cat.items || []).map(it => it.id === item.id ? { ...it, color: newColor } : it)
+        };
+      }
+      return cat;
+    });
+    storageService.saveProducts(updated);
+    setCategories(updated);
+    showToast(`Cor de "${item.name}" atualizada!`, 'Cor Alterada', 'success');
   };
 
   // Atualização direta do prefixo no card (aceita maiúsculo e minúsculo)
@@ -1489,6 +1548,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         categoryId: 'pizza',
         isVariation: true,
         variationId: v.id,
+        color: v.color || '#eab308',
         description: v.id === 'pedaco' ? 'Fatia individual de pizza' : 'Pizza inteira 8 fatias'
       });
     });
@@ -1505,6 +1565,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         prefix: it.prefix || acaiPrefix || 'A-',
         categoryId: 'acai',
         isVariation: false,
+        color: it.color || '#a855f7',
         description: it.description || 'Opção de açaí'
       });
     });
@@ -1521,6 +1582,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         prefix: it.prefix || batataPrefix || 'B-',
         categoryId: 'batata',
         isVariation: false,
+        color: it.color || '#f97316',
         description: it.description || 'Opção de batata frita'
       });
     });
@@ -1537,6 +1599,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         prefix: it.prefix || cat.prefixDefault || 'Ped-',
         categoryId: cat.id,
         isVariation: false,
+        color: it.color || '#06b6d4',
         description: it.description || ''
       });
     });
@@ -1705,24 +1768,19 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           {activeTab === 'emails' && (
             <div className="space-y-6">
               
-              {/* PAINEL 1: CADASTRO E GERENCIAMENTO DOS AMBIENTES */}
-              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
-                      <Store className="w-5 h-5" />
+              {/* PAINEL 1: CADASTRO E GERENCIAMENTO DOS AMBIENTES (COMPACTO - REDUZIDO EM 60%) */}
+              <div className="bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700 space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-700 pb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
+                      <Store className="w-4 h-4" />
                     </span>
-                    <div>
-                      <h3 className="font-extrabold text-white text-base flex items-center gap-2">
-                        Ambientes de Trabalho Cadastrados
-                        <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
-                          {environments.filter(e => e.id !== 'TENDA' && (e.name||'').toUpperCase() !== 'TENDA' && e.id !== 'QUADRA').length} ambientes
-                        </span>
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Gerencie as estações de trabalho (ex: ADMIN, COZINHA, COZINHA 2, PÚBLICO). O e-mail não é obrigatório para usar.
-                      </p>
-                    </div>
+                    <h3 className="font-extrabold text-white text-xs sm:text-sm flex items-center gap-1.5">
+                      <span>Ambientes de Trabalho</span>
+                      <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded-full border border-amber-500/30">
+                        {environments.filter(e => e.id !== 'TENDA' && (e.name||'').toUpperCase() !== 'TENDA' && e.id !== 'QUADRA').length}
+                      </span>
+                    </h3>
                   </div>
 
                   <button
@@ -1733,15 +1791,15 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       setNewEnvDesc('');
                       setShowAddEnvModal(true);
                     }}
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                    className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer shrink-0"
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>Novo Ambiente (ex: COZINHA 2)</span>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Novo Ambiente</span>
                   </button>
                 </div>
 
-                {/* GRID DOS AMBIENTES CADASTRADOS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+                {/* GRID DOS AMBIENTES ESMAGADOS EM 4 COLUNAS NA MESMA LINHA */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                   {environments
                     .filter(env => {
                       const id = (env?.id || '').toUpperCase();
@@ -1759,7 +1817,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     .map((env) => {
                     const isKitchen = env.type === 'kitchen';
                     const isDisplay = env.type === 'display';
-                    const typeLabel = isKitchen ? '👨‍🍳 COZINHA' : isDisplay ? '📺 PAINEL TV' : '💻 CAIXA';
+                    const typeLabel = isKitchen ? '👨‍🍳 COZINHA' : isDisplay ? '📺 TV' : '💻 CAIXA';
                     const typeBadgeColor = isKitchen 
                       ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' 
                       : isDisplay 
@@ -1771,50 +1829,48 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     return (
                       <div 
                         key={env.id}
-                        className="bg-slate-900 p-4 rounded-2xl border border-slate-700/80 flex flex-col justify-between space-y-3 hover:border-amber-500/50 transition-colors shadow-sm"
+                        className="bg-slate-900 p-2.5 rounded-xl border border-slate-700/80 flex flex-col justify-between hover:border-amber-500/50 transition-colors shadow-xs"
                       >
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${typeBadgeColor}`}>
+                        <div>
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${typeBadgeColor}`}>
                               {typeLabel}
                             </span>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5">
                               <button
                                 type="button"
                                 onClick={() => handleStartEditEnv(env)}
-                                className="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 rounded-lg transition-colors cursor-pointer"
-                                title="Editar nome e detalhes do ambiente"
+                                className="p-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 rounded transition-colors cursor-pointer"
+                                title="Editar ambiente"
                               >
-                                <Pencil className="w-3.5 h-3.5" />
+                                <Pencil className="w-3 h-3" />
                               </button>
                               {!env.isSystem && (
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDeleteEnvConfirm(env)}
-                                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer"
-                                  title="Excluir este ambiente"
+                                  className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 rounded transition-colors cursor-pointer"
+                                  title="Excluir ambiente"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-3 h-3" />
                                 </button>
                               )}
                             </div>
                           </div>
 
-                          <div>
-                            <h4 className="text-sm font-black text-white truncate" title={env.name}>
-                              {env.name}
-                            </h4>
-                            <div className="text-[11px] text-slate-400 line-clamp-2 mt-0.5">
-                              {env.description || `Ambiente ${env.name}`}
-                            </div>
+                          <h4 className="text-xs font-black text-white truncate" title={env.name}>
+                            {env.name}
+                          </h4>
+                          <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                            {env.description || `Ambiente ${env.name}`}
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
+                        <div className="pt-1.5 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
                           <span className="text-slate-400">
-                            {emailCount > 0 ? `${emailCount} e-mail(s)` : 'Acesso livre (sem e-mail)'}
+                            {emailCount > 0 ? `${emailCount} e-mail` : 'Livre'}
                           </span>
-                          <span className="text-[10px] text-emerald-400 font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                          <span className="text-[9px] text-emerald-400 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-slate-800">
                             Ativo
                           </span>
                         </div>
@@ -1824,68 +1880,56 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
-              {/* PAINEL 2: VINCULAÇÃO DE E-MAILS GOOGLE AOS AMBIENTES (OPCIONAL) */}
-              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-700 pb-3">
-                  <UserCheck className="w-5 h-5 text-amber-400" />
-                  <div>
-                    <h3 className="font-extrabold text-white text-base">Vincular E-mails aos Ambientes (Opcional)</h3>
-                    <p className="text-xs text-slate-400">
-                      O e-mail <strong>não é obrigatório</strong>. Qualquer operador pode acessar qualquer ambiente pelo menu superior. Se vincular um e-mail Google, o usuário é direcionado automaticamente ao fazer login!
-                    </p>
+              {/* PAINEL 2: VINCULAÇÃO DE E-MAILS GOOGLE AOS AMBIENTES (COMPACTO - REDUZIDO EM 60%) */}
+              <div className="bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700 space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-700 pb-1.5">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                    <h3 className="font-extrabold text-white text-xs sm:text-sm">Vincular E-mails aos Ambientes (Opcional)</h3>
                   </div>
+                  <span className="text-[10px] text-slate-400 hidden sm:inline">
+                    Direciona o operador automaticamente ao fazer login
+                  </span>
                 </div>
 
-                {/* FORMULÁRIO DE CADASTRO DE E-MAIL */}
-                <form onSubmit={handleAddEmail} className="bg-slate-900/90 p-4 rounded-xl border border-slate-700 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                    
-                    <div className="sm:col-span-4">
-                      <label className="text-xs font-bold text-slate-300 block mb-1">
-                        Escolha o Ambiente / Perfil:
-                      </label>
-                      <select
-                        value={selectedProfileForEmail}
-                        onChange={(e) => setSelectedProfileForEmail(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400 cursor-pointer"
-                      >
-                        {environments.map((env) => (
-                          <option key={env.id} value={env.id}>
-                            {env.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="sm:col-span-6">
-                      <label className="text-xs font-bold text-slate-300 block mb-1">
-                        E-mail Google do Usuário: (Opcional)
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        placeholder="exemplo@gmail.com"
-                        value={newEmailInput}
-                        onChange={(e) => setNewEmailInput(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <button
-                        type="submit"
-                        className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Vincular</span>
-                      </button>
-                    </div>
-
+                {/* FORMULÁRIO DE CADASTRO COMPACTO EM 1 LINHA */}
+                <form onSubmit={handleAddEmail} className="bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <div className="w-full sm:w-1/3">
+                    <select
+                      value={selectedProfileForEmail}
+                      onChange={(e) => setSelectedProfileForEmail(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold outline-none focus:border-amber-400 cursor-pointer"
+                    >
+                      {environments.map((env) => (
+                        <option key={env.id} value={env.id}>
+                          {env.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
+                  <div className="w-full sm:flex-1">
+                    <input
+                      type="email"
+                      required
+                      placeholder="exemplo@gmail.com"
+                      value={newEmailInput}
+                      onChange={(e) => setNewEmailInput(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="py-1 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Vincular</span>
+                  </button>
                 </form>
 
-                {/* LISTAGEM DOS E-MAILS POR AMBIENTE */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
+                {/* LISTAGEM DOS E-MAILS EM CARDS COMPACTOS ESMAGADOS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                   {environments.map((env) => {
                     const emails = emailRules[env.id] || [];
                     const isKitchen = env.type === 'kitchen';
@@ -1895,35 +1939,35 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     const IconComp = isKitchen ? UtensilsCrossed : isDisplay ? Tv : ShieldCheck;
 
                     return (
-                      <div key={env.id} className={`bg-slate-900 p-4 rounded-xl border-2 ${borderColor} space-y-3`}>
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <div className={`flex items-center gap-1.5 font-black text-sm ${textColor}`}>
-                            <IconComp className="w-4 h-4" />
+                      <div key={env.id} className={`bg-slate-900 p-2 rounded-xl border ${borderColor} flex flex-col justify-between gap-1.5 shadow-xs`}>
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-1">
+                          <div className={`flex items-center gap-1 font-black text-xs ${textColor} truncate`}>
+                            <IconComp className="w-3.5 h-3.5 shrink-0" />
                             <span className="truncate">{env.name || env.shortName}</span>
                           </div>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 ${textColor}`}>
-                            {emails.length} e-mails
+                          <span className={`text-[9px] font-bold px-1 rounded bg-slate-950 border border-slate-800 shrink-0 ${textColor}`}>
+                            {emails.length}
                           </span>
                         </div>
 
-                        <div className="space-y-1.5 min-h-[80px]">
+                        <div className="space-y-1">
                           {emails.length > 0 ? (
                             emails.map((email) => (
-                              <div key={email} className="bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+                              <div key={email} className="bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 flex items-center justify-between text-[10px]">
                                 <span className="text-slate-200 truncate">{email}</span>
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveEmail(env.id, email)}
-                                  className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
-                                  title="Remover e-mail deste ambiente"
+                                  className="text-slate-500 hover:text-rose-400 p-0.5 cursor-pointer ml-1"
+                                  title="Remover e-mail"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-3 h-3" />
                                 </button>
                               </div>
                             ))
                           ) : (
-                            <p className="text-[11px] text-slate-500 italic">
-                              Nenhum e-mail vinculado (acesso livre para todos).
+                            <p className="text-[10px] text-slate-500 italic py-0.5 truncate">
+                              Acesso livre (todos)
                             </p>
                           )}
                         </div>
@@ -2045,9 +2089,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   {allSaleItems.map((item) => (
                     <div 
                       key={`${item.categoryId}_${item.id}`} 
-                      className="bg-slate-900/90 p-3 rounded-xl border border-slate-700/80 space-y-2 hover:border-amber-500/50 transition-colors shadow-sm flex flex-col justify-between"
+                      className="bg-slate-900/90 p-3 rounded-xl border border-slate-700/80 border-l-4 space-y-2 hover:border-amber-500/50 transition-colors shadow-sm flex flex-col justify-between relative"
+                      style={{ borderLeftColor: item.color || '#eab308' }}
                     >
-                      {/* TOPO: NOME, CATEGORIA EM LARANJA E BOTÕES */}
+                      {/* TOPO: NOME, CATEGORIA EM LARANJA E BOTÕES (INCLUINDO ÍCONE DE COR) */}
                       <div className="flex items-start justify-between gap-1.5">
                         <div className="min-w-0 pr-1">
                           <span className="text-xs font-black text-white uppercase truncate block" title={item.name}>
@@ -2057,7 +2102,71 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             {item.categoryName}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                        <div className="flex items-center gap-1 shrink-0 pt-0.5 relative">
+                          {/* BOTÃO DE COR: BOLINHA COLORIDA / ÍCONE DE COR */}
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setColorPickerItemId(colorPickerItemId === item.id ? null : item.id);
+                              }}
+                              className="w-6 h-6 rounded-lg border border-slate-700 hover:border-slate-500 flex items-center justify-center transition-all cursor-pointer p-0.5 hover:scale-110 bg-slate-950"
+                              title="Alterar cor deste item (A cor atual já vem marcada)"
+                            >
+                              <span 
+                                className="w-3.5 h-3.5 rounded-full shadow-xs border border-white/40 block shrink-0" 
+                                style={{ backgroundColor: item.color || '#eab308' }}
+                              />
+                            </button>
+
+                            {/* POPOVER COM AS 24 CORES (A COR ATUAL JÁ VEM MARCADA) */}
+                            {colorPickerItemId === item.id && (
+                              <div 
+                                className="absolute right-0 top-full mt-1.5 z-50 bg-slate-950/98 backdrop-blur-md border border-slate-700 rounded-2xl p-2.5 shadow-2xl w-60 animate-fadeIn"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="text-[10px] font-black uppercase tracking-wider text-slate-300 mb-2 flex items-center justify-between border-b border-slate-800 pb-1">
+                                  <span className="flex items-center gap-1">
+                                    <Palette className="w-3 h-3 text-amber-400" />
+                                    <span>Cor do Item</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setColorPickerItemId(null)}
+                                    className="text-slate-400 hover:text-white p-0.5"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-6 gap-1.5">
+                                  {ITEM_COLOR_PALETTE.map((col) => {
+                                    const isSelected = (item.color || '#eab308').toLowerCase() === col.hex.toLowerCase();
+                                    return (
+                                      <button
+                                        key={col.id}
+                                        type="button"
+                                        onClick={() => {
+                                          handleUpdateItemColor(col.hex, item);
+                                          setColorPickerItemId(null);
+                                        }}
+                                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-sm ${
+                                          isSelected ? 'ring-2 ring-white scale-110 z-10' : 'hover:scale-115 hover:ring-1 hover:ring-white/60 opacity-90 hover:opacity-100'
+                                        }`}
+                                        style={{ backgroundColor: col.hex }}
+                                        title={col.name}
+                                      >
+                                        {isSelected && (
+                                          <Check className="w-3 h-3 text-white drop-shadow stroke-[3]" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
                           {/* LÁPIS VERDE */}
                           <button
                             type="button"
@@ -3594,6 +3703,46 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 />
               </div>
 
+              {/* SELETOR DE COR DO ITEM (24 BOLINHAS) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Cor de Destaque do Item:</span>
+                  </label>
+                  <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                    <span 
+                      className="w-3.5 h-3.5 rounded-full inline-block border border-white/60 shadow-sm"
+                      style={{ backgroundColor: newItemColor }}
+                    />
+                    <span className="font-bold text-slate-200">
+                      {ITEM_COLOR_PALETTE.find(c => c.hex.toLowerCase() === newItemColor.toLowerCase())?.name || newItemColor}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-950/80 rounded-xl border border-slate-800 justify-start">
+                  {ITEM_COLOR_PALETTE.map((col) => {
+                    const isSelected = newItemColor.toLowerCase() === col.hex.toLowerCase();
+                    return (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={() => setNewItemColor(col.hex)}
+                        title={col.name}
+                        className={`w-6 h-6 rounded-full transition-transform hover:scale-115 relative flex items-center justify-center cursor-pointer border ${
+                          isSelected 
+                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 border-white scale-110 shadow-md z-10' 
+                            : 'border-white/30 hover:border-white/80 opacity-90 hover:opacity-100'
+                        }`}
+                        style={{ backgroundColor: col.hex }}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white drop-shadow stroke-[3]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
                 <button
                   type="button"
@@ -3709,6 +3858,46 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   onChange={(e) => setGearItemData(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
                 />
+              </div>
+
+              {/* SELETOR DE COR DO ITEM (24 BOLINHAS) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Cor de Destaque do Item:</span>
+                  </label>
+                  <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                    <span 
+                      className="w-3.5 h-3.5 rounded-full inline-block border border-white/60 shadow-sm"
+                      style={{ backgroundColor: gearItemData.color || '#eab308' }}
+                    />
+                    <span className="font-bold text-slate-200">
+                      {ITEM_COLOR_PALETTE.find(c => c.hex.toLowerCase() === (gearItemData.color || '#eab308').toLowerCase())?.name || gearItemData.color}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-950/80 rounded-xl border border-slate-800 justify-start">
+                  {ITEM_COLOR_PALETTE.map((col) => {
+                    const isSelected = (gearItemData.color || '#eab308').toLowerCase() === col.hex.toLowerCase();
+                    return (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={() => setGearItemData(prev => ({ ...prev, color: col.hex }))}
+                        title={col.name}
+                        className={`w-6 h-6 rounded-full transition-transform hover:scale-115 relative flex items-center justify-center cursor-pointer border ${
+                          isSelected 
+                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 border-white scale-110 shadow-md z-10' 
+                            : 'border-white/30 hover:border-white/80 opacity-90 hover:opacity-100'
+                        }`}
+                        style={{ backgroundColor: col.hex }}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white drop-shadow stroke-[3]" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* DESTINO DE PRODUÇÃO (COZINHA E TV) */}
