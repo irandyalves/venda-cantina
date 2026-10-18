@@ -7,10 +7,12 @@ import {
   Sparkles, 
   CheckCircle2, 
   Flame,
-  Lock
+  Lock,
+  ArrowRight
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
+import { authService } from '../services/auth';
 import ProfileSelector from './ProfileSelector';
 
 export default function DisplayView({ environment, onNavigate }) {
@@ -94,6 +96,17 @@ export default function DisplayView({ environment, onNavigate }) {
   };
 
   const linkedKitchenId = environment?.linkedKitchen;
+  const displayScopeName = (() => {
+    if (linkedKitchenId) {
+      try {
+        const envs = authService.getEnvironments();
+        const matched = envs.find(e => e.id === linkedKitchenId);
+        if (matched) return matched.name;
+      } catch (_) {}
+      return linkedKitchenId;
+    }
+    return 'Todas as Cozinhas';
+  })();
 
   // Verifica se o pedido pertence a este Painel TV
   const isOrderForThisDisplay = (order) => {
@@ -238,11 +251,11 @@ export default function DisplayView({ environment, onNavigate }) {
           />
 
           <div className="flex items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-xl border border-slate-800">
-            <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap">
-              Recebe pedidos do
+            <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap flex items-center gap-1">
+              Mostra <ArrowRight className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5] shrink-0" /> os pedidos de
             </span>
             <span className="bg-black text-white text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg border border-slate-700 shadow-sm whitespace-nowrap">
-              Todos os Caixas
+              {displayScopeName}
             </span>
           </div>
         </div>

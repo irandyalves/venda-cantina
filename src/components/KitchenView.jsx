@@ -13,7 +13,8 @@ import {
   Check, 
   Sparkles,
   User,
-  Lock
+  Lock,
+  ArrowRight
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
@@ -381,8 +382,8 @@ export default function KitchenView({ environment, onNavigate }) {
           />
 
           <div className="flex items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-xl border border-slate-800">
-            <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap">
-              Recebe pedidos do
+            <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap flex items-center gap-1">
+              Recebe <ArrowRight className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5] shrink-0" /> pedidos do
             </span>
             <span className="bg-black text-white text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg border border-slate-700 shadow-sm whitespace-nowrap">
               {storageService.getCashiersForKitchen(environment?.id || 'COZINHA')}

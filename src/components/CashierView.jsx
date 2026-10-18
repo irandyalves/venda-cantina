@@ -949,9 +949,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             onOpenConfig={onOpenConfig}
           />
 
-          {/* 3. ENVIA PEDIDOS PARA (EM VERDE) */}
-          <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap ml-0.5">
-            Envia pedidos para
+          {/* 3. ENVIA PEDIDOS PARA (EM VERDE COM SETINHA VERDE ANTES DE PEDIDOS) */}
+          <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap ml-0.5 flex items-center gap-1">
+            Envia <ArrowRight className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5] shrink-0" /> pedidos para
           </span>
 
           {/* 4. COZINHA DE DESTINO COM FUNDO PRETO, LETRA BRANCA (FONTE REDUZIDA EM 15%) */}
