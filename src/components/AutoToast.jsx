@@ -19,9 +19,9 @@ export default function AutoToast({ toast, onClose, duration = 1500 }) {
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center p-4">
-      {/* Backdrop escurecido e desfocado */}
+      {/* Sem desfocar ou escurecer o fundo - a roda gira diretamente por cima do dashboard */}
       <div 
-        className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto"
+        className="fixed inset-0 transition-opacity duration-300 pointer-events-auto"
         onClick={onClose}
       />
 

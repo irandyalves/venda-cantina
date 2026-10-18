@@ -4097,8 +4097,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       className="w-14 h-14" 
                     />
                     {isProcessingImage && (
-                      <div className="absolute inset-0 bg-slate-950/80 rounded-xl flex items-center justify-center">
-                        <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                      <div className="absolute inset-0 rounded-xl flex items-center justify-center pointer-events-none">
+                        <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]" />
                       </div>
                     )}
                   </div>
