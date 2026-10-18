@@ -804,13 +804,23 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             <div className={`relative flex-1 min-w-[200px] ${nameShake ? 'animate-shake' : ''}`}>
               {!isNameFocused && !customerName && (
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white">
-                  <User className="w-4 h-4 text-white" />
+                  {showNameError ? (
+                    <AlertCircle className="w-4 h-4 text-rose-400 animate-pulse" />
+                  ) : (
+                    <User className="w-4 h-4 text-white" />
+                  )}
                 </div>
               )}
               <input
                 ref={nameInputRef}
                 type="text"
-                placeholder={isNameFocused ? '' : '1º DIGITE O NOME DO CLIENTE (EX: JOÃO) *'}
+                placeholder={
+                  showNameError
+                    ? 'DIGITE O NOME DO CLIENTE ANTES DE FINALIZAR!'
+                    : isNameFocused
+                      ? ''
+                      : '1º DIGITE O NOME DO CLIENTE (EX: JOÃO) *'
+                }
                 value={customerName}
                 onFocus={() => {
                   setIsNameFocused(true);
@@ -839,10 +849,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 }}
                 className={`w-full h-11 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase ${
                   !isNameFocused && !customerName ? 'pl-9' : 'pl-3'
-                } pr-8 rounded-xl outline-none transition-all placeholder:text-white placeholder:font-bold placeholder:text-xs sm:placeholder:text-sm focus:placeholder:text-transparent border-2 ${
-                  !isNameFilled 
-                    ? 'border-amber-500/80 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30' 
-                    : 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-950/20'
+                } pr-8 rounded-xl outline-none transition-all placeholder:font-bold placeholder:text-xs sm:placeholder:text-sm focus:placeholder:text-transparent border-2 ${
+                  showNameError
+                    ? 'border-rose-500 ring-2 ring-rose-500/50 bg-rose-950/40 text-rose-200 placeholder:text-rose-400 glow-required-name'
+                    : !isNameFilled 
+                      ? 'border-amber-500/80 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30 placeholder:text-white' 
+                      : 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-950/20 placeholder:text-white'
                 }`}
               />
               {customerName && (
@@ -963,13 +975,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {showNameError && (
-          <div className="mt-2 text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2 animate-shake">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>Por favor, digite o nome do cliente no campo acima antes de finalizar!</span>
           </div>
         )}
       </section>
