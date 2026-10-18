@@ -224,6 +224,35 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     return 'bg-cyan-950/70 border border-cyan-500/50 text-cyan-200';
   };
 
+  // Cores de fundo e texto para os chips do carrinho de compras
+  const getCartItemStyle = (cItem) => {
+    const cat = String(cItem.category?.id || cItem.categoryId || '').toLowerCase();
+    const desc = String(cItem.description || '').toLowerCase();
+
+    if (cat.includes('batata') || desc.includes('batata') || desc.includes('cone') || desc.includes('cheddar')) {
+      return {
+        chip: 'bg-orange-950/80 border-orange-500/60 text-orange-200',
+        price: 'text-orange-300'
+      };
+    }
+    if (cat.includes('acai') || cat.includes('açaí') || desc.includes('açaí') || desc.includes('acai') || desc.includes('copo') || desc.includes('tigela')) {
+      return {
+        chip: 'bg-purple-950/80 border-purple-500/60 text-purple-200',
+        price: 'text-purple-300'
+      };
+    }
+    if (cat.includes('pizza') || desc.includes('pizza') || desc.includes('pedaço') || desc.includes('inteira') || desc.includes('marguerita') || desc.includes('calabresa')) {
+      return {
+        chip: 'bg-yellow-950/80 border-yellow-500/60 text-yellow-200',
+        price: 'text-yellow-300'
+      };
+    }
+    return {
+      chip: 'bg-cyan-950/80 border-cyan-500/60 text-cyan-200',
+      price: 'text-cyan-300'
+    };
+  };
+
   const getOrderItems = (order) => {
     if (order.items && Array.isArray(order.items) && order.items.length > 0) {
       return order.items;
@@ -763,14 +792,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           {/* 1. NOME DO CLIENTE & FORMA DE PAGAMENTO */}
           <div className="flex items-center gap-2 flex-1 flex-wrap sm:flex-nowrap">
             <div className={`relative flex-1 min-w-[200px] ${nameShake ? 'animate-shake' : ''}`}>
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-amber-400">
-                <User className="w-4 h-4" />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white">
+                <User className="w-4 h-4 text-white" />
               </div>
               <input
                 ref={nameInputRef}
                 type="text"
                 placeholder="1º DIGITE O NOME DO CLIENTE (EX: JOÃO) *"
                 value={customerName}
+                onClick={() => {
+                  setCustomerName('');
+                  if (showNameError) setShowNameError(false);
+                }}
                 onChange={(e) => {
                   setCustomerName(e.target.value.toUpperCase());
                   if (showNameError && e.target.value.trim()) setShowNameError(false);
@@ -783,7 +816,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     }
                   }
                 }}
-                className={`w-full h-11 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase pl-9 pr-8 rounded-xl outline-none transition-all placeholder:text-amber-400/60 placeholder:normal-case placeholder:text-xs border-2 ${
+                className={`w-full h-11 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase pl-9 pr-8 rounded-xl outline-none transition-all placeholder:text-white placeholder:font-bold placeholder:text-xs sm:placeholder:text-sm border-2 ${
                   !isNameFilled 
                     ? 'border-amber-500/80 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30' 
                     : 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-950/20'
@@ -831,23 +864,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             )}
           </div>
 
-          {/* 2. TOTALIZADOR E BOTÃO FINALIZAR VENDA */}
+          {/* 2. BOTÃO FINALIZAR VENDA (COM VALOR DESTACADO EM FUNDO AMARELO, FONTE BOLD, 25% MAIOR) */}
           <div className="flex items-center gap-2 shrink-0 justify-between sm:justify-end">
-            <div className="h-11 bg-slate-900 px-3.5 rounded-xl border border-slate-700 flex items-center gap-2">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Total:</span>
-              <span className="text-base sm:text-lg font-black text-emerald-400 font-mono">
-                R$ {cartTotal.toFixed(2)}
-              </span>
-              <span className="text-[10px] text-amber-300 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/40">
-                {cartItemCount} {cartItemCount === 1 ? 'item' : 'itens'}
-              </span>
-            </div>
-
             <button
               type="button"
               onClick={handleFinalizeCart}
               disabled={isSubmittingCart || cart.length === 0}
-              className={`h-11 px-4 sm:px-5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
+              className={`h-11 px-4 sm:px-6 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
                 cart.length > 0
                   ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 border-emerald-300 shadow-emerald-950/80'
                   : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-60'
@@ -856,7 +879,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               <Send className="w-4 h-4 fill-current" />
               <span>FINALIZAR PEDIDOS</span>
               {cart.length > 0 && (
-                <span className="bg-slate-950/25 px-1.5 py-0.5 rounded font-mono text-xs font-black">
+                <span className="bg-yellow-400 text-slate-950 px-2.5 py-0.5 rounded-lg font-mono text-sm sm:text-base font-black shadow-md border border-yellow-300">
                   R$ {cartTotal.toFixed(2)}
                 </span>
               )}
@@ -868,53 +891,55 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         {/* ITENS DA COMANDA ATUAL (CHIPS ROLÁVEIS COM QUANTIDADE E EXCLUIR) */}
         {cart.length > 0 && (
           <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto pb-1">
-            <span className="text-[10px] font-black uppercase text-amber-400 shrink-0 flex items-center gap-1">
-              <ShoppingCart className="w-3.5 h-3.5" />
-              <span>Comanda de {customerName || 'Cliente'}:</span>
-            </span>
+            <div className="shrink-0 p-1.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/40 shadow-sm flex items-center justify-center" title="Carrinho de Compras">
+              <ShoppingCart className="w-5 h-5 stroke-[2.5]" />
+            </div>
 
-            {cart.map((cItem) => (
-              <div
-                key={cItem.cartItemId}
-                className="bg-slate-900 border border-slate-700 hover:border-slate-500 px-2.5 py-1 rounded-xl flex items-center gap-2 shrink-0 shadow-sm transition-all"
-              >
-                <span className="text-xs font-bold text-white whitespace-nowrap">
-                  {cItem.description}
-                </span>
-                <span className="text-xs font-black text-emerald-400 font-mono">
-                  R$ {(cItem.unitPrice * cItem.quantity).toFixed(2)}
-                </span>
-
-                <div className="flex items-center gap-1 bg-slate-950 px-1 py-0.5 rounded-lg border border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => updateCartQuantity(cItem.cartItemId, -1)}
-                    className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
-                  >
-                    -
-                  </button>
-                  <span className="text-xs font-mono font-black text-amber-300 px-1">
-                    {cItem.quantity}x
+            {cart.map((cItem) => {
+              const itemStyle = getCartItemStyle(cItem);
+              return (
+                <div
+                  key={cItem.cartItemId}
+                  className={`border px-2.5 py-1 rounded-xl flex items-center gap-2 shrink-0 shadow-sm transition-all ${itemStyle.chip}`}
+                >
+                  <span className="text-xs font-bold text-white whitespace-nowrap">
+                    {cItem.description}
                   </span>
+                  <span className={`text-xs font-black font-mono ${itemStyle.price}`}>
+                    R$ {(cItem.unitPrice * cItem.quantity).toFixed(2)}
+                  </span>
+
+                  <div className="flex items-center gap-1 bg-black/40 px-1 py-0.5 rounded-lg border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => updateCartQuantity(cItem.cartItemId, -1)}
+                      className="w-5 h-5 bg-white/10 hover:bg-white/20 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="text-xs font-mono font-black text-white px-1">
+                      {cItem.quantity}x
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateCartQuantity(cItem.cartItemId, 1)}
+                      className="w-5 h-5 bg-white/10 hover:bg-white/20 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => updateCartQuantity(cItem.cartItemId, 1)}
-                    className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
+                    onClick={() => removeFromCart(cItem.cartItemId)}
+                    className="text-white/60 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
+                    title="Remover item da comanda"
                   >
-                    +
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => removeFromCart(cItem.cartItemId)}
-                  className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
-                  title="Remover item da comanda"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
