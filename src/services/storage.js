@@ -32,14 +32,14 @@ const DOC_ROUTING = 'roteamento';
 const DOC_SECURITY = 'seguranca';
 const LOCAL_SCREENS_LOCKED_KEY = 'cantina_screens_locked';
 
-// Configuração padrão com o banco Cloud Firestore ATIVO na conta do usuário
+// Configuração padrão lida a partir das variáveis de ambiente (.env)
 export const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAujmh1TuWRCS53zz1BZXIQvgHbXVibKwo",
-  authDomain: "carga-patrimonio.firebaseapp.com",
-  projectId: "carga-patrimonio",
-  storageBucket: "carga-patrimonio.firebasestorage.app",
-  messagingSenderId: "478068393511",
-  appId: "1:478068393511:web:d61f883ee1c1506887b002"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "carga-patrimonio.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "carga-patrimonio",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "carga-patrimonio.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "478068393511",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
 };
 
 // BroadcastChannel para sincronização instantânea entre abas no mesmo navegador
