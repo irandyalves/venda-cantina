@@ -888,51 +888,78 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const itemImage = gearItemData.image || null;
     const itemIcon2d = gearItemData.icon2d || null;
 
-    const updated = categories.map(cat => {
-      // Se for variação de pizza (Pedaço ou Inteira)
-      if (gearItemData.isVariation && cat.id === 'pizza') {
-        return {
-          ...cat,
-          variations: (cat.variations || []).map(v => {
-            if (v.id === gearItemData.variationId) {
-              return {
-                ...v,
-                name: cleanName.replace(/^Pizza\s+/i, ''),
-                price: priceNum,
-                prefix: cleanPrefix,
-                color: itemColor,
-                image: itemImage,
-                icon2d: itemIcon2d
-              };
-            }
-            return v;
-          })
+    // Salva alterações do item
+    let updated;
+    if (gearItemData.isVariation) {
+      updated = categories.map(cat => {
+        if (cat.id === 'pizza') {
+          return {
+            ...cat,
+            variations: (cat.variations || []).map(v => {
+              if (v.id === gearItemData.variationId) {
+                return {
+                  ...v,
+                  name: cleanName.replace(/^Pizza\s+/i, ''),
+                  price: priceNum,
+                  prefix: cleanPrefix,
+                  color: itemColor,
+                  image: itemImage,
+                  icon2d: itemIcon2d
+                };
+              }
+              return v;
+            })
+          };
+        }
+        return cat;
+      });
+    } else {
+      // 1. Obter dados do item atualizado
+      let updatedItem = null;
+      for (const cat of categories) {
+        const found = (cat.items || []).find(it => it.id === gearItemData.id);
+        if (found) {
+          updatedItem = {
+            ...found,
+            name: cleanName,
+            price: priceNum,
+            prefix: cleanPrefix,
+            description: cleanDesc,
+            color: itemColor,
+            image: itemImage,
+            icon2d: itemIcon2d,
+            categoryId: gearItemData.categoryId
+          };
+          break;
+        }
+      }
+
+      if (!updatedItem) {
+        updatedItem = {
+          id: gearItemData.id,
+          name: cleanName,
+          price: priceNum,
+          prefix: cleanPrefix,
+          description: cleanDesc,
+          color: itemColor,
+          image: itemImage,
+          icon2d: itemIcon2d,
+          categoryId: gearItemData.categoryId
         };
       }
 
-      // Se o item estiver nesta categoria
-      if (cat.id === gearItemData.categoryId) {
+      // 2. Atualizar categorias (removendo da antiga se mudou e inserindo na nova)
+      updated = categories.map(cat => {
+        let items = (cat.items || []).filter(it => it.id !== gearItemData.id);
+        if (cat.id === gearItemData.categoryId) {
+          items = [...items, updatedItem];
+        }
         return {
           ...cat,
-          items: (cat.items || []).map(it => {
-            if (it.id === gearItemData.id) {
-              return {
-                ...it,
-                name: cleanName,
-                price: priceNum,
-                prefix: cleanPrefix,
-                description: cleanDesc,
-                color: itemColor,
-                image: itemImage,
-                icon2d: itemIcon2d
-              };
-            }
-            return it;
-          })
+          items
         };
-      }
-      return cat;
-    });
+      });
+    }
 
     if (gearItemData.isVariation) {
       if (gearItemData.variationId === 'pedaco') {
@@ -3934,7 +3961,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="bg-slate-900 border-2 border-amber-500/50 w-full max-w-lg rounded-3xl shadow-2xl p-6 space-y-4 text-slate-100 relative cursor-default"
+            className="bg-slate-900 border-2 border-amber-500/50 w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl shadow-2xl p-6 space-y-4 text-slate-100 relative cursor-default"
           >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
@@ -3953,30 +3980,51 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={() => setShowGearModal(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveGearModal} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Nome do Item: *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={gearItemData.name}
-                  onChange={(e) => setGearItemData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400"
-                />
+              {/* NOME DO ITEM E LISTBOX PARA ESCOLHER A CATEGORIA LADO A LADO */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Nome do Item: *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={gearItemData.name}
+                    onChange={(e) => setGearItemData(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Categoria: *
+                  </label>
+                  <select
+                    value={gearItemData.categoryId}
+                    onChange={(e) => setGearItemData(prev => ({ ...prev, categoryId: e.target.value }))}
+                    disabled={gearItemData.isVariation}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400 cursor-pointer disabled:opacity-50"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id} className="bg-slate-900 text-white">
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Prefixo da Senha / Comanda: * <span className="text-[10px] text-slate-400 font-normal">(Maiúsculo/Minúsculo)</span>
+                    Prefixo da Senha / Comanda: *
                   </label>
                   <input
                     type="text"
@@ -4021,7 +4069,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               </div>
 
               {/* FOTO REAL OU ÍCONE 2D VETORIAL DO PRODUTO (CARDS INTUITIVOS) */}
-              <div className="bg-slate-950/90 p-3 rounded-xl border border-slate-800 space-y-3">
+              <div className="bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -4043,7 +4091,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <div className="flex items-center gap-3.5 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800/80">
                   {/* Prévia do Ícone em formato de Card */}
                   <div className="w-16 h-16 rounded-xl bg-slate-950 border border-slate-700/80 flex items-center justify-center p-1.5 shrink-0 shadow-inner relative group">
-                    <ProductIcon2D item={gearItemData} category={{ id: gearItemData.categoryId }} className="w-14 h-14" />
+                    <ProductIcon2D 
+                      item={gearItemData} 
+                      category={categories.find(c => c.id === gearItemData.categoryId) || { id: gearItemData.categoryId }} 
+                      className="w-14 h-14" 
+                    />
                     {isProcessingImage && (
                       <div className="absolute inset-0 bg-slate-950/80 rounded-xl flex items-center justify-center">
                         <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
@@ -4078,7 +4130,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         }`}
                       >
                         <ImageIcon className="w-3.5 h-3.5" />
-                        <span>{showPresetPicker ? 'Fechar Galeria' : 'Galeria 2D'}</span>
+                        <span>{showPresetPicker ? 'Fechar Galeria' : 'Galeria 2D (50 Ícones)'}</span>
                       </button>
                     </div>
 
@@ -4097,13 +4149,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
-                {/* Galeria Expansível de Ícones 2D Presets */}
+                {/* Galeria Expansível de Ícones 2D Presets (50 ícones) */}
                 {showPresetPicker && (
-                  <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800 animate-fadeIn">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                      Toque para escolher um ícone vetorial 2D:
+                      Toque para escolher entre os 50 ícones vetoriais 2D:
                     </span>
-                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-1.5 bg-slate-950 rounded-xl border border-slate-800/80">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 max-h-56 overflow-y-auto p-2 bg-slate-950 rounded-xl border border-slate-800/80">
                       {PRODUCT_2D_PRESETS.map((preset) => {
                         const isSelected = gearItemData.icon2d === preset.id;
                         return (
@@ -4113,7 +4165,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             onClick={() => handleSelectPreset(preset.id)}
                             className={`p-1.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
                               isSelected
-                                ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/50 scale-105'
+                                ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/50 scale-105 shadow-md'
                                 : 'bg-slate-900/60 border-slate-800 hover:border-slate-600 hover:bg-slate-850'
                             }`}
                             title={preset.label}
@@ -4167,48 +4219,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </button>
                     );
                   })}
-                </div>
-              </div>
-
-              {/* DESTINO DE PRODUÇÃO (COZINHA E TV) */}
-              <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-2">
-                <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                  <span>Destino de Produção:</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                    gearItemData.sendToKitchen 
-                      ? 'bg-orange-500/15 text-orange-300 border-orange-500/30' 
-                      : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                  }`}>
-                    {gearItemData.sendToKitchen ? '🍳 Fila da Cozinha' : '📦 Balcão (Sem Preparo)'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setGearItemData(prev => ({ ...prev, sendToKitchen: !prev.sendToKitchen }))}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
-                      gearItemData.sendToKitchen
-                        ? 'bg-orange-600/25 text-orange-300 border-orange-500/50 shadow-sm'
-                        : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
-                    }`}
-                  >
-                    <UtensilsCrossed className="w-3.5 h-3.5" />
-                    <span>{gearItemData.sendToKitchen ? '✓ Enviar Cozinha' : '✕ Balcão (Sem Preparo)'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setGearItemData(prev => ({ ...prev, showOnTV: !prev.showOnTV }))}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
-                      gearItemData.showOnTV
-                        ? 'bg-blue-600/25 text-blue-300 border-blue-500/50 shadow-sm'
-                        : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
-                    }`}
-                  >
-                    <Tv className="w-3.5 h-3.5" />
-                    <span>{gearItemData.showOnTV ? '✓ Exibir na TV' : '✕ Ocultar TV'}</span>
-                  </button>
                 </div>
               </div>
 
