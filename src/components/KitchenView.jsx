@@ -13,7 +13,8 @@ import {
   Check, 
   Sparkles,
   User,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
@@ -25,6 +26,7 @@ export default function KitchenView({ environment, onNavigate }) {
   const [soundEnabled, setSoundEnabled] = useState(() => storageService.getKitchenSettings().soundEnabled);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [isFirebaseOnline, setIsFirebaseOnline] = useState(storageService.isFirebaseReady);
+  const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
 
   // Escuta alterações na configuração de som e roteamento da cozinha
   const [productionRouting, setProductionRouting] = useState(() => storageService.getProductionRouting());
@@ -38,11 +40,16 @@ export default function KitchenView({ environment, onNavigate }) {
     const handleRoutingChange = (e) => {
       setProductionRouting(e.detail || storageService.getProductionRouting());
     };
+    const handleLockChange = (e) => {
+      setScreensLocked(!!e.detail);
+    };
     window.addEventListener('cantina_kitchen_settings_changed', handleKitchenSettings);
     window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
+    window.addEventListener('cantina_screens_locked_changed', handleLockChange);
     return () => {
       window.removeEventListener('cantina_kitchen_settings_changed', handleKitchenSettings);
       window.removeEventListener('cantina_production_routing_changed', handleRoutingChange);
+      window.removeEventListener('cantina_screens_locked_changed', handleLockChange);
     };
   }, []);
 
@@ -459,6 +466,16 @@ export default function KitchenView({ environment, onNavigate }) {
             </button>
           </div>
 
+          {screensLocked && (
+            <div 
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-950/80 border border-rose-500/60 rounded-xl text-rose-300 text-xs font-bold shadow-sm"
+              title="Tela travada remotamente pelo Administrador. Para trocar, use o PIN."
+            >
+              <Lock className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden sm:inline">Travado</span>
+            </div>
+          )}
+
           <ProfileSelector 
             onProfileChange={(profileId) => {
               if (onNavigate) onNavigate(profileId);
@@ -494,7 +511,7 @@ export default function KitchenView({ environment, onNavigate }) {
               return (
                 <div
                   key={order.id}
-                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-1 pl-2.5 pr-3 sm:pr-4 rounded-l-xl rounded-r-none border-y border-l-[6px] border-r-0 transition-all shadow-md gap-1.5 relative ${
+                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-0.5 pl-2 pr-2.5 sm:pr-3 rounded-l-lg rounded-r-none border-y border-l-[5px] border-r-0 transition-all shadow-md gap-1 relative ${
                     isDelivered
                       ? 'bg-slate-900/40 border-slate-800 border-l-slate-600 opacity-60'
                       : isNewestHighlight
@@ -508,56 +525,55 @@ export default function KitchenView({ environment, onNavigate }) {
                 >
                   {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
                   {isNewestHighlight && (
-                    <div className="absolute -top-2.5 left-3 bg-purple-600 border border-purple-400/60 text-white font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-bounce">
+                    <div className="absolute -top-2 left-3 bg-purple-600 border border-purple-400/60 text-white font-black text-[8px] px-1.5 py-0.2 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-bounce z-10">
                       <Sparkles className="w-2.5 h-2.5 text-purple-200" />
-                      <span>NOVO PEDIDO CHEGOU!</span>
+                      <span>NOVO PEDIDO!</span>
                     </div>
                   )}
 
-                  {/* BLOCO 1: SENHA ÚNICA GERAL + NOME DO CLIENTE (SEM ÍCONE) */}
-                  <div className="shrink-0 flex flex-col justify-center min-w-[70px]">
-                    {/* CÓDIGO DA SENHA ÚNICA */}
-                    <div className="text-sm sm:text-base font-black text-orange-400 font-mono tracking-tight flex items-center leading-none gap-1.5">
-                      <span>{order.orderNumber}</span>
-                      {order.cashierTerminal && (
-                        <span className="text-[9px] font-sans font-bold px-1 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700 tracking-normal">
-                          {order.cashierTerminal}
-                        </span>
-                      )}
-                    </div>
-                    {/* NOME DO CLIENTE */}
-                    <div className="text-[10px] sm:text-[11px] font-normal text-slate-100 leading-tight uppercase truncate max-w-[130px] mt-0.5">
+                  {/* BLOCO 1: NÚMERO DO PEDIDO ANTES DO NOME, NA MESMA LINHA */}
+                  <div className="shrink-0 flex items-center gap-1.5 min-w-[105px] max-w-[210px]">
+                    <span className="text-xs font-black text-orange-400 font-mono tracking-tight shrink-0">
+                      {order.orderNumber}
+                    </span>
+                    {order.cashierTerminal && (
+                      <span className="text-[8px] font-sans font-bold px-1 py-0 rounded bg-slate-800 text-slate-300 border border-slate-700 tracking-normal shrink-0">
+                        {order.cashierTerminal}
+                      </span>
+                    )}
+                    <span className="text-slate-600 font-bold select-none text-[10px] shrink-0">|</span>
+                    <span className="text-[10px] sm:text-[11px] font-normal text-slate-100 uppercase truncate" title={order.customerName}>
                       {order.customerName}
-                    </div>
+                    </span>
                   </div>
 
-                  {/* BLOCO 2: TODOS OS PEDIDOS DO CLIENTE NO MESMO CARD (FONTE FINA NAS DESCRIÇÕES) */}
-                  <div className="flex-1 bg-slate-950/70 px-1.5 py-0.5 rounded-lg border border-slate-800/80 flex items-center gap-1 flex-wrap min-h-0">
+                  {/* BLOCO 2: TODOS OS PEDIDOS DO CLIENTE NO MESMO CARD (FONTE FINA E REDUZIDA NOS ITENS) */}
+                  <div className="flex-1 bg-slate-950/70 px-1.5 py-0.2 rounded border border-slate-800/80 flex items-center gap-1 flex-wrap min-h-0">
                     {itemsList.map((it, idx) => (
                       <span
                         key={idx}
-                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-normal leading-tight shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
+                        className={`inline-flex items-center gap-1 px-1 py-0 rounded text-[9px] sm:text-[10px] font-normal leading-tight shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
                       >
-                        <span className="font-black text-orange-400 font-mono text-[11px] sm:text-[12px]">
+                        <span className="font-black text-orange-400 font-mono text-[9px] sm:text-[10px]">
                           {String(it.quantity).padStart(2, '0')}
                         </span>
-                        <span className="font-normal text-slate-100 text-[10px] sm:text-[11px]">
+                        <span className="font-normal text-slate-100 text-[9px] sm:text-[10px]">
                           {it.description || it.name || it.itemName}
                         </span>
                         {idx < itemsList.length - 1 && (
-                          <span className="text-slate-400 font-normal ml-0.5 select-none text-[8px]">•</span>
+                          <span className="text-slate-400 font-normal ml-0.5 select-none text-[7px]">•</span>
                         )}
                       </span>
                     ))}
                   </div>
 
-                  {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR (ALTURA COMPACTADA EM 20%) */}
+                  {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR (ALTURA COMPACTADA EM 30%) */}
                   <div className="flex items-center justify-between md:justify-end gap-1.5 shrink-0">
                     {!isDelivered ? (
                       <div className="flex items-center gap-1.5">
-                        {/* TEMPO INTELIGENTE (ALTURA COMPACTADA) */}
+                        {/* TEMPO INTELIGENTE */}
                         <div 
-                          className={`text-[10px] font-mono font-bold px-2 h-[26px] rounded-lg border flex items-center justify-center gap-1 transition-all shadow-sm ${timeStatus.classes}`}
+                          className={`text-[9px] font-mono font-bold px-1.5 h-[22px] rounded-lg border flex items-center justify-center gap-1 transition-all shadow-sm ${timeStatus.classes}`}
                           title={
                             timeStatus.isBypassed
                               ? `ATENÇÃO: Outro pedido com item igual foi feito depois e já saiu/entregue antes! (${timeStatus.bypassedCount}x)`
@@ -565,9 +581,9 @@ export default function KitchenView({ environment, onNavigate }) {
                           }
                         >
                           {timeStatus.isBypassed ? (
-                            <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0 animate-bounce" />
+                            <AlertTriangle className="w-2.5 h-2.5 text-rose-400 shrink-0 animate-bounce" />
                           ) : (
-                            <Clock className="w-3 h-3" />
+                            <Clock className="w-2.5 h-2.5" />
                           )}
                           <span>{getElapsedTime(order.createdAt)}</span>
                           {timeStatus.badge && (
@@ -580,28 +596,28 @@ export default function KitchenView({ environment, onNavigate }) {
                         {/* PRONTO (SINO) */}
                         <button
                           onClick={() => handleMarkReady(order)}
-                          className="w-[26px] h-[26px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-lg transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
+                          className="w-[22px] h-[22px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-lg transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
                           title="Tocar sino e chamar no painel PEDIDOS"
                         >
-                          <BellRing className="w-3.5 h-3.5 animate-bounce" />
+                          <BellRing className="w-3 h-3 animate-bounce" />
                         </button>
 
                         {/* ENTREGAR */}
                         <button
                           onClick={() => handleDeliver(order)}
-                          className="px-2.5 h-[26px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-[10px] rounded-lg transition-all shadow-md flex items-center gap-1 border border-emerald-400 cursor-pointer"
+                          className="px-2 h-[22px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-[9px] rounded-lg transition-all shadow-md flex items-center gap-1 border border-emerald-400 cursor-pointer"
                           title="Entregar pedido concluído"
                         >
-                          <Check className="w-3 h-3 stroke-[3]" />
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
                           <span>ENTREGAR</span>
                         </button>
                       </div>
                     ) : (
                       <button
                         onClick={() => handleReopen(order)}
-                        className="px-2.5 h-[26px] bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        className="px-2 h-[22px] bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9px] font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        <RotateCcw className="w-3 h-3" />
+                        <RotateCcw className="w-2.5 h-2.5" />
                         <span>Reabrir</span>
                       </button>
                     )}

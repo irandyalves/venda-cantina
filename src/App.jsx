@@ -4,6 +4,7 @@ import KitchenView from './components/KitchenView';
 import DisplayView from './components/DisplayView';
 import ConfigModal from './components/ConfigModal';
 import { authService, PERFIS } from './services/auth';
+import { storageService } from './services/storage';
 
 export default function App() {
   // Encontra o ambiente inicial pela hash (#caixa, #cozinha, #cozinha-2, #tv) ou pelo perfil ativo
@@ -44,6 +45,16 @@ export default function App() {
 
   useEffect(() => {
     const handleHashChange = () => {
+      if (storageService.isScreensLocked() && (activeEnvironment.type === 'kitchen' || activeEnvironment.type === 'display')) {
+        const resolved = resolveEnvironmentFromHashOrActive();
+        if (resolved.type === 'cashier') {
+          // Reverte hash caso aparelho esteja travado e alguém tente forçar #caixa
+          const currentSlug = (activeEnvironment.shortName || activeEnvironment.name).toLowerCase().replace(/[\s_]+/g, '-');
+          window.location.hash = currentSlug;
+          return;
+        }
+      }
+
       const resolved = resolveEnvironmentFromHashOrActive();
       setActiveEnvironment(resolved);
       authService.setActiveProfile(resolved.id);

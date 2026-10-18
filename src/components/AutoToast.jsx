@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Info, X, Sparkles } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, X, Sparkles, Check } from 'lucide-react';
 
-export default function AutoToast({ toast, onClose, duration = 1000 }) {
+export default function AutoToast({ toast, onClose, duration = 1000, variant = 'modal' }) {
   useEffect(() => {
     if (!toast) return;
 
@@ -16,6 +16,75 @@ export default function AutoToast({ toast, onClose, duration = 1000 }) {
 
   const isSuccess = toast.type === 'success' || !toast.type;
   const isError = toast.type === 'error';
+
+  // VARIANTE SPINNER (RODA BONITA COM GIRO FLUÍDO PARA CONFIGURAÇÕES):
+  if (variant === 'spinner' || toast.variant === 'spinner') {
+    return (
+      <div className="fixed top-6 right-6 z-[9999] pointer-events-none animate-toast-in">
+        <div className={`pointer-events-auto flex items-center gap-3.5 px-4 py-3 rounded-2xl shadow-2xl border-2 backdrop-blur-md ${
+          isSuccess 
+            ? 'bg-slate-900/95 border-emerald-500/80 shadow-emerald-500/20 text-white' 
+            : isError 
+              ? 'bg-slate-900/95 border-rose-500/80 shadow-rose-500/20 text-white'
+              : 'bg-slate-900/95 border-amber-500/80 shadow-amber-500/20 text-white'
+        }`}>
+          {/* RODA BONITA COM GIRO FLUÍDO */}
+          <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+            <svg className="w-8 h-8 animate-spin" viewBox="0 0 36 36">
+              <circle
+                className="opacity-20 text-slate-600"
+                strokeWidth="3.5"
+                stroke="currentColor"
+                fill="none"
+                r="15"
+                cx="18"
+                cy="18"
+              />
+              <circle
+                className={isSuccess ? 'text-emerald-400' : isError ? 'text-rose-400' : 'text-amber-400'}
+                strokeWidth="3.5"
+                strokeDasharray="42 58"
+                strokeLinecap="round"
+                stroke="currentColor"
+                fill="none"
+                r="15"
+                cx="18"
+                cy="18"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              {isSuccess ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" />
+              ) : isError ? (
+                <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              )}
+            </div>
+          </div>
+
+          <div className="min-w-0 pr-2">
+            <div className={`text-[11px] font-black uppercase tracking-wider ${
+              isSuccess ? 'text-emerald-400' : isError ? 'text-rose-400' : 'text-amber-400'
+            }`}>
+              {toast.title || (isSuccess ? 'Configurações Salvas' : 'Aviso')}
+            </div>
+            <div className="text-xs font-bold text-slate-100 truncate max-w-xs mt-0.5">
+              {toast.message || toast.text}
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors ml-1"
+            title="Fechar"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none flex items-start sm:items-center justify-center p-4 pt-16 sm:pt-4">

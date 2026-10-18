@@ -29,6 +29,8 @@ const COLLECTION_HISTORY = 'cantina_historico_turnos';
 const COLLECTION_SETTINGS = 'cantina_configuracoes';
 const DOC_ENVIRONMENTS = 'ambientes';
 const DOC_ROUTING = 'roteamento';
+const DOC_SECURITY = 'seguranca';
+const LOCAL_SCREENS_LOCKED_KEY = 'cantina_screens_locked';
 
 // Configuração padrão com o banco Cloud Firestore ATIVO na conta do usuário
 export const DEFAULT_FIREBASE_CONFIG = {
@@ -60,6 +62,7 @@ class StorageService {
     this.unsubscribeHistory = null;
     this.unsubscribeProducts = null;
     this.unsubscribeEvents = null;
+    this.unsubscribeSecurity = null;
     this.pollTimer = null;
     this.lastOrdersJson = '';
     this.isReconnecting = false;
@@ -180,6 +183,10 @@ class StorageService {
       try { this.unsubscribeEvents(); } catch (_) {}
       this.unsubscribeEvents = null;
     }
+    if (this.unsubscribeSecurity) {
+      try { this.unsubscribeSecurity(); } catch (_) {}
+      this.unsubscribeSecurity = null;
+    }
 
     try {
       // 1. Listener de pedidos e configurações em tempo real
@@ -281,6 +288,19 @@ class StorageService {
         }
       }, (err) => {
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar eventos:', err);
+      });
+
+      // 7. Listener de Trava de Telas (Segurança Monitores/Tablets) em tempo real na nuvem
+      const securityDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_SECURITY);
+      this.unsubscribeSecurity = onSnapshot(securityDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const locked = !!data?.screensLocked;
+          console.log(`📡 [Firestore Realtime] Trava de telas: ${locked ? 'TRAVADAS' : 'DESTRAVADAS'}`);
+          this.setLocalScreensLocked(locked, false);
+        }
+      }, (err) => {
+        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar segurança:', err);
       });
     } catch (err) {
       console.error('❌ Erro ao configurar onSnapshot:', err);
@@ -513,6 +533,9 @@ class StorageService {
         if (event.data?.type === 'ORDER_TIME_LIMITS_UPDATED') {
           window.dispatchEvent(new CustomEvent('cantina_order_time_limits_changed', { detail: event.data.payload }));
         }
+        if (event.data?.type === 'SCREENS_LOCKED_UPDATED') {
+          window.dispatchEvent(new CustomEvent('cantina_screens_locked_changed', { detail: !!event.data.payload }));
+        }
       };
     }
 
@@ -521,6 +544,9 @@ class StorageService {
       window.addEventListener('storage', (e) => {
         if (e.key === SHOW_CURRENCY_SYMBOL_KEY) {
           window.dispatchEvent(new CustomEvent('cantina_currency_changed', { detail: e.newValue === 'true' }));
+        }
+        if (e.key === LOCAL_SCREENS_LOCKED_KEY) {
+          window.dispatchEvent(new CustomEvent('cantina_screens_locked_changed', { detail: e.newValue === 'true' }));
         }
         if (e.key === 'cantina_order_time_limits') {
           try {
@@ -553,6 +579,42 @@ class StorageService {
           } catch (_) {}
         }
       });
+    }
+  }
+
+  // Verifica se as telas secundárias (Cozinha e Telão) estão travadas
+  isScreensLocked() {
+    try {
+      return localStorage.getItem(LOCAL_SCREENS_LOCKED_KEY) === 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Define status de trava localmente e propaga para outras abas
+  setLocalScreensLocked(locked, broadcast = true) {
+    const val = locked ? 'true' : 'false';
+    localStorage.setItem(LOCAL_SCREENS_LOCKED_KEY, val);
+    window.dispatchEvent(new CustomEvent('cantina_screens_locked_changed', { detail: !!locked }));
+    if (broadcast && syncChannel) {
+      syncChannel.postMessage({ type: 'SCREENS_LOCKED_UPDATED', payload: !!locked });
+    }
+  }
+
+  // Trava ou destrava telas com persistência no Firestore em tempo real
+  async setScreensLocked(locked) {
+    this.setLocalScreensLocked(locked, true);
+    if (this.isFirebaseReady && this.db) {
+      try {
+        const securityDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_SECURITY);
+        await setDoc(securityDocRef, {
+          screensLocked: !!locked,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        console.log(`🔒 [Segurança] Status de trava de telas salvo na nuvem: ${locked ? 'TRAVADA' : 'DESTRAVADA'}`);
+      } catch (err) {
+        console.error('⚠️ Erro ao salvar status de trava no Firestore:', err);
+      }
     }
   }
 

@@ -24,7 +24,9 @@ import {
   Plus,
   Minus,
   Trash2,
-  Check
+  Check,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
 import { authService } from '../services/auth';
@@ -52,6 +54,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     return localStorage.getItem('cantina_cashier_terminal') || 'Caixa 1';
   });
 
+  // Trava de telas dos monitores e tablets (Cozinha e Telão)
+  const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
+
   const kitchenEnvironments = environments.filter(e => e.type === 'kitchen');
 
   useEffect(() => {
@@ -61,13 +66,30 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const handleEnvsChange = (e) => {
       setEnvironments(e.detail || authService.getEnvironments());
     };
+    const handleScreensLockChange = (e) => {
+      setScreensLocked(!!e.detail);
+    };
     window.addEventListener('cantina_currency_changed', handleCurrencyChanged);
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
+    window.addEventListener('cantina_screens_locked_changed', handleScreensLockChange);
     return () => {
       window.removeEventListener('cantina_currency_changed', handleCurrencyChanged);
       window.removeEventListener('cantina_environments_changed', handleEnvsChange);
+      window.removeEventListener('cantina_screens_locked_changed', handleScreensLockChange);
     };
   }, []);
+
+  const handleToggleScreensLock = async () => {
+    const nextState = !screensLocked;
+    await storageService.setScreensLocked(nextState);
+    setToast({
+      title: nextState ? 'Telas Travadas! 🔒' : 'Telas Destravadas! 🔓',
+      message: nextState 
+        ? 'Monitores da Cozinha e Telão foram bloqueados contra alterações indevidas.'
+        : 'Monitores e tablets liberados para acesso e configurações.',
+      type: 'success'
+    });
+  };
 
   const handleDestinationKitchenChange = (newDest) => {
     setDestinationKitchen(newDest);
@@ -872,45 +894,44 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           borderTopColor: itemBorderColor,
           borderBottomColor: itemBorderColor
         }}
-        className={`px-2.5 py-1.5 rounded-l-xl rounded-r-none border-y border-l-[6px] border-r-0 transition-all shadow-md text-xs flex items-center justify-between gap-2 relative bg-slate-900/90 hover:bg-slate-850 ${
+        className={`px-2 py-0.5 rounded-l-lg rounded-r-none border-y border-l-[5px] border-r-0 transition-all shadow-md text-xs flex items-center justify-between gap-1.5 relative bg-slate-900/90 hover:bg-slate-850 ${
           isDelivered ? 'opacity-70 hover:opacity-100' : ''
         }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          {/* NÚMERO / SENHA DO PEDIDO (SEM ÍCONE ANTES) */}
+          {/* NÚMERO / SENHA DO PEDIDO (SEM BORDA) */}
           <span 
-            className="font-mono font-black text-xs px-2 py-0.5 rounded-lg border shrink-0"
+            className="font-mono font-black text-xs px-1.5 py-0.2 rounded-md shrink-0"
             style={{
-              borderColor: `${itemColor}80`,
-              backgroundColor: `${itemColor}20`,
+              backgroundColor: `${itemColor}25`,
               color: itemColor
             }}
           >
             {order.orderNumber}
           </span>
 
-          <span className="text-slate-600 font-bold select-none text-xs shrink-0">|</span>
+          <span className="text-slate-600 font-bold select-none text-[10px] shrink-0">|</span>
 
-          {/* NOME DO CLIENTE */}
-          <span className="text-xs font-normal text-slate-100 uppercase tracking-wider truncate max-w-[120px]" title={order.customerName}>
+          {/* NOME DO CLIENTE: 10% menor, sempre BOLD */}
+          <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wider truncate max-w-[120px]" title={order.customerName}>
             {order.customerName}
           </span>
 
-          {/* CAPTION/BOTÃO PEDIDOS: O HINT SÓ APARECE SE PASSAR O MOUSE EM CIMA DELE */}
+          {/* CAPTION/BOTÃO PEDIDOS: FONTE REDUZIDA EM 20% */}
           <div 
             onMouseEnter={(e) => handleCardMouseEnter(e, order)}
             onMouseLeave={handleCardMouseLeave}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-black text-white border border-slate-700 shadow-xs shrink-0 select-none hover:border-amber-400 cursor-pointer transition-all"
+            className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider bg-black text-white border border-slate-700 shadow-xs shrink-0 select-none hover:border-amber-400 cursor-pointer transition-all"
           >
             <span>PEDIDOS</span>
-            <span className="bg-slate-800 text-amber-400 px-1 py-0.2 rounded font-mono text-[9px]">
+            <span className="bg-slate-800 text-amber-400 px-1 py-0.2 rounded font-mono text-[8px]">
               {items.reduce((acc, it) => acc + (it.quantity || 1), 0)}
             </span>
           </div>
         </div>
 
         {/* VALOR TOTAL */}
-        <span className="text-xs font-mono font-black text-emerald-400 shrink-0">
+        <span className="text-[11px] font-mono font-black text-emerald-400 shrink-0">
           {formatPrice(order.totalPrice, showCurrencySymbol)}
         </span>
       </div>
@@ -984,6 +1005,33 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <div className="flex items-center justify-center px-1" title={isFirebaseOnline ? 'Conexão Nuvem Online' : 'Modo Local'}>
             <span className={`w-2.5 h-2.5 rounded-full ${isFirebaseOnline ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
           </div>
+
+          {/* BOTÃO REMOTO DE TRAVA DE MONITORES E TABLETS */}
+          <button
+            onClick={handleToggleScreensLock}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 border cursor-pointer ${
+              screensLocked
+                ? 'bg-rose-950/90 hover:bg-rose-900 border-rose-500/80 text-rose-300 ring-1 ring-rose-500/40 animate-pulse'
+                : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/90 text-slate-300'
+            }`}
+            title={
+              screensLocked
+                ? 'Monitores e tablets (Cozinha e Telão) estão TRAVADOS contra alterações mal-intencionadas. Clique para destravar.'
+                : 'Monitores e tablets estão destravados. Clique para travar remotamente.'
+            }
+          >
+            {screensLocked ? (
+              <>
+                <Lock className="w-3.5 h-3.5 text-rose-400" />
+                <span className="hidden sm:inline">Telas Travadas 🔒</span>
+              </>
+            ) : (
+              <>
+                <Unlock className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">Travar Telas 🔓</span>
+              </>
+            )}
+          </button>
 
           <button 
             onClick={() => onOpenConfig()}

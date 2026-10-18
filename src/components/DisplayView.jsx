@@ -6,7 +6,8 @@ import {
   Clock, 
   Sparkles, 
   CheckCircle2, 
-  Flame
+  Flame,
+  Lock
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
@@ -16,6 +17,7 @@ export default function DisplayView({ environment, onNavigate }) {
   const [orders, setOrders] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [deliveredModalOrder, setDeliveredModalOrder] = useState(null);
+  const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
   
   // Configurações da TV vindas do Storage (definidas pelo Caixa)
   const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
@@ -29,8 +31,15 @@ export default function DisplayView({ environment, onNavigate }) {
     const handleSettingsChange = (e) => {
       setTvSettings(e.detail);
     };
+    const handleLockChange = (e) => {
+      setScreensLocked(!!e.detail);
+    };
     window.addEventListener('cantina_tv_settings_changed', handleSettingsChange);
-    return () => window.removeEventListener('cantina_tv_settings_changed', handleSettingsChange);
+    window.addEventListener('cantina_screens_locked_changed', handleLockChange);
+    return () => {
+      window.removeEventListener('cantina_tv_settings_changed', handleSettingsChange);
+      window.removeEventListener('cantina_screens_locked_changed', handleLockChange);
+    };
   }, []);
 
   // Desbloqueia o AudioContext no primeiro clique ou toque
@@ -239,6 +248,16 @@ export default function DisplayView({ environment, onNavigate }) {
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             <span className="hidden sm:inline">{isFullscreen ? 'Sair Tela Cheia' : 'Tela Cheia'}</span>
           </button>
+
+          {screensLocked && (
+            <div 
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/80 border border-rose-500/60 rounded-xl text-rose-300 text-xs font-bold shadow-sm"
+              title="Telão travado remotamente pelo Administrador. Para trocar de ambiente, use o PIN."
+            >
+              <Lock className="w-4 h-4 text-rose-400" />
+              <span className="hidden sm:inline">Telão Travado</span>
+            </div>
+          )}
 
           {/* PERFIL NO CANTO SUPERIOR DIREITO */}
           <ProfileSelector 

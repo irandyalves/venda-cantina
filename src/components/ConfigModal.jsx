@@ -4601,8 +4601,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         </div>
       )}
 
-      {/* MODAL BONITO RÁPIDO (1 SEGUNDO) */}
-      <AutoToast toast={toast} onClose={() => setToast(null)} duration={1000} />
+      {/* TOAST COM RODA DE GIRO FLUÍDO (1 SEGUNDO) PARA CONFIGURAÇÕES */}
+      <AutoToast toast={toast} onClose={() => setToast(null)} duration={1000} variant="spinner" />
 
     </div>
   );

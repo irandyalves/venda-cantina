@@ -8,10 +8,13 @@ import {
   LogOut, 
   User, 
   Mail, 
-  Check, 
-  Settings
+  Settings,
+  Lock,
+  KeyRound,
+  X
 } from 'lucide-react';
 import { authService, PERFIS } from '../services/auth';
+import { storageService } from '../services/storage';
 import AutoToast from './AutoToast';
 
 export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
@@ -21,6 +24,9 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [toast, setToast] = useState(null);
+  const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [enteredPin, setEnteredPin] = useState('');
   
   const menuRef = useRef(null);
 
@@ -37,8 +43,12 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
     const handleEnvsChange = (e) => {
       setEnvironments(e.detail || authService.getEnvironments());
     };
+    const handleScreensLockChange = (e) => {
+      setScreensLocked(!!e.detail);
+    };
     window.addEventListener('cantina_profile_changed', handleProfileChange);
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
+    window.addEventListener('cantina_screens_locked_changed', handleScreensLockChange);
 
     // Fecha dropdown ao clicar fora
     const handleClickOutside = (e) => {
@@ -58,15 +68,43 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
       unsubscribeAuth();
       window.removeEventListener('cantina_profile_changed', handleProfileChange);
       window.removeEventListener('cantina_environments_changed', handleEnvsChange);
+      window.removeEventListener('cantina_screens_locked_changed', handleScreensLockChange);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
+  const isSecondaryLocked = screensLocked && (currentEnv.type === 'kitchen' || currentEnv.type === 'display');
+
   const handleToggle = () => {
+    if (isSecondaryLocked && !isOpen) {
+      setEnteredPin('');
+      setPinModalOpen(true);
+      return;
+    }
     if (!isOpen) {
       setEnvironments(authService.getEnvironments());
     }
     setIsOpen(!isOpen);
+  };
+
+  const handleConfirmPin = (e) => {
+    if (e) e.preventDefault();
+    if (enteredPin === '1234') {
+      setPinModalOpen(false);
+      setIsOpen(true);
+      setToast({
+        type: 'success',
+        title: 'PIN Correto',
+        message: 'Acesso liberado para troca de ambiente.'
+      });
+    } else {
+      setToast({
+        type: 'error',
+        title: 'PIN Incorreto',
+        message: 'Senha incorreta. Acesso bloqueado.'
+      });
+      setEnteredPin('');
+    }
   };
 
   const handleSelectProfile = (profileId) => {
@@ -156,7 +194,12 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
           </span>
         </div>
 
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <div className="flex items-center gap-1">
+          {isSecondaryLocked && (
+            <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" title="Tela travada pelo Administrador" />
+          )}
+          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
       </button>
 
       {/* DROPDOWN DE AMBIENTES E LOGIN GOOGLE */}
@@ -291,6 +334,74 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig }) {
             )}
           </div>
 
+        </div>
+      )}
+
+      {/* MODAL DE DESBLOQUEIO DE TELA POR PIN DO ADMIN */}
+      {pinModalOpen && (
+        <div 
+          onClick={() => setPinModalOpen(false)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-rose-500/80 w-full max-w-sm rounded-3xl shadow-2xl p-6 text-slate-100 font-sans cursor-default animate-scaleUp space-y-4"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/40">
+                  <Lock className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="font-black text-sm text-white uppercase tracking-wider">
+                    Tela Travada
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Proteção de monitores e tablets</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setPinModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Este aparelho está protegido contra trocas indevidas de tela. Digite o PIN de Administrador (padrão <span className="font-mono font-bold text-amber-400">1234</span>) para liberar o acesso:
+            </p>
+
+            <form onSubmit={handleConfirmPin} className="space-y-4">
+              <div className="relative">
+                <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="password"
+                  maxLength={6}
+                  autoFocus
+                  placeholder="PIN de Segurança"
+                  value={enteredPin}
+                  onChange={(e) => setEnteredPin(e.target.value)}
+                  className="w-full bg-slate-950 border-2 border-slate-700 focus:border-rose-500 rounded-xl py-2.5 pl-10 pr-4 text-center font-mono text-base font-black tracking-widest text-white outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setPinModalOpen(false)}
+                  className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="py-2 px-5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-rose-950/50 cursor-pointer"
+                >
+                  Liberar Acesso
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
