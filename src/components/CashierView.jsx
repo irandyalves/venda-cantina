@@ -1752,16 +1752,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             maxWidth: 'calc(100vw - 24px)',
           }}
         >
-          <div className="bg-slate-950/95 backdrop-blur-md border border-amber-500/50 rounded-2xl p-3 shadow-2xl shadow-black/90 text-white">
-            <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-800">
-              <span className="font-mono font-black text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                {hoveredOrderHint.orderNumber}
-              </span>
-              <span className="font-mono font-black text-xs text-emerald-400">
-                {formatPrice(hoveredOrderHint.totalPrice, showCurrencySymbol)}
-              </span>
-            </div>
-
+          <div className="bg-slate-950/95 backdrop-blur-md border border-amber-500/50 rounded-2xl p-2.5 shadow-2xl shadow-black/90 text-white">
             <div className="flex flex-col gap-1 max-h-56 overflow-y-auto pr-1">
               {(hoveredOrderHint.items && hoveredOrderHint.items.length > 0
                 ? hoveredOrderHint.items
