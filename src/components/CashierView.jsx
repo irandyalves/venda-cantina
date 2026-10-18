@@ -736,9 +736,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     return (
       <div 
         key={order.id || order.orderIds?.[0] || order.orderNumber}
-        onMouseEnter={(e) => handleCardMouseEnter(e, order)}
-        onMouseLeave={handleCardMouseLeave}
-        className={`px-2.5 py-1.5 rounded-xl border ${style.border} ${style.bg} transition-all shadow-md text-xs flex items-center justify-between gap-2 cursor-pointer relative group`}
+        className={`px-2.5 py-1.5 rounded-xl border ${style.border} ${style.bg} transition-all shadow-md text-xs flex items-center justify-between gap-2 relative`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
           {/* NÚMERO / SENHA DO PEDIDO (SEM ÍCONE ANTES) */}
@@ -753,8 +751,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             {order.customerName}
           </span>
 
-          {/* CAPTION/BOTÃO PEDIDOS: FUNDO PRETO, FONTE BRANCA, NA FRENTE DO NOME */}
-          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-black text-white border border-slate-700 shadow-xs shrink-0 select-none group-hover:border-amber-400/60 transition-all">
+          {/* CAPTION/BOTÃO PEDIDOS: O HINT SÓ APARECE SE PASSAR O MOUSE EM CIMA DELE */}
+          <div 
+            onMouseEnter={(e) => handleCardMouseEnter(e, order)}
+            onMouseLeave={handleCardMouseLeave}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-black text-white border border-slate-700 shadow-xs shrink-0 select-none hover:border-amber-400 cursor-pointer transition-all"
+          >
             <span>PEDIDOS</span>
             <span className="bg-slate-800 text-amber-400 px-1 py-0.2 rounded font-mono text-[9px]">
               {items.reduce((acc, it) => acc + (it.quantity || 1), 0)}
@@ -1751,27 +1753,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           }}
         >
           <div className="bg-slate-950/95 backdrop-blur-md border border-amber-500/50 rounded-2xl p-3 shadow-2xl shadow-black/90 text-white">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-black text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  {hoveredOrderHint.orderNumber}
-                </span>
-                <span className="font-black text-xs uppercase tracking-wider text-white truncate max-w-[140px]">
-                  {hoveredOrderHint.customerName}
-                </span>
-              </div>
+            <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-800">
+              <span className="font-mono font-black text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                {hoveredOrderHint.orderNumber}
+              </span>
               <span className="font-mono font-black text-xs text-emerald-400">
                 {formatPrice(hoveredOrderHint.totalPrice, showCurrencySymbol)}
-              </span>
-            </div>
-
-            <div className="text-[10px] font-black uppercase tracking-wider text-amber-400/90 mb-1.5 flex items-center justify-between">
-              <span>PEDIDOS DO CLIENTE:</span>
-              <span className="text-[9px] text-slate-400 font-mono">
-                {(hoveredOrderHint.items && hoveredOrderHint.items.length > 0
-                  ? hoveredOrderHint.items
-                  : getOrderItems(hoveredOrderHint)
-                ).reduce((acc, it) => acc + (it.quantity || 1), 0)} itens
               </span>
             </div>
 
