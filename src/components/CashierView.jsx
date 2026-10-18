@@ -207,9 +207,78 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     });
   };
 
-  const preparingList = sortNewestFirst(todayOrders.filter(o => o.status === 'em_preparo'));
-  const readyList = sortNewestFirst(todayOrders.filter(o => o.status === 'pronto'));
-  const deliveredList = sortNewestFirst(todayOrders.filter(o => o.status === 'entregue'));
+  // Cores de fundo e borda para cada categoria de item (identados no rodapé)
+  const getItemBadgeStyle = (categoryId, desc = '') => {
+    const cat = String(categoryId || '').toLowerCase();
+    const d = String(desc || '').toLowerCase();
+
+    if (cat.includes('batata') || d.includes('batata') || d.includes('cone') || d.includes('cheddar')) {
+      return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
+    }
+    if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai') || d.includes('copo') || d.includes('tigela')) {
+      return 'bg-purple-950/70 border border-purple-500/50 text-purple-200';
+    }
+    if (cat.includes('pizza') || d.includes('pizza') || d.includes('pedaço') || d.includes('inteira') || d.includes('marguerita') || d.includes('calabresa')) {
+      return 'bg-yellow-950/70 border border-yellow-500/50 text-yellow-200';
+    }
+    return 'bg-cyan-950/70 border border-cyan-500/50 text-cyan-200';
+  };
+
+  const getOrderItems = (order) => {
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      return order.items;
+    }
+    return [{
+      description: order.fullDescription || order.itemName || 'Item',
+      quantity: order.quantity || 1,
+      categoryId: order.category || order.categoryName || 'outros',
+      unitPrice: order.unitPrice || order.totalPrice || 0
+    }];
+  };
+
+  // Consolidação de pedidos do mesmo cliente em um único card com senha única
+  const groupOrdersForDisplay = (list) => {
+    if (!Array.isArray(list)) return [];
+    const groups = [];
+    const map = new Map();
+
+    for (const ord of list) {
+      const normName = (ord.customerName || '').trim().toUpperCase();
+      const orderNum = (ord.orderNumber || '').trim();
+      // Agrupa por cliente no mesmo intervalo de 30 minutos (ou pela mesma comanda)
+      const timeSlot = Math.floor((new Date(ord.createdAt || 0).getTime()) / (30 * 60 * 1000));
+      const groupKey = normName ? `${normName}_${timeSlot}` : (orderNum || ord.id);
+
+      if (!map.has(groupKey)) {
+        const consolidated = {
+          ...ord,
+          orderNumber: ord.orderNumber,
+          customerName: ord.customerName,
+          totalPrice: Number(ord.totalPrice) || 0,
+          items: [...getOrderItems(ord)],
+          orderIds: [ord.id]
+        };
+        map.set(groupKey, consolidated);
+        groups.push(consolidated);
+      } else {
+        const existing = map.get(groupKey);
+        existing.totalPrice += Number(ord.totalPrice) || 0;
+        const newItems = getOrderItems(ord);
+        existing.items.push(...newItems);
+        existing.orderIds.push(ord.id);
+      }
+    }
+
+    return groups;
+  };
+
+  const rawPreparing = sortNewestFirst(todayOrders.filter(o => o.status === 'em_preparo'));
+  const rawReady = sortNewestFirst(todayOrders.filter(o => o.status === 'pronto'));
+  const rawDelivered = sortNewestFirst(todayOrders.filter(o => o.status === 'entregue'));
+
+  const preparingList = groupOrdersForDisplay(rawPreparing);
+  const readyList = groupOrdersForDisplay(rawReady);
+  const deliveredList = groupOrdersForDisplay(rawDelivered);
 
   const totalFaturado = todayOrders.filter(o => o.status !== 'cancelado').reduce((acc, curr) => acc + (Number(curr.totalPrice) || 0), 0);
 
@@ -353,34 +422,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   };
 
 
-  // Cores de fundo e borda para cada categoria de item (identados no rodapé)
-  const getItemBadgeStyle = (categoryId, desc = '') => {
-    const cat = String(categoryId || '').toLowerCase();
-    const d = String(desc || '').toLowerCase();
 
-    if (cat.includes('batata') || d.includes('batata') || d.includes('cone') || d.includes('cheddar')) {
-      return 'bg-orange-950/70 border border-orange-500/50 text-orange-200';
-    }
-    if (cat.includes('acai') || cat.includes('açaí') || d.includes('açaí') || d.includes('acai') || d.includes('copo') || d.includes('tigela')) {
-      return 'bg-purple-950/70 border border-purple-500/50 text-purple-200';
-    }
-    if (cat.includes('pizza') || d.includes('pizza') || d.includes('pedaço') || d.includes('inteira') || d.includes('marguerita') || d.includes('calabresa')) {
-      return 'bg-yellow-950/70 border border-yellow-500/50 text-yellow-200';
-    }
-    return 'bg-cyan-950/70 border border-cyan-500/50 text-cyan-200';
-  };
-
-  const getOrderItems = (order) => {
-    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-      return order.items;
-    }
-    return [{
-      description: order.fullDescription || order.itemName || 'Item',
-      quantity: order.quantity || 1,
-      categoryId: order.category || order.categoryName || 'outros',
-      unitPrice: order.unitPrice || order.totalPrice || 0
-    }];
-  };
 
   // Finalizar a comanda do cliente: A SENHA É ÚNICA PARA TODA A COMPRA!
   const handleFinalizeCart = async (e) => {
@@ -613,51 +655,54 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const isNameFilled = customerName.trim().length > 0;
 
 
-  // Renderizador de card do rodapé com SENHA ÚNICA e itens identados
+  // Renderizador de card do rodapé com SENHA ÚNICA e itens consolidados no mesmo card
   const renderFooterCard = (order, isDelivered = false) => {
     const style = getOrderCategoryStyle(order);
-    const items = getOrderItems(order);
+    const items = order.items && order.items.length > 0 ? order.items : getOrderItems(order);
 
     return (
       <div 
-        key={order.id}
-        className={`px-2.5 py-1.5 rounded-lg border ${style.border} ${style.bg} transition-all shadow-sm text-xs flex flex-col gap-1`}
+        key={order.id || order.orderIds?.[0] || order.orderNumber}
+        className={`px-3 py-2 rounded-xl border ${style.border} ${style.bg} transition-all shadow-md text-xs flex flex-col gap-1.5`}
       >
-        {/* CABEÇALHO DO CARD: SENHA ÚNICA GERAL + NOME DO CLIENTE */}
-        <div className="flex items-center justify-between gap-1.5">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="flex items-center gap-1 shrink-0">
+        {/* CABEÇALHO DO CARD: B-01 | JOÃO + VALOR TOTAL */}
+        <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               {style.icon}
-              <span className={`font-mono font-black text-[11px] px-1.5 py-0.2 rounded border ${style.badgeColor}`}>
+              <span className={`font-mono font-black text-xs px-2 py-0.5 rounded-lg border ${style.badgeColor}`}>
                 {order.orderNumber}
               </span>
             </div>
 
-            <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+            <span className="text-slate-600 font-bold select-none text-xs">|</span>
 
-            <span className="text-[11px] font-black text-white uppercase truncate" title={order.customerName}>
+            <span className="text-xs font-black text-white uppercase tracking-wider truncate" title={order.customerName}>
               {order.customerName}
             </span>
           </div>
 
-          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+          <span className="text-xs font-mono font-black text-emerald-400 shrink-0">
             R$ {(Number(order.totalPrice) || 0).toFixed(2)}
           </span>
         </div>
 
-        {/* DEMAIS ITENS IDENTADOS COM QUANTIDADE BOLD EM LARANJA E FUNDO CORRESPONDENTE */}
-        <div className="flex items-center gap-1.5 flex-wrap pl-2.5 border-l-2 border-amber-500/40 mt-0.5">
+        {/* ITENS NO FORMATO: 01 Cone Individual • 01 Copo 500ml açaí • 01 Copo 300ml açaí */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
           {items.map((it, idx) => (
             <span
               key={idx}
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[11px] font-bold shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
             >
-              <strong className="text-orange-400 font-mono font-black text-[11px]">
+              <strong className="text-orange-400 font-mono font-black text-xs">
                 {String(it.quantity).padStart(2, '0')}
               </strong>
-              <span className="text-slate-100 font-bold">
+              <span className="text-slate-100">
                 {it.description || it.name || it.itemName}
               </span>
+              {idx < items.length - 1 && (
+                <span className="text-slate-400 font-black ml-1 select-none">•</span>
+              )}
             </span>
           ))}
         </div>

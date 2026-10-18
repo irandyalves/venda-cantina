@@ -158,36 +158,98 @@ export default function KitchenView({ environment, onNavigate }) {
     };
   }, [soundEnabled, productionRouting]);
 
+  // Normalização de itens para exibição no card
+  const getOrderItems = (order) => {
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      return order.items;
+    }
+    return [{
+      description: order.fullDescription || order.itemName || 'Item',
+      quantity: order.quantity || 1,
+      categoryId: order.category || order.categoryName || 'outros',
+      unitPrice: order.unitPrice || order.totalPrice || 0
+    }];
+  };
+
+  // Consolidação de pedidos do mesmo cliente em um único card com senha única
+  const groupOrdersForDisplay = (list) => {
+    if (!Array.isArray(list)) return [];
+    const groups = [];
+    const map = new Map();
+
+    for (const ord of list) {
+      const normName = (ord.customerName || '').trim().toUpperCase();
+      const orderNum = (ord.orderNumber || '').trim();
+      // Agrupa por cliente no mesmo intervalo de 30 minutos (ou pela mesma comanda)
+      const timeSlot = Math.floor((new Date(ord.createdAt || 0).getTime()) / (30 * 60 * 1000));
+      const groupKey = normName ? `${normName}_${timeSlot}` : (orderNum || ord.id);
+
+      if (!map.has(groupKey)) {
+        const consolidated = {
+          ...ord,
+          orderNumber: ord.orderNumber,
+          customerName: ord.customerName,
+          totalPrice: Number(ord.totalPrice) || 0,
+          items: [...getOrderItems(ord)],
+          orderIds: [ord.id]
+        };
+        map.set(groupKey, consolidated);
+        groups.push(consolidated);
+      } else {
+        const existing = map.get(groupKey);
+        existing.totalPrice += Number(ord.totalPrice) || 0;
+        const newItems = getOrderItems(ord);
+        existing.items.push(...newItems);
+        existing.orderIds.push(ord.id);
+      }
+    }
+
+    return groups;
+  };
+
   // AÇÃO DE ENTREGAR
-  const handleDeliver = async (orderId) => {
+  const handleDeliver = async (order) => {
     try {
-      if (newestOrderId === orderId) {
+      const ids = order.orderIds || [order.id];
+      if (newestOrderId && ids.includes(newestOrderId)) {
         setNewestOrderId(null);
       }
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'entregue', updatedAt: Date.now() } : o));
-      await storageService.updateOrderStatus(orderId, 'entregue');
+      setOrders(prev => prev.map(o => ids.includes(o.id) ? { ...o, status: 'entregue', updatedAt: Date.now() } : o));
+      for (const id of ids) {
+        await storageService.updateOrderStatus(id, 'entregue');
+      }
     } catch (err) {
       console.error('Erro ao entregar pedido:', err);
     }
   };
 
-  const handleMarkReady = async (orderId) => {
+  const handleMarkReady = async (order) => {
     try {
-      await storageService.ringOrderBell(orderId);
+      const ids = order.orderIds || [order.id];
+      for (const id of ids) {
+        await storageService.ringOrderBell(id);
+      }
       soundService.playReadySound();
     } catch (e) {
       console.error('Erro ao acionar sino:', e);
     }
   };
 
-  const handleReopen = async (orderId) => {
-    await storageService.updateOrderStatus(orderId, 'em_preparo');
+  const handleReopen = async (order) => {
+    const ids = order.orderIds || [order.id];
+    setOrders(prev => prev.map(o => ids.includes(o.id) ? { ...o, status: 'em_preparo', updatedAt: Date.now() } : o));
+    for (const id of ids) {
+      await storageService.updateOrderStatus(id, 'em_preparo');
+    }
   };
 
   // Filtragem dos pedidos da COZINHA
   const kitchenOrders = orders.filter(isOrderForKitchen);
-  const activeOrders = kitchenOrders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
-  const deliveredOrders = kitchenOrders.filter(o => o.status === 'entregue');
+  const rawActive = kitchenOrders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
+  const rawDelivered = kitchenOrders.filter(o => o.status === 'entregue');
+
+  const activeOrders = groupOrdersForDisplay(rawActive);
+  const deliveredOrders = groupOrdersForDisplay(rawDelivered);
 
   const displayedOrders = activeFilter === 'active'
     ? activeOrders
@@ -216,18 +278,7 @@ export default function KitchenView({ environment, onNavigate }) {
     return <UtensilsCrossed className="w-4 h-4 text-amber-400" />;
   };
 
-  // Normalização de itens para exibição no card
-  const getOrderItems = (order) => {
-    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-      return order.items;
-    }
-    return [{
-      description: order.fullDescription || order.itemName || 'Item',
-      quantity: order.quantity || 1,
-      categoryId: order.category || order.categoryName || 'outros',
-      unitPrice: order.unitPrice || order.totalPrice || 0
-    }];
-  };
+
 
   // Cores de fundo e borda para cada categoria de item
   const getItemBadgeStyle = (categoryId, desc = '') => {
@@ -371,6 +422,9 @@ export default function KitchenView({ environment, onNavigate }) {
                         <span className="font-bold text-white">
                           {it.description || it.name || it.itemName}
                         </span>
+                        {idx < itemsList.length - 1 && (
+                          <span className="text-slate-400 font-black ml-1 select-none">•</span>
+                        )}
                       </span>
                     ))}
                   </div>
@@ -387,7 +441,7 @@ export default function KitchenView({ environment, onNavigate }) {
 
                         {/* PRONTO (SINO) */}
                         <button
-                          onClick={() => handleMarkReady(order.id)}
+                          onClick={() => handleMarkReady(order)}
                           className="w-[32px] h-[32px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-lg transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
                           title="Tocar sino e chamar no painel PEDIDOS"
                         >
@@ -396,7 +450,7 @@ export default function KitchenView({ environment, onNavigate }) {
 
                         {/* ENTREGAR */}
                         <button
-                          onClick={() => handleDeliver(order.id)}
+                          onClick={() => handleDeliver(order)}
                           className="px-3.5 h-[32px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs rounded-lg transition-all shadow-md flex items-center gap-1.5 border border-emerald-400 cursor-pointer"
                           title="Entregar pedido concluído"
                         >
@@ -406,7 +460,7 @@ export default function KitchenView({ environment, onNavigate }) {
                       </div>
                     ) : (
                       <button
-                        onClick={() => handleReopen(order.id)}
+                        onClick={() => handleReopen(order)}
                         className="px-3 h-[32px] bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
