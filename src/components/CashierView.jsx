@@ -52,6 +52,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   // 2º Passo: Clica nos produtos (Pastel, Batata, Pizza...) e vai montando a comanda
   // ========================================================
   const [customerName, setCustomerName] = useState('');
+  const [isNameFocused, setIsNameFocused] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('PIX');
   
   // Itens da comanda do cliente:
@@ -801,17 +802,28 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           {/* 1. NOME DO CLIENTE & FORMA DE PAGAMENTO */}
           <div className="flex items-center gap-2 flex-1 flex-wrap sm:flex-nowrap">
             <div className={`relative flex-1 min-w-[200px] ${nameShake ? 'animate-shake' : ''}`}>
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white">
-                <User className="w-4 h-4 text-white" />
-              </div>
+              {!isNameFocused && !customerName && (
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+              )}
               <input
                 ref={nameInputRef}
                 type="text"
-                placeholder="1º DIGITE O NOME DO CLIENTE (EX: JOÃO) *"
+                placeholder={isNameFocused ? '' : '1º DIGITE O NOME DO CLIENTE (EX: JOÃO) *'}
                 value={customerName}
-                onClick={() => {
+                onFocus={() => {
+                  setIsNameFocused(true);
                   setCustomerName('');
                   if (showNameError) setShowNameError(false);
+                }}
+                onClick={() => {
+                  setIsNameFocused(true);
+                  setCustomerName('');
+                  if (showNameError) setShowNameError(false);
+                }}
+                onBlur={() => {
+                  setIsNameFocused(false);
                 }}
                 onChange={(e) => {
                   setCustomerName(e.target.value.toUpperCase());
@@ -825,7 +837,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     }
                   }
                 }}
-                className={`w-full h-11 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase pl-9 pr-8 rounded-xl outline-none transition-all placeholder:text-white placeholder:font-bold placeholder:text-xs sm:placeholder:text-sm border-2 ${
+                className={`w-full h-11 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase ${
+                  !isNameFocused && !customerName ? 'pl-9' : 'pl-3'
+                } pr-8 rounded-xl outline-none transition-all placeholder:text-white placeholder:font-bold placeholder:text-xs sm:placeholder:text-sm focus:placeholder:text-transparent border-2 ${
                   !isNameFilled 
                     ? 'border-amber-500/80 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30' 
                     : 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-950/20'
