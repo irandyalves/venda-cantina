@@ -456,7 +456,7 @@ export default function KitchenView({ environment, onNavigate }) {
             </p>
           </div>
         ) : (
-          <div className="space-y-2.5 max-w-6xl mx-auto">
+          <div className="space-y-1.5 max-w-6xl mx-auto">
             {displayedOrders.map((order) => {
               const isReady = order.status === 'pronto';
               const isDelivered = order.status === 'entregue';
@@ -468,7 +468,7 @@ export default function KitchenView({ environment, onNavigate }) {
               return (
                 <div
                   key={order.id}
-                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-2 px-3 rounded-xl border-2 transition-all shadow-md gap-2.5 relative ${
+                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-1 px-2.5 rounded-xl border transition-all shadow-md gap-1.5 relative ${
                     isDelivered
                       ? 'bg-slate-900/40 border-slate-800 opacity-60'
                       : isNewestHighlight
@@ -482,35 +482,30 @@ export default function KitchenView({ environment, onNavigate }) {
                 >
                   {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
                   {isNewestHighlight && (
-                    <div className="absolute -top-2.5 left-3 bg-purple-600 border border-purple-400/60 text-white font-black text-[9px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-bounce">
+                    <div className="absolute -top-2.5 left-3 bg-purple-600 border border-purple-400/60 text-white font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-bounce">
                       <Sparkles className="w-2.5 h-2.5 text-purple-200" />
                       <span>NOVO PEDIDO CHEGOU!</span>
                     </div>
                   )}
 
-                  {/* BLOCO 1: SENHA ÚNICA GERAL + NOME DO CLIENTE */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="p-1 bg-slate-950 rounded-lg border border-slate-800 shrink-0">
-                      {getCategoryIcon(order.category)}
+                  {/* BLOCO 1: SENHA ÚNICA GERAL + NOME DO CLIENTE (SEM ÍCONE) */}
+                  <div className="shrink-0 flex flex-col justify-center min-w-[70px]">
+                    {/* CÓDIGO DA SENHA ÚNICA */}
+                    <div className="text-sm sm:text-base font-black text-orange-400 font-mono tracking-tight flex items-center leading-none">
+                      <span>{order.orderNumber}</span>
                     </div>
-                    <div>
-                      {/* CÓDIGO DA SENHA ÚNICA (Reduzido em 40%) */}
-                      <div className="text-sm sm:text-base font-black text-orange-400 font-mono tracking-tight flex items-center leading-none">
-                        <span>{order.orderNumber}</span>
-                      </div>
-                      {/* NOME DO CLIENTE (Sem ícone de pessoa, reduzido em 40%) */}
-                      <div className="text-[10px] sm:text-[11px] font-black text-white leading-tight uppercase truncate max-w-[130px] mt-0.5">
-                        {order.customerName}
-                      </div>
+                    {/* NOME DO CLIENTE */}
+                    <div className="text-[10px] sm:text-[11px] font-black text-white leading-tight uppercase truncate max-w-[130px] mt-0.5">
+                      {order.customerName}
                     </div>
                   </div>
 
-                  {/* BLOCO 2: TODOS OS PEDIDOS DO CLIENTE NO MESMO CARD (01 Cone | 01 Copo 500ml | 01 Pedaço...) */}
-                  <div className="flex-1 bg-slate-950/70 px-2 py-1 rounded-xl border border-slate-800/80 flex items-center gap-1.5 flex-wrap min-h-[36px]">
+                  {/* BLOCO 2: TODOS OS PEDIDOS DO CLIENTE NO MESMO CARD (ESPAÇO REDUZIDO EM 70%) */}
+                  <div className="flex-1 bg-slate-950/70 px-1.5 py-0.5 rounded-lg border border-slate-800/80 flex items-center gap-1 flex-wrap min-h-0">
                     {itemsList.map((it, idx) => (
                       <span
                         key={idx}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-semibold shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold leading-tight shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
                       >
                         <span className="font-black text-orange-400 font-mono text-[11px] sm:text-[12px]">
                           {String(it.quantity).padStart(2, '0')}
@@ -519,19 +514,19 @@ export default function KitchenView({ environment, onNavigate }) {
                           {it.description || it.name || it.itemName}
                         </span>
                         {idx < itemsList.length - 1 && (
-                          <span className="text-slate-400 font-black ml-1 select-none text-[9px]">•</span>
+                          <span className="text-slate-400 font-black ml-0.5 select-none text-[8px]">•</span>
                         )}
                       </span>
                     ))}
                   </div>
 
-                  {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR */}
-                  <div className="flex items-center justify-between md:justify-end gap-1.5 sm:gap-2 shrink-0">
+                  {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR (ALTURA COMPACTADA EM 20%) */}
+                  <div className="flex items-center justify-between md:justify-end gap-1.5 shrink-0">
                     {!isDelivered ? (
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        {/* TEMPO INTELIGENTE (MANTIDO INTACTO) */}
+                      <div className="flex items-center gap-1.5">
+                        {/* TEMPO INTELIGENTE (ALTURA COMPACTADA) */}
                         <div 
-                          className={`text-[11px] font-mono font-bold px-2.5 h-[32px] rounded-lg border flex items-center justify-center gap-1.5 transition-all shadow-sm ${timeStatus.classes}`}
+                          className={`text-[10px] font-mono font-bold px-2 h-[26px] rounded-lg border flex items-center justify-center gap-1 transition-all shadow-sm ${timeStatus.classes}`}
                           title={
                             timeStatus.isBypassed
                               ? `ATENÇÃO: Outro pedido com item igual foi feito depois e já saiu/entregue antes! (${timeStatus.bypassedCount}x)`
@@ -539,13 +534,13 @@ export default function KitchenView({ environment, onNavigate }) {
                           }
                         >
                           {timeStatus.isBypassed ? (
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0 animate-bounce" />
+                            <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0 animate-bounce" />
                           ) : (
-                            <Clock className="w-3.5 h-3.5" />
+                            <Clock className="w-3 h-3" />
                           )}
                           <span>{getElapsedTime(order.createdAt)}</span>
                           {timeStatus.badge && (
-                            <span className="text-[8px] font-black uppercase tracking-wider bg-black/40 px-1 py-0.2 rounded border border-white/20">
+                            <span className="text-[7px] font-black uppercase tracking-wider bg-black/40 px-1 py-0.2 rounded border border-white/20">
                               {timeStatus.badge}
                             </span>
                           )}
@@ -554,28 +549,28 @@ export default function KitchenView({ environment, onNavigate }) {
                         {/* PRONTO (SINO) */}
                         <button
                           onClick={() => handleMarkReady(order)}
-                          className="w-[32px] h-[32px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-lg transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
+                          className="w-[26px] h-[26px] bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 rounded-lg transition-all border border-slate-700 hover:border-amber-400/80 shadow-md flex items-center justify-center cursor-pointer"
                           title="Tocar sino e chamar no painel PEDIDOS"
                         >
-                          <BellRing className="w-4 h-4 animate-bounce" />
+                          <BellRing className="w-3.5 h-3.5 animate-bounce" />
                         </button>
 
                         {/* ENTREGAR */}
                         <button
                           onClick={() => handleDeliver(order)}
-                          className="px-3 h-[32px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-[11px] rounded-lg transition-all shadow-md flex items-center gap-1.5 border border-emerald-400 cursor-pointer"
+                          className="px-2.5 h-[26px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-[10px] rounded-lg transition-all shadow-md flex items-center gap-1 border border-emerald-400 cursor-pointer"
                           title="Entregar pedido concluído"
                         >
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <Check className="w-3 h-3 stroke-[3]" />
                           <span>ENTREGAR</span>
                         </button>
                       </div>
                     ) : (
                       <button
                         onClick={() => handleReopen(order)}
-                        className="px-3 h-[32px] bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 h-[26px] bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        <RotateCcw className="w-3.5 h-3.5" />
+                        <RotateCcw className="w-3 h-3" />
                         <span>Reabrir</span>
                       </button>
                     )}
