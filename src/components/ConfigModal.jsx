@@ -40,6 +40,7 @@ import {
   Volume2,
   Maximize2,
   BellRing,
+  Clock,
   Download
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
@@ -276,6 +277,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' | 'desc'
 
+  // Estado Limites de Tempo e Cores dos Pedidos (Cozinha)
+  const [orderTimeLimits, setOrderTimeLimits] = useState(() => storageService.getOrderTimeLimits());
+
   useEffect(() => {
     if (isOpen) {
       if (initialTab) setActiveTab(initialTab);
@@ -307,6 +311,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const handleEventsListChange = (e) => {
       if (e.detail) setEventsList(e.detail);
     };
+    const handleLimitsChange = (e) => {
+      setOrderTimeLimits(e.detail || storageService.getOrderTimeLimits());
+    };
 
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
     window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
@@ -314,6 +321,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     window.addEventListener('cantina_products_changed', handleProductsChange);
     window.addEventListener('cantina_event_changed', handleEventChange);
     window.addEventListener('cantina_events_list_changed', handleEventsListChange);
+    window.addEventListener('cantina_order_time_limits_changed', handleLimitsChange);
 
     return () => {
       unsubOrders();
@@ -323,6 +331,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       window.removeEventListener('cantina_products_changed', handleProductsChange);
       window.removeEventListener('cantina_event_changed', handleEventChange);
       window.removeEventListener('cantina_events_list_changed', handleEventsListChange);
+      window.removeEventListener('cantina_order_time_limits_changed', handleLimitsChange);
     };
   }, []);
 
@@ -443,9 +452,28 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setEventsList(storageService.getEventsList());
     setTurnoHistory(storageService.getTurnoHistory());
     setOrders(storageService.getLocalOrders());
+    setOrderTimeLimits(storageService.getOrderTimeLimits());
   };
 
   if (!isOpen) return null;
+
+  // --- AÇÕES DE TEMPO E CORES DOS PEDIDOS NA COZINHA ---
+  const handleUpdateOrderTimeLimits = (field, val) => {
+    const num = Math.max(1, parseInt(val, 10) || 1);
+    setOrderTimeLimits(prev => ({ ...prev, [field]: num }));
+  };
+
+  const handleSaveOrderTimeLimits = () => {
+    storageService.saveOrderTimeLimits(orderTimeLimits);
+    showToast('Tempos e cores dos pedidos salvos com sucesso!', 'Configuração Salva');
+  };
+
+  const handleResetOrderTimeLimits = () => {
+    const defaults = { greenLimit: 3, blueLimit: 6, yellowLimit: 10, orangeLimit: 15 };
+    setOrderTimeLimits(defaults);
+    storageService.saveOrderTimeLimits(defaults);
+    showToast('Tempos restaurados para o padrão!', 'Padrão Restaurado');
+  };
 
   // --- AÇÕES DE CONFIGURAÇÃO DA TV E COZINHA ---
   const handleToggleTVSound = () => {
@@ -1610,7 +1638,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             </span>
           </button>
 
-          {/* 3. TELAS */}
+          {/* 3. COZINHA & TELAS */}
           <button
             onClick={() => setActiveTab('tv')}
             className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
@@ -1619,8 +1647,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 : 'text-slate-400 border-transparent hover:text-white'
             }`}
           >
-            <Tv className="w-4 h-4" />
-            <span>Telas do Ambiente</span>
+            <Clock className="w-4 h-4 text-amber-400" />
+            <span>Cozinha & Telas (Tempos)</span>
           </button>
 
           {/* 4. CONEXÕES */}
@@ -2772,6 +2800,187 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
              ========================================================= */}
           {activeTab === 'tv' && (
             <div className="space-y-6">
+
+              {/* SEÇÃO 0: TEMPO INTELIGENTE E CORES DOS PEDIDOS NA COZINHA */}
+              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                      <Clock className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-extrabold text-white text-base flex items-center gap-2 flex-wrap">
+                        Tempos e Cores dos Pedidos (Cozinha)
+                        <span className="text-[10px] bg-emerald-400/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-400/30">
+                          5 Cores Inteligentes
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Determine os minutos para cada cor de alerta do pedido: Verde e Azul (no prazo), Amarelo (alerta 1), Laranja (atrasado) e Vermelho (muito atrasado).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleResetOrderTimeLimits}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                      title="Restaura os tempos padrão (3m, 6m, 10m, 15m)"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Padrão</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveOrderTimeLimits}
+                      className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Salvar Tempos</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* GRID DOS 5 ESTÁGIOS DE TEMPO */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {/* 1. VERDE: NORMAL INICIAL */}
+                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-emerald-500 border border-slate-700/80 space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/40">
+                        Normal
+                      </span>
+                      <span className="text-xs">🟢</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">Recém-chegado à cozinha</div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Até (minutos):</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={orderTimeLimits.greenLimit}
+                        onChange={(e) => handleUpdateOrderTimeLimits('greenLimit', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-emerald-400 outline-none focus:border-emerald-400"
+                      />
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono">0 a {orderTimeLimits.greenLimit} min</div>
+                  </div>
+
+                  {/* 2. AZUL: NO PRAZO */}
+                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-sky-500 border border-slate-700/80 space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-500/40">
+                        No Prazo
+                      </span>
+                      <span className="text-xs">🔵</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">Preparo em andamento</div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Até (minutos):</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={orderTimeLimits.blueLimit}
+                        onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-sky-400 outline-none focus:border-sky-400"
+                      />
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono">{orderTimeLimits.greenLimit} a {orderTimeLimits.blueLimit} min</div>
+                  </div>
+
+                  {/* 3. AMARELO: ALERTA 1 */}
+                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-amber-400 border border-slate-700/80 space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/40">
+                        Alerta 1
+                      </span>
+                      <span className="text-xs">🟡</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">Atenção ao tempo</div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Até (minutos):</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="90"
+                        value={orderTimeLimits.yellowLimit}
+                        onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-amber-300 outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono">{orderTimeLimits.blueLimit} a {orderTimeLimits.yellowLimit} min</div>
+                  </div>
+
+                  {/* 4. LARANJA: ATRASADO */}
+                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-orange-500 border border-slate-700/80 space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 bg-orange-950/80 px-2 py-0.5 rounded border border-orange-500/40">
+                        Atrasado
+                      </span>
+                      <span className="text-xs">🟠</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">Limite excedido</div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Até (minutos):</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="120"
+                        value={orderTimeLimits.orangeLimit}
+                        onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-orange-400 outline-none focus:border-orange-400"
+                      />
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono">{orderTimeLimits.yellowLimit} a {orderTimeLimits.orangeLimit} min</div>
+                  </div>
+
+                  {/* 5. VERMELHO: MUITO ATRASADO */}
+                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-rose-500 border border-slate-700/80 space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-500/40 animate-pulse">
+                        Muito Atrasado
+                      </span>
+                      <span className="text-xs">🔴</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">Crítico / Urgente</div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Condição:</label>
+                      <div className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-sm font-mono font-black text-rose-400">
+                        &gt; {orderTimeLimits.orangeLimit} min
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-rose-400 font-mono font-bold">Acima de {orderTimeLimits.orangeLimit} min</div>
+                  </div>
+                </div>
+
+                {/* BARRA VISUAL DA LINHA DO TEMPO */}
+                <div className="pt-2 border-t border-slate-800/80">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center justify-between">
+                    <span>Evolução das Cores na Cozinha:</span>
+                    <span className="text-[9px] text-slate-500">Muda de cor automaticamente no cronômetro e na borda esquerda do card</span>
+                  </div>
+                  <div className="h-4 rounded-lg overflow-hidden flex text-[9px] font-black font-mono text-slate-950 border border-slate-800">
+                    <div className="bg-emerald-500 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, (orderTimeLimits.greenLimit / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Normal: 0 a ${orderTimeLimits.greenLimit} min`}>
+                      0-{orderTimeLimits.greenLimit}m
+                    </div>
+                    <div className="bg-sky-400 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.blueLimit - orderTimeLimits.greenLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`No prazo: ${orderTimeLimits.greenLimit} a ${orderTimeLimits.blueLimit} min`}>
+                      {orderTimeLimits.blueLimit}m
+                    </div>
+                    <div className="bg-amber-400 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.yellowLimit - orderTimeLimits.blueLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Alerta 1: ${orderTimeLimits.blueLimit} a ${orderTimeLimits.yellowLimit} min`}>
+                      {orderTimeLimits.yellowLimit}m
+                    </div>
+                    <div className="bg-orange-500 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.orangeLimit - orderTimeLimits.yellowLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Atrasado: ${orderTimeLimits.yellowLimit} a ${orderTimeLimits.orangeLimit} min`}>
+                      {orderTimeLimits.orangeLimit}m
+                    </div>
+                    <div className="bg-rose-600 flex items-center justify-center flex-1 text-white animate-pulse" title={`Muito Atrasado: acima de ${orderTimeLimits.orangeLimit} min`}>
+                      &gt;{orderTimeLimits.orangeLimit}m
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* SEÇÃO 1: TELAS DO AMBIENTE - DESTINO DE PREPARO E CORTE RÁPIDO */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">

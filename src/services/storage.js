@@ -511,6 +511,9 @@ class StorageService {
         if (event.data?.type === 'CURRENCY_SYMBOL_UPDATED') {
           window.dispatchEvent(new CustomEvent('cantina_currency_changed', { detail: event.data.payload }));
         }
+        if (event.data?.type === 'ORDER_TIME_LIMITS_UPDATED') {
+          window.dispatchEvent(new CustomEvent('cantina_order_time_limits_changed', { detail: event.data.payload }));
+        }
       };
     }
 
@@ -519,6 +522,12 @@ class StorageService {
       window.addEventListener('storage', (e) => {
         if (e.key === SHOW_CURRENCY_SYMBOL_KEY) {
           window.dispatchEvent(new CustomEvent('cantina_currency_changed', { detail: e.newValue === 'true' }));
+        }
+        if (e.key === 'cantina_order_time_limits') {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            window.dispatchEvent(new CustomEvent('cantina_order_time_limits_changed', { detail: parsed }));
+          } catch (_) {}
         }
         if (e.key === LOCAL_ORDERS_KEY) {
           const local = this.getLocalOrders();
@@ -722,6 +731,43 @@ class StorageService {
       syncChannel.postMessage({ type: 'KITCHEN_SETTINGS_UPDATED', payload: settings });
     }
     window.dispatchEvent(new CustomEvent('cantina_kitchen_settings_changed', { detail: settings }));
+  }
+
+  // --- LIMITES DE TEMPO E CORES DOS PEDIDOS (COZINHA) ---
+  getOrderTimeLimits() {
+    const defaultLimits = {
+      greenLimit: 3,    // até 3 min = Verde (Normal)
+      blueLimit: 6,     // até 6 min = Azul (No prazo)
+      yellowLimit: 10,  // até 10 min = Amarelo (Alerta 1)
+      orangeLimit: 15   // até 15 min = Laranja (Atrasado) -> Acima = Vermelho (Muito Atrasado)
+    };
+    try {
+      const raw = localStorage.getItem('cantina_order_time_limits');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          greenLimit: Number(parsed.greenLimit) || 3,
+          blueLimit: Number(parsed.blueLimit) || 6,
+          yellowLimit: Number(parsed.yellowLimit) || 10,
+          orangeLimit: Number(parsed.orangeLimit) || 15
+        };
+      }
+    } catch {}
+    return defaultLimits;
+  }
+
+  saveOrderTimeLimits(limits) {
+    const safeLimits = {
+      greenLimit: Math.max(1, Number(limits.greenLimit) || 3),
+      blueLimit: Math.max(1, Number(limits.blueLimit) || 6),
+      yellowLimit: Math.max(1, Number(limits.yellowLimit) || 10),
+      orangeLimit: Math.max(1, Number(limits.orangeLimit) || 15)
+    };
+    localStorage.setItem('cantina_order_time_limits', JSON.stringify(safeLimits));
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'ORDER_TIME_LIMITS_UPDATED', payload: safeLimits });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_order_time_limits_changed', { detail: safeLimits }));
   }
 
   // --- CONFIGURAÇÃO DE EXIBIÇÃO DE MOEDA (R$) ---

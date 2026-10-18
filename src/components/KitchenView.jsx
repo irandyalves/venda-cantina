@@ -50,6 +50,17 @@ export default function KitchenView({ environment, onNavigate }) {
   const [newestOrderId, setNewestOrderId] = useState(null);
   const newestTimerRef = useRef(null);
 
+  // Configuração dos tempos dos pedidos
+  const [orderTimeLimits, setOrderTimeLimits] = useState(() => storageService.getOrderTimeLimits());
+
+  useEffect(() => {
+    const handleLimitsChange = (e) => {
+      setOrderTimeLimits(e.detail || storageService.getOrderTimeLimits());
+    };
+    window.addEventListener('cantina_order_time_limits_changed', handleLimitsChange);
+    return () => window.removeEventListener('cantina_order_time_limits_changed', handleLimitsChange);
+  }, []);
+
   // Guardar IDs já tocados para não repetir som
   const knownOrderIdsRef = useRef(new Set());
   const isFirstLoadRef = useRef(true);
@@ -303,19 +314,25 @@ export default function KitchenView({ environment, onNavigate }) {
   const getOrderTimeStatus = (order) => {
     const elapsedMinutes = Math.floor((currentTime - (order.createdAt || 0)) / 60000);
     const bypass = getBypassedInfo(order, orders);
+    const limits = orderTimeLimits || { greenLimit: 3, blueLimit: 6, yellowLimit: 10, orangeLimit: 15 };
 
-    // Severidade base por tempo: 0=Verde (<3m), 1=Azul (<6m), 2=Amarelo (<10m), 3=Laranja (<15m), 4=Vermelho (>=15m)
+    // Severidade base por tempo configurável:
+    // 0 = Verde (Normal) < greenLimit
+    // 1 = Azul (No prazo) < blueLimit
+    // 2 = Amarelo (Alerta 1) < yellowLimit
+    // 3 = Laranja (Atrasado) < orangeLimit
+    // 4 = Vermelho (Muito Atrasado) >= orangeLimit
     let severity = 0;
-    if (elapsedMinutes < 3) {
-      severity = 0; // Verde
-    } else if (elapsedMinutes < 6) {
-      severity = 1; // Azul
-    } else if (elapsedMinutes < 10) {
-      severity = 2; // Amarelo
-    } else if (elapsedMinutes < 15) {
-      severity = 3; // Laranja
+    if (elapsedMinutes < (limits.greenLimit || 3)) {
+      severity = 0; // Verde (Normal)
+    } else if (elapsedMinutes < (limits.blueLimit || 6)) {
+      severity = 1; // Azul (No prazo)
+    } else if (elapsedMinutes < (limits.yellowLimit || 10)) {
+      severity = 2; // Amarelo (Alerta 1)
+    } else if (elapsedMinutes < (limits.orangeLimit || 15)) {
+      severity = 3; // Laranja (Atrasado)
     } else {
-      severity = 4; // Vermelho
+      severity = 4; // Vermelho (Muito Atrasado)
     }
 
     // Se outro pedido do mesmo item foi feito depois e já saiu antes: DEDURA ATRASO!
@@ -323,37 +340,46 @@ export default function KitchenView({ environment, onNavigate }) {
       if (bypass.count >= 2) {
         severity = 4; // Vermelho direto!
       } else {
-        // Pula para Laranja (3) no mínimo, ou Vermelho (4) se já tiver mais de 6 min
         severity = Math.max(severity, 3);
-        if (elapsedMinutes >= 6) severity = 4;
+        if (elapsedMinutes >= (limits.blueLimit || 6)) severity = 4;
       }
     }
 
     const colorConfigs = [
       {
         name: 'verde',
+        label: 'Normal',
+        borderLeftClass: 'border-l-emerald-500',
         classes: 'text-emerald-400 bg-emerald-950/70 border-emerald-500/50',
         badge: null
       },
       {
         name: 'azul',
+        label: 'No prazo',
+        borderLeftClass: 'border-l-sky-500',
         classes: 'text-sky-400 bg-sky-950/70 border-sky-500/50',
         badge: null
       },
       {
         name: 'amarelo',
+        label: 'Alerta 1',
+        borderLeftClass: 'border-l-amber-400',
         classes: 'text-amber-300 bg-amber-950/70 border-amber-500/50',
-        badge: null
+        badge: 'Alerta 1'
       },
       {
         name: 'laranja',
+        label: 'Atrasado',
+        borderLeftClass: 'border-l-orange-500',
         classes: 'text-orange-400 bg-orange-950/70 border-orange-500/50',
-        badge: bypass.isBypassed ? 'Atrasado' : null
+        badge: 'Atrasado'
       },
       {
         name: 'vermelho',
+        label: 'Muito Atrasado',
+        borderLeftClass: 'border-l-rose-500',
         classes: 'text-rose-300 bg-rose-950/80 border-rose-500/80 animate-pulse font-black shadow-md shadow-rose-950/50',
-        badge: bypass.isBypassed ? 'Crítico (passou na frente)' : 'Atrasado'
+        badge: bypass.isBypassed ? 'Crítico (passou na frente)' : 'Muito Atrasado'
       }
     ];
 
@@ -477,7 +503,7 @@ export default function KitchenView({ environment, onNavigate }) {
                           ? 'bg-emerald-950/40 border-emerald-500 border-l-emerald-400 shadow-emerald-500/10'
                           : timeStatus.isBypassed
                             ? 'bg-rose-950/30 border-rose-500/80 border-l-rose-500 shadow-md shadow-rose-950/40'
-                            : 'bg-slate-900/90 border-slate-700/80 border-l-orange-500 hover:border-orange-500/60'
+                            : `bg-slate-900/90 border-slate-700/80 ${timeStatus.borderLeftClass} hover:border-slate-600`
                   }`}
                 >
                   {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
