@@ -440,36 +440,35 @@ class StorageService {
   }
 
 
-  // Heartbeat Polling ativo a cada 2 segundos para garantir atualização contínua
-  // (essencial para TVs e navegadores móveis que suspendem WebSockets ociosos)
+  // Monitoramento leve da conexão em tempo real (garante reconexão sem estourar cota do Firestore)
   startHeartbeatPolling() {
     if (this.pollTimer) clearInterval(this.pollTimer);
 
-    this.pollTimer = setInterval(async () => {
-      if (this.isFirebaseReady && this.db) {
-        try {
-          const colRef = collection(this.db, COLLECTION_ORDERS);
-          const snap = await getDocs(colRef);
-          const list = [];
-          snap.forEach(docSnap => {
-            const docId = docSnap.id;
-            if (docId.startsWith('__config_') || docId.startsWith('__')) return;
-            list.push({ ...docSnap.data(), id: docId, firestoreDocId: docId });
-          });
-          list.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
-
-          // Compara se houve alguma alteração (novos pedidos ou status modificado)
-          const currentHash = list.map(o => `${o.id}_${o.status}_${o.updatedAt || o.createdAt}`).join('|');
-          if (currentHash !== this.lastOrdersHash) {
-            this.lastOrdersHash = currentHash;
-            console.log(`🔄 [Heartbeat Sync] Atualização detectada na nuvem (${list.length} pedidos)`);
-            this.notifyOrderSubscribers(list);
-          }
-        } catch (err) {
-          // Falha silenciosa no polling; tenta novamente no próximo ciclo
+    // O onSnapshot do Cloud Firestore já entrega atualizações em tempo real via WebSocket
+    // com 0ms de latência e consumo mínimo (apenas 1 leitura quando um pedido novo chega ou é modificado).
+    // O polling forçado de getDocs a cada 2s foi desativado para proteger a cota diária de 50.000 leituras.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && this.isFirebaseReady) {
+          console.log('📱 [Device Wakeup] Tela reativada, assegurando conexão Firestore em tempo real...');
+          this.startFirestoreListener();
         }
+      });
+      window.addEventListener('online', () => {
+        if (this.isFirebaseReady) {
+          console.log('🌐 [Network Online] Conexão restabelecida, reconectando Firestore...');
+          this.startFirestoreListener();
+        }
+      });
+    }
+
+    // Verificação leve de pulso a cada 30 segundos: apenas restaura o listener se tiver sido encerrado
+    this.pollTimer = setInterval(() => {
+      if (this.isFirebaseReady && !this.unsubscribeFirestore) {
+        console.log('🔄 [Health Check] Restaurando listener do Firestore...');
+        this.startFirestoreListener();
       }
-    }, 2000);
+    }, 30000);
   }
 
   // Notifica todos os componentes ativos (Caixa, Cozinha, TV) instantaneamente

@@ -2801,183 +2801,172 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           {activeTab === 'tv' && (
             <div className="space-y-6">
 
-              {/* SEÇÃO 0: TEMPO INTELIGENTE E CORES DOS PEDIDOS NA COZINHA */}
-              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
-                      <Clock className="w-5 h-5" />
+              {/* SEÇÃO 0: TEMPO INTELIGENTE E CORES DOS PEDIDOS NA COZINHA (COMPACTO - REDUZIDO EM 70%) */}
+              <div className="bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700 space-y-2">
+                {/* CABEÇALHO COMPACTO EM 1 LINHA */}
+                <div className="flex items-center justify-between gap-2 border-b border-slate-700 pb-1.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
+                      <Clock className="w-4 h-4" />
                     </span>
-                    <div>
-                      <h3 className="font-extrabold text-white text-base flex items-center gap-2 flex-wrap">
-                        Tempos e Cores dos Pedidos (Cozinha)
-                        <span className="text-[10px] bg-emerald-400/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-400/30">
-                          5 Cores Inteligentes
-                        </span>
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Determine os minutos para cada cor de alerta do pedido: Verde e Azul (no prazo), Amarelo (alerta 1), Laranja (atrasado) e Vermelho (muito atrasado).
-                      </p>
-                    </div>
+                    <h3 className="font-extrabold text-white text-xs sm:text-sm flex items-center gap-2 truncate">
+                      <span>Tempos e Cores dos Pedidos (Cozinha)</span>
+                      <span className="text-[9px] bg-emerald-400/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded-full border border-emerald-400/30 hidden md:inline">
+                        5 Cores
+                      </span>
+                    </h3>
+                    <span className="text-[10px] text-slate-400 hidden xl:inline truncate">
+                      • Verde/Azul (no prazo), Amarelo (alerta 1), Laranja (atrasado), Vermelho (muito atrasado)
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={handleResetOrderTimeLimits}
-                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                       title="Restaura os tempos padrão (3m, 6m, 10m, 15m)"
                     >
-                      <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                      <RotateCcw className="w-3 h-3 text-amber-400" />
                       <span>Padrão</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={handleSaveOrderTimeLimits}
-                      className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer"
+                      className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] rounded-lg transition-all shadow flex items-center gap-1 cursor-pointer"
                     >
-                      <Save className="w-3.5 h-3.5" />
+                      <Save className="w-3 h-3" />
                       <span>Salvar Tempos</span>
                     </button>
                   </div>
                 </div>
 
-                {/* GRID DOS 5 ESTÁGIOS DE TEMPO */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                  {/* 1. VERDE: NORMAL INICIAL */}
-                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-emerald-500 border border-slate-700/80 space-y-2 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/40">
-                        Normal
-                      </span>
-                      <span className="text-xs">🟢</span>
+                {/* 5 ESTÁGIOS ESMAGADOS NA MESMA LINHA (ALTURA REDUZIDA EM 70%) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-1.5">
+                  {/* 1. VERDE: NORMAL */}
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-emerald-500 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 truncate">Normal</span>
+                      </div>
+                      <div className="text-[9px] text-slate-400 truncate">0 a {orderTimeLimits.greenLimit}m</div>
                     </div>
-                    <div className="text-[11px] text-slate-400">Recém-chegado à cozinha</div>
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Até (minutos):</label>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
                         min="1"
                         max="60"
                         value={orderTimeLimits.greenLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('greenLimit', e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-emerald-400 outline-none focus:border-emerald-400"
+                        className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-emerald-400 text-center outline-none focus:border-emerald-400"
                       />
+                      <span className="text-[9px] text-slate-400 font-mono">m</span>
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">0 a {orderTimeLimits.greenLimit} min</div>
                   </div>
 
                   {/* 2. AZUL: NO PRAZO */}
-                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-sky-500 border border-slate-700/80 space-y-2 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-500/40">
-                        No Prazo
-                      </span>
-                      <span className="text-xs">🔵</span>
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-sky-500 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 truncate">No Prazo</span>
+                      </div>
+                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.greenLimit} a {orderTimeLimits.blueLimit}m</div>
                     </div>
-                    <div className="text-[11px] text-slate-400">Preparo em andamento</div>
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Até (minutos):</label>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
                         min="1"
                         max="60"
                         value={orderTimeLimits.blueLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-sky-400 outline-none focus:border-sky-400"
+                        className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-sky-400 text-center outline-none focus:border-sky-400"
                       />
+                      <span className="text-[9px] text-slate-400 font-mono">m</span>
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">{orderTimeLimits.greenLimit} a {orderTimeLimits.blueLimit} min</div>
                   </div>
 
                   {/* 3. AMARELO: ALERTA 1 */}
-                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-amber-400 border border-slate-700/80 space-y-2 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/40">
-                        Alerta 1
-                      </span>
-                      <span className="text-xs">🟡</span>
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-amber-400 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 truncate">Alerta 1</span>
+                      </div>
+                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.blueLimit} a {orderTimeLimits.yellowLimit}m</div>
                     </div>
-                    <div className="text-[11px] text-slate-400">Atenção ao tempo</div>
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Até (minutos):</label>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
                         min="1"
                         max="90"
                         value={orderTimeLimits.yellowLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-amber-300 outline-none focus:border-amber-400"
+                        className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-amber-300 text-center outline-none focus:border-amber-400"
                       />
+                      <span className="text-[9px] text-slate-400 font-mono">m</span>
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">{orderTimeLimits.blueLimit} a {orderTimeLimits.yellowLimit} min</div>
                   </div>
 
                   {/* 4. LARANJA: ATRASADO */}
-                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-orange-500 border border-slate-700/80 space-y-2 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 bg-orange-950/80 px-2 py-0.5 rounded border border-orange-500/40">
-                        Atrasado
-                      </span>
-                      <span className="text-xs">🟠</span>
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-orange-500 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 truncate">Atrasado</span>
+                      </div>
+                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.yellowLimit} a {orderTimeLimits.orangeLimit}m</div>
                     </div>
-                    <div className="text-[11px] text-slate-400">Limite excedido</div>
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Até (minutos):</label>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
                         min="1"
                         max="120"
                         value={orderTimeLimits.orangeLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-orange-400 outline-none focus:border-orange-400"
+                        className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-orange-400 text-center outline-none focus:border-orange-400"
                       />
+                      <span className="text-[9px] text-slate-400 font-mono">m</span>
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">{orderTimeLimits.yellowLimit} a {orderTimeLimits.orangeLimit} min</div>
                   </div>
 
                   {/* 5. VERMELHO: MUITO ATRASADO */}
-                  <div className="bg-slate-900/90 p-3 rounded-xl border-t-4 border-t-rose-500 border border-slate-700/80 space-y-2 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-500/40 animate-pulse">
-                        Muito Atrasado
-                      </span>
-                      <span className="text-xs">🔴</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400">Crítico / Urgente</div>
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Condição:</label>
-                      <div className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-sm font-mono font-black text-rose-400">
-                        &gt; {orderTimeLimits.orangeLimit} min
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-rose-500 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-ping" />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-300 truncate">Crítico</span>
                       </div>
+                      <div className="text-[9px] text-rose-400 font-mono truncate">&gt; {orderTimeLimits.orangeLimit}m</div>
                     </div>
-                    <div className="text-[10px] text-rose-400 font-mono font-bold">Acima de {orderTimeLimits.orangeLimit} min</div>
+                    <div className="text-[10px] font-mono font-black text-rose-400 bg-rose-950/80 border border-rose-500/40 px-2 py-0.5 rounded shrink-0">
+                      &gt; {orderTimeLimits.orangeLimit} min
+                    </div>
                   </div>
                 </div>
 
-                {/* BARRA VISUAL DA LINHA DO TEMPO */}
-                <div className="pt-2 border-t border-slate-800/80">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center justify-between">
-                    <span>Evolução das Cores na Cozinha:</span>
-                    <span className="text-[9px] text-slate-500">Muda de cor automaticamente no cronômetro e na borda esquerda do card</span>
+                {/* BARRA VISUAL DA LINHA DO TEMPO COMPACTA */}
+                <div className="h-3 rounded overflow-hidden flex text-[8px] font-black font-mono text-slate-950 border border-slate-800">
+                  <div className="bg-emerald-500 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, (orderTimeLimits.greenLimit / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Normal: 0 a ${orderTimeLimits.greenLimit} min`}>
+                    0-{orderTimeLimits.greenLimit}m
                   </div>
-                  <div className="h-4 rounded-lg overflow-hidden flex text-[9px] font-black font-mono text-slate-950 border border-slate-800">
-                    <div className="bg-emerald-500 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, (orderTimeLimits.greenLimit / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Normal: 0 a ${orderTimeLimits.greenLimit} min`}>
-                      0-{orderTimeLimits.greenLimit}m
-                    </div>
-                    <div className="bg-sky-400 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.blueLimit - orderTimeLimits.greenLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`No prazo: ${orderTimeLimits.greenLimit} a ${orderTimeLimits.blueLimit} min`}>
-                      {orderTimeLimits.blueLimit}m
-                    </div>
-                    <div className="bg-amber-400 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.yellowLimit - orderTimeLimits.blueLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Alerta 1: ${orderTimeLimits.blueLimit} a ${orderTimeLimits.yellowLimit} min`}>
-                      {orderTimeLimits.yellowLimit}m
-                    </div>
-                    <div className="bg-orange-500 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.orangeLimit - orderTimeLimits.yellowLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Atrasado: ${orderTimeLimits.yellowLimit} a ${orderTimeLimits.orangeLimit} min`}>
-                      {orderTimeLimits.orangeLimit}m
-                    </div>
-                    <div className="bg-rose-600 flex items-center justify-center flex-1 text-white animate-pulse" title={`Muito Atrasado: acima de ${orderTimeLimits.orangeLimit} min`}>
-                      &gt;{orderTimeLimits.orangeLimit}m
-                    </div>
+                  <div className="bg-sky-400 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.blueLimit - orderTimeLimits.greenLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`No prazo: ${orderTimeLimits.greenLimit} a ${orderTimeLimits.blueLimit} min`}>
+                    {orderTimeLimits.blueLimit}m
+                  </div>
+                  <div className="bg-amber-400 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.yellowLimit - orderTimeLimits.blueLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Alerta 1: ${orderTimeLimits.blueLimit} a ${orderTimeLimits.yellowLimit} min`}>
+                    {orderTimeLimits.yellowLimit}m
+                  </div>
+                  <div className="bg-orange-500 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.orangeLimit - orderTimeLimits.yellowLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Atrasado: ${orderTimeLimits.yellowLimit} a ${orderTimeLimits.orangeLimit} min`}>
+                    {orderTimeLimits.orangeLimit}m
+                  </div>
+                  <div className="bg-rose-600 flex items-center justify-center flex-1 text-white animate-pulse" title={`Muito Atrasado: acima de ${orderTimeLimits.orangeLimit} min`}>
+                    &gt;{orderTimeLimits.orangeLimit}m
                   </div>
                 </div>
               </div>
@@ -3159,60 +3148,60 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
-              {/* SEÇÃO 2: CONFIGURAÇÃO DE EXIBIÇÃO E SOM DO PAINEL TV (COMPACTO EM 2 LINHAS) */}
-              <div className="bg-slate-800/60 p-3 rounded-2xl border border-slate-700 space-y-2">
-                <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+              {/* SEÇÃO 2: CONFIGURAÇÃO DE EXIBIÇÃO E SOM DO PAINEL TV (TODAS AS OPÇÕES NA MESMA LINHA) */}
+              <div className="bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700 space-y-1.5">
+                <div className="flex items-center justify-between border-b border-slate-700/80 pb-1">
                   <div className="flex items-center gap-2">
-                    <Tv className="w-4 h-4 text-amber-400" />
-                    <h3 className="font-extrabold text-white text-xs sm:text-sm">Configuração Geral de Exibição do Painel TV</h3>
+                    <Tv className="w-3.5 h-3.5 text-amber-400" />
+                    <h3 className="font-extrabold text-white text-xs">Configuração Geral de Exibição do Painel TV</h3>
                   </div>
                   <span className="text-[10px] text-slate-400 hidden sm:inline">Defina exibição, som e comportamento da TV e Cozinha</span>
                 </div>
 
-                {/* GRID COMPACTA AJUSTADA EM 2 LINHAS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {/* 5 OPÇÕES ESMAGADAS TODAS NA MESMA LINHA */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-1.5">
                   
                   {/* CARD 1: ALARME SOM TV */}
-                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700/80 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors">
-                    <div className="min-w-0 pr-1">
-                      <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
-                        <Volume2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="truncate">Alarme Som TV</span>
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border border-slate-700/80 flex items-center justify-between gap-1 hover:border-slate-600 transition-colors">
+                    <div className="min-w-0 pr-0.5">
+                      <div className="font-bold text-[11px] text-white truncate flex items-center gap-1">
+                        <Volume2 className="w-3 h-3 text-amber-400 shrink-0" />
+                        <span className="truncate">Som TV</span>
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate mt-0.5" title="Ding-dong na TV quando o pedido estiver pronto">
-                        Ding-dong quando pronto
+                      <div className="text-[9px] text-slate-400 truncate" title="Ding-dong na TV quando o pedido estiver pronto">
+                        Ding-dong pronto
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={handleToggleTVSound}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border shrink-0 cursor-pointer ${
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all border shrink-0 cursor-pointer ${
                         tvSettings.soundEnabled
-                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-sm'
+                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-xs'
                           : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
                       }`}
                     >
-                      {tvSettings.soundEnabled ? '✓ Ativado' : '✕ Desativado'}
+                      {tvSettings.soundEnabled ? '✓ Ativado' : '✕ Desat.'}
                     </button>
                   </div>
 
                   {/* CARD 2: EXIBIR PEDIDOS ENTREGUES */}
-                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700/80 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors">
-                    <div className="min-w-0 pr-1">
-                      <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                        <span className="truncate">Coluna Entregues</span>
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border border-slate-700/80 flex items-center justify-between gap-1 hover:border-slate-600 transition-colors">
+                    <div className="min-w-0 pr-0.5">
+                      <div className="font-bold text-[11px] text-white truncate flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-blue-400 shrink-0" />
+                        <span className="truncate">Entregues</span>
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate mt-0.5" title="Mostra os últimos pedidos entregues na TV">
-                        Exibe lista de entregues
+                      <div className="text-[9px] text-slate-400 truncate" title="Mostra os últimos pedidos entregues na TV">
+                        Lista entregues
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={handleToggleTVDelivered}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border shrink-0 cursor-pointer ${
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all border shrink-0 cursor-pointer ${
                         tvSettings.showDelivered
-                          ? 'bg-blue-600 text-white border-blue-400 shadow-sm'
+                          ? 'bg-blue-600 text-white border-blue-400 shadow-xs'
                           : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
                       }`}
                     >
@@ -3221,72 +3210,72 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
 
                   {/* CARD 3: TELA CHEIA AUTOMÁTICA */}
-                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700/80 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors">
-                    <div className="min-w-0 pr-1">
-                      <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
-                        <Maximize2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                        <span className="truncate">Tela Cheia Auto</span>
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border border-slate-700/80 flex items-center justify-between gap-1 hover:border-slate-600 transition-colors">
+                    <div className="min-w-0 pr-0.5">
+                      <div className="font-bold text-[11px] text-white truncate flex items-center gap-1">
+                        <Maximize2 className="w-3 h-3 text-purple-400 shrink-0" />
+                        <span className="truncate">Tela Cheia</span>
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate mt-0.5" title="Abre a TV automaticamente em fullscreen">
-                        Fullscreen ao carregar
+                      <div className="text-[9px] text-slate-400 truncate" title="Abre a TV automaticamente em fullscreen">
+                        Fullscreen TV
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={handleToggleTVFullscreen}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border shrink-0 cursor-pointer ${
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all border shrink-0 cursor-pointer ${
                         tvSettings.autoFullscreen
-                          ? 'bg-purple-600 text-white border-purple-400 shadow-sm'
+                          ? 'bg-purple-600 text-white border-purple-400 shadow-xs'
                           : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
                       }`}
                     >
-                      {tvSettings.autoFullscreen ? '✓ Ativado' : '✕ Desativado'}
+                      {tvSettings.autoFullscreen ? '✓ Ativado' : '✕ Desat.'}
                     </button>
                   </div>
 
                   {/* CARD 4: AVISOS SONOROS NA COZINHA */}
-                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700/80 flex items-center justify-between gap-2 hover:border-slate-600 transition-colors">
-                    <div className="min-w-0 pr-1">
-                      <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
-                        <BellRing className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="truncate">Alarme Cozinha</span>
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border border-slate-700/80 flex items-center justify-between gap-1 hover:border-slate-600 transition-colors">
+                    <div className="min-w-0 pr-0.5">
+                      <div className="font-bold text-[11px] text-white truncate flex items-center gap-1">
+                        <BellRing className="w-3 h-3 text-amber-400 shrink-0" />
+                        <span className="truncate">Cozinha</span>
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate mt-0.5" title="Toca o alarme sonoro na cozinha a cada novo pedido">
-                        Toca a cada novo pedido
+                      <div className="text-[9px] text-slate-400 truncate" title="Toca o alarme sonoro na cozinha a cada novo pedido">
+                        Aviso pedido
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={handleToggleKitchenSound}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border shrink-0 cursor-pointer ${
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all border shrink-0 cursor-pointer ${
                         kitchenSettings.soundEnabled
-                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-sm'
+                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-xs'
                           : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
                       }`}
                     >
-                      {kitchenSettings.soundEnabled ? '✓ Ativado' : '✕ Desativado'}
+                      {kitchenSettings.soundEnabled ? '✓ Ativado' : '✕ Desat.'}
                     </button>
                   </div>
 
-                  {/* CARD 5: LIMPEZA DE FILA E CACHE (OCUPA 2 COLUNAS NA SEGUNDA LINHA) */}
-                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-rose-500/40 flex items-center justify-between gap-2 lg:col-span-2 hover:border-rose-500/70 transition-colors">
-                    <div className="min-w-0 pr-1">
-                      <div className="font-bold text-xs text-rose-300 flex items-center gap-1.5 truncate">
-                        <Trash2 className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                        <span className="truncate">Limpar Fila / Cache da Cozinha e TV</span>
+                  {/* CARD 5: LIMPEZA DE FILA E CACHE */}
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border border-rose-500/40 flex items-center justify-between gap-1 hover:border-rose-500/70 transition-colors">
+                    <div className="min-w-0 pr-0.5">
+                      <div className="font-bold text-[11px] text-rose-300 flex items-center gap-1 truncate">
+                        <Trash2 className="w-3 h-3 text-rose-400 shrink-0" />
+                        <span className="truncate">Limpar Fila</span>
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                        Apaga pedidos da fila ativa e limpa o cache local
+                      <div className="text-[9px] text-slate-400 truncate" title="Apaga pedidos da fila ativa e limpa o cache local">
+                        Zera Cozinha/TV
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowClearQueueModal(true)}
-                      className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] rounded-lg flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0 border border-rose-400/50"
+                      className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] rounded-lg flex items-center gap-1 transition-all shadow-xs active:scale-95 cursor-pointer shrink-0 border border-rose-400/50"
                       title="Apaga os pedidos da fila ativa e limpa o cache"
                     >
-                      <Trash2 className="w-3 h-3" />
-                      <span>Limpar Fila</span>
+                      <Trash2 className="w-2.5 h-2.5" />
+                      <span>Limpar</span>
                     </button>
                   </div>
 
