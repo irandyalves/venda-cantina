@@ -23,7 +23,8 @@ import {
   Utensils,
   Plus,
   Minus,
-  Trash2
+  Trash2,
+  Check
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import ProfileSelector from './ProfileSelector';
@@ -36,21 +37,28 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const [isFirebaseOnline, setIsFirebaseOnline] = useState(storageService.isFirebaseReady);
   const [currentEvent, setCurrentEvent] = useState(() => storageService.getCurrentEvent());
 
-  // SELEÇÃO ATIVA DO PRODUTO (1º PASSO)
-  const [selectedPizzaFlavor, setSelectedPizzaFlavor] = useState(null);
-  const [selectedProduct, setSelectedProduct] = useState(null); // { category, item, variation }
-
-  // CAMPOS DE FINALIZAÇÃO (2º PASSO)
+  // ========================================================
+  // NOVO FLUXO DE ATENDIMENTO AO CLIENTE (MULTI-PEDIDOS)
+  // 1º Passo: Digita o Nome do Cliente e escolhe a forma de pagamento
+  // 2º Passo: Clica nos produtos (Pastel, Batata, Pizza...) e vai montando a comanda
+  // ========================================================
   const [customerName, setCustomerName] = useState('');
-  const [quantity, setQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('PIX');
+  
+  // Itens da comanda do cliente:
+  // Array de { cartItemId, category, item, variation, description, prefix, unitPrice, quantity }
+  const [cart, setCart] = useState([]);
+  const [isSubmittingCart, setIsSubmittingCart] = useState(false);
+
+  // Sabor de pizza ativo para escolha de Pedaço ou Inteira
+  const [selectedPizzaFlavor, setSelectedPizzaFlavor] = useState(null);
 
   // Validação e feedback
   const [nameShake, setNameShake] = useState(false);
   const [showNameError, setShowNameError] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // MODAIS RÁPIDOS NA LINHA DA CATEGORIA: + (VERDINHO BRILHO) E - (VERMELHO FOSCO)
+  // Modais rápidos na linha da categoria: + (verde) e - (vermelho)
   const [quickAddModal, setQuickAddModal] = useState({ isOpen: false, category: null });
   const [quickAddName, setQuickAddName] = useState('');
   const [quickAddPrice, setQuickAddPrice] = useState('0,00');
@@ -80,10 +88,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   };
 
   const nameInputRef = useRef(null);
-  const qtyInputRef = useRef(null);
-  const paymentSelectRef = useRef(null);
-  const submitButtonRef = useRef(null);
-  const drawerRef = useRef(null);
 
   // Altura customizável do rodapé arrastando a borda superior (clique e arraste para cima/baixo)
   const [footerHeight, setFooterHeight] = useState(() => {
@@ -107,7 +111,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const onMove = (moveEvent) => {
       if (!isDraggingFooterRef.current) return;
       const clientY = moveEvent.clientY || (moveEvent.touches && moveEvent.touches[0]?.clientY) || 0;
-      const deltaY = startDragYRef.current - clientY; // Puxar para CIMA aumenta a altura
+      const deltaY = startDragYRef.current - clientY;
       const maxHeight = Math.max(300, Math.round(window.innerHeight * 0.75));
       const newHeight = Math.max(140, Math.min(maxHeight, startHeightRef.current + deltaY));
       setFooterHeight(newHeight);
@@ -163,7 +167,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     };
   }, []);
 
-  // Fechar com tecla ESC
+  // Fechar modais / limpar seleções com tecla ESC
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
@@ -175,25 +179,19 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           setQuickAddModal({ isOpen: false, category: null });
           return;
         }
-        if (selectedProduct || selectedPizzaFlavor) {
-          cancelSelection();
+        if (selectedPizzaFlavor) {
+          setSelectedPizzaFlavor(null);
+          return;
+        }
+        if (cart.length > 0) {
+          setCart([]);
           return;
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [quickDeleteModal.isOpen, quickAddModal.isOpen, selectedProduct, selectedPizzaFlavor]);
-
-  // Quando um produto é selecionado, dá foco automático no campo de nome e rola suavemente para o formulário
-  useEffect(() => {
-    if (selectedProduct) {
-      setTimeout(() => {
-        nameInputRef.current?.focus();
-        drawerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 70);
-    }
-  }, [selectedProduct]);
+  }, [quickDeleteModal.isOpen, quickAddModal.isOpen, selectedPizzaFlavor, cart.length]);
 
   // Totais e listas do rodapé (mais novos em cima)
   const todayOrders = orders.filter(o => {
@@ -213,9 +211,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const readyList = sortNewestFirst(todayOrders.filter(o => o.status === 'pronto'));
   const deliveredList = sortNewestFirst(todayOrders.filter(o => o.status === 'entregue'));
 
-  const countEmPreparo = preparingList.length;
-  const countProntas = readyList.length;
-  const countEntregues = deliveredList.length;
   const totalFaturado = todayOrders.filter(o => o.status !== 'cancelado').reduce((acc, curr) => acc + (Number(curr.totalPrice) || 0), 0);
 
   // Cores distintas para Pizza, Açaí e Batata nos Cards do Rodapé
@@ -264,230 +259,245 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     return order.itemName || order.fullDescription || 'Item';
   };
 
-  // 1º PASSO: Selecionar o produto
-  const handleSelectPizzaFlavor = (flavor) => {
-    setSelectedPizzaFlavor(flavor);
+  // ========================================================
+  // LÓGICA DA COMANDA DO CLIENTE (CARRINHO MULTI-ITENS)
+  // ========================================================
+
+  // Adicionar pizza com variação (Pedaço ou Inteira) à comanda
+  const handleAddPizzaToCart = (flavor, variation) => {
     const pizzaCat = categories.find(c => c.id === 'pizza');
-    const currentVarId = (selectedProduct?.category?.id === 'pizza' && selectedProduct?.variation?.id) 
-      ? selectedProduct.variation.id 
-      : 'pedaco';
-    const chosenVar = pizzaCat?.variations?.find(v => v.id === currentVarId) 
-      || pizzaCat?.variations?.find(v => v.id === 'pedaco') 
-      || pizzaCat?.variations?.[0];
+    const isPedaco = variation.id === 'pedaco';
+    const prefix = variation.prefix || (isPedaco ? 'Pp-' : 'Pi-');
+    const unitPrice = variation.price;
+    const description = `${variation.name.toUpperCase()}: ${flavor.name}`;
+    const cartItemId = `pizza_${flavor.id}_${variation.id}`;
 
-    setSelectedProduct({
-      category: pizzaCat,
-      item: flavor,
-      variation: chosenVar
+    setCart(prev => {
+      const existingIndex = prev.findIndex(i => i.cartItemId === cartItemId);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = { ...updated[existingIndex], quantity: updated[existingIndex].quantity + 1 };
+        return updated;
+      }
+      return [...prev, {
+        cartItemId,
+        category: pizzaCat,
+        item: flavor,
+        variation,
+        description,
+        prefix,
+        unitPrice,
+        quantity: 1
+      }];
     });
-    setCustomerName('');
-    setQuantity(1);
-    setShowNameError(false);
-    setTimeout(() => nameInputRef.current?.focus(), 60);
+
+    if (!customerName.trim()) {
+      setTimeout(() => nameInputRef.current?.focus(), 80);
+    }
   };
 
-  const handleSelectPizzaVariation = (variation) => {
-    if (!selectedPizzaFlavor) return;
-    const pizzaCat = categories.find(c => c.id === 'pizza');
-    setSelectedProduct({
-      category: pizzaCat,
-      item: selectedPizzaFlavor,
-      variation: variation
+  // Adicionar item direto (Batata, Açaí, Salgados, Bebidas, etc.) à comanda
+  const handleAddItemToCart = (category, item) => {
+    const prefix = item.prefix || category.prefixDefault || 'Ped-';
+    const unitPrice = item.price || 0;
+    const description = item.name;
+    const cartItemId = `${category.id}_${item.id}`;
+
+    setCart(prev => {
+      const existingIndex = prev.findIndex(i => i.cartItemId === cartItemId);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = { ...updated[existingIndex], quantity: updated[existingIndex].quantity + 1 };
+        return updated;
+      }
+      return [...prev, {
+        cartItemId,
+        category,
+        item,
+        variation: null,
+        description,
+        prefix,
+        unitPrice,
+        quantity: 1
+      }];
     });
-    setTimeout(() => nameInputRef.current?.focus(), 60);
+
+    if (!customerName.trim()) {
+      setTimeout(() => nameInputRef.current?.focus(), 80);
+    }
   };
 
-  const handleSelectDirectItem = (category, item) => {
-    setSelectedPizzaFlavor(null);
-    setSelectedProduct({
-      category,
-      item,
-      variation: null
+  const updateCartQuantity = (cartItemId, delta) => {
+    setCart(prev => {
+      return prev.map(i => {
+        if (i.cartItemId === cartItemId) {
+          const newQty = i.quantity + delta;
+          return newQty > 0 ? { ...i, quantity: newQty } : null;
+        }
+        return i;
+      }).filter(Boolean);
     });
-    setCustomerName('');
-    setQuantity(1);
-    setShowNameError(false);
-    setTimeout(() => nameInputRef.current?.focus(), 60);
   };
 
-  // 2º PASSO: Enviar direto para a cozinha com o botão verde
-  const handleConfirmAndSend = async (e) => {
+  const removeFromCart = (cartItemId) => {
+    setCart(prev => prev.filter(i => i.cartItemId !== cartItemId));
+  };
+
+  const cartTotal = cart.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
+  const cartItemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+
+  // Helper para saber quantos itens de um sabor/produto estão na comanda
+  const getItemCartQuantity = (itemId) => {
+    const matches = cart.filter(i => i.item.id === itemId);
+    return matches.reduce((sum, i) => sum + i.quantity, 0);
+  };
+
+  // Finalizar a comanda do cliente e criar todos os pedidos
+  const handleFinalizeCart = async (e) => {
     if (e) e.preventDefault();
 
-    if (!selectedProduct) return;
-
-    // Validação obrigatória do nome
     const cleanName = customerName.trim();
     if (!cleanName) {
       setNameShake(true);
       setShowNameError(true);
-      if (nameInputRef.current) nameInputRef.current.focus();
+      nameInputRef.current?.focus();
       setTimeout(() => setNameShake(false), 500);
       return;
     }
 
+    if (cart.length === 0) {
+      setToast({
+        type: 'error',
+        title: 'Comanda Vazia',
+        message: 'Clique nos produtos para adicionar ao pedido de ' + cleanName
+      });
+      return;
+    }
+
     setShowNameError(false);
-    const qty = Math.max(1, parseInt(quantity) || 1);
-    const { category, item, variation } = selectedProduct;
-
-    // Determina o prefixo e descrição
-    let prefix = 'Pp-';
-    let unitPrice = item.price || 0;
-    let description = item.name;
-
-    if (category.id === 'pizza' && variation) {
-      prefix = variation.prefix || (variation.id === 'inteira' ? 'Pi-' : 'Pp-');
-      unitPrice = variation.price;
-      description = `${variation.name.toUpperCase()}: ${item.name}`;
-    } else if (category.id === 'acai') {
-      prefix = item.prefix || category.prefixDefault || 'A-';
-      description = item.name;
-    } else if (category.id === 'batata') {
-      prefix = item.prefix || category.prefixDefault || 'B-';
-      description = item.name;
-    } else {
-      prefix = item.prefix || category.prefixDefault || 'Ped-';
-    }
-
-    const orderNumber = storageService.getNextOrderNumber(prefix);
-    const totalPrice = unitPrice * qty;
-
-    // Determina o destino de produção a partir das configurações
-    const routing = storageService.getProductionRouting();
-    const targetId = variation ? variation.id : item.id;
-    const catId = category.id;
-
-    let sendToKitchen = true;
-    if (routing.sendToKitchen?.[targetId] !== undefined) {
-      sendToKitchen = routing.sendToKitchen[targetId];
-    } else if (routing.sendToKitchen?.[catId] !== undefined) {
-      sendToKitchen = routing.sendToKitchen[catId];
-    } else {
-      sendToKitchen = catId === 'pizza';
-    }
-
-    // Destino do ambiente de preparo (Cozinha 1, Cozinha 2, Tenda, Quadra, etc.)
-    let targetEnvironment = 'COZINHA';
-    if (routing.destinationEnv?.[targetId] !== undefined) {
-      targetEnvironment = routing.destinationEnv[targetId];
-    } else if (routing.destinationEnv?.[catId] !== undefined) {
-      targetEnvironment = routing.destinationEnv[catId];
-    } else {
-      targetEnvironment = sendToKitchen ? 'COZINHA' : 'none';
-    }
-
-    if (targetEnvironment === 'none') {
-      sendToKitchen = false;
-    } else {
-      sendToKitchen = true;
-    }
-
-    let showOnTV = true;
-    if (routing.showOnTV?.[targetId] !== undefined) {
-      showOnTV = routing.showOnTV[targetId];
-    } else if (routing.showOnTV?.[catId] !== undefined) {
-      showOnTV = routing.showOnTV[catId];
-    } else {
-      showOnTV = catId === 'pizza';
-    }
-
-    const newOrder = {
-      orderNumber,
-      customerName: cleanName,
-      category: category.id,
-      categoryName: category.name,
-      itemId: item.id,
-      itemName: item.name,
-      variationId: variation ? variation.id : null,
-      variationName: variation ? variation.name : null,
-      fullDescription: description,
-      quantity: qty,
-      unitPrice,
-      totalPrice,
-      paymentMethod,
-      sendToKitchen,
-      targetEnvironment,
-      showOnTV,
-      status: sendToKitchen ? 'em_preparo' : 'entregue'
-    };
+    setIsSubmittingCart(true);
 
     try {
-      const created = await storageService.createOrder(newOrder);
+      const routing = storageService.getProductionRouting();
+      const createdOrders = [];
 
-      // Feedback visual em Modal Bonito de 2 Segundos
+      for (const cartItem of cart) {
+        const { category, item, variation, description, prefix, unitPrice, quantity: qty } = cartItem;
+        const targetId = variation ? variation.id : item.id;
+        const catId = category.id;
+
+        let sendToKitchen = true;
+        if (routing.sendToKitchen?.[targetId] !== undefined) {
+          sendToKitchen = routing.sendToKitchen[targetId];
+        } else if (routing.sendToKitchen?.[catId] !== undefined) {
+          sendToKitchen = routing.sendToKitchen[catId];
+        } else {
+          sendToKitchen = catId === 'pizza';
+        }
+
+        let targetEnvironment = 'COZINHA';
+        if (routing.destinationEnv?.[targetId] !== undefined) {
+          targetEnvironment = routing.destinationEnv[targetId];
+        } else if (routing.destinationEnv?.[catId] !== undefined) {
+          targetEnvironment = routing.destinationEnv[catId];
+        } else {
+          targetEnvironment = sendToKitchen ? 'COZINHA' : 'none';
+        }
+
+        if (targetEnvironment === 'none') {
+          sendToKitchen = false;
+        } else {
+          sendToKitchen = true;
+        }
+
+        let showOnTV = true;
+        if (routing.showOnTV?.[targetId] !== undefined) {
+          showOnTV = routing.showOnTV[targetId];
+        } else if (routing.showOnTV?.[catId] !== undefined) {
+          showOnTV = routing.showOnTV[catId];
+        } else {
+          showOnTV = catId === 'pizza';
+        }
+
+        const orderNumber = storageService.getNextOrderNumber(prefix);
+        const totalPrice = unitPrice * qty;
+
+        const newOrder = {
+          orderNumber,
+          customerName: cleanName,
+          category: category.id,
+          categoryName: category.name,
+          itemId: item.id,
+          itemName: item.name,
+          variationId: variation ? variation.id : null,
+          variationName: variation ? variation.name : null,
+          fullDescription: description,
+          quantity: qty,
+          unitPrice,
+          totalPrice,
+          paymentMethod,
+          sendToKitchen,
+          targetEnvironment,
+          showOnTV,
+          status: sendToKitchen ? 'em_preparo' : 'entregue'
+        };
+
+        const created = await storageService.createOrder(newOrder);
+        createdOrders.push(created);
+      }
+
       setToast({
         type: 'success',
-        title: sendToKitchen ? 'Pedido Enviado para a Cozinha!' : 'Venda Concluída (Entrega no Balcão)!',
-        message: `Comanda ${created.orderNumber} confirmada!`,
-        subtext: `Cliente: ${cleanName.toUpperCase()} • ${description} (${qty}x)`
+        title: `Venda de ${cleanName.toUpperCase()} Concluída!`,
+        message: `${createdOrders.length} pedido(s) gerado(s) com sucesso!`,
+        subtext: `Total: R$ ${cartTotal.toFixed(2)} (${paymentMethod}) • Comandas: ${createdOrders.map(o => o.orderNumber).join(', ')}`
       });
 
-      // Resetar para a próxima escolha
-      setSelectedProduct(null);
-      setSelectedPizzaFlavor(null);
+      // Limpar tudo para o próximo cliente
+      setCart([]);
       setCustomerName('');
-      setQuantity(1);
+      setSelectedPizzaFlavor(null);
+      setTimeout(() => nameInputRef.current?.focus(), 80);
     } catch (err) {
       console.error(err);
       setToast({
         type: 'error',
-        title: 'Falha no Envio',
-        message: 'Erro ao enviar pedido para a cozinha.',
+        title: 'Erro ao Enviar Pedidos',
+        message: 'Ocorreu uma falha ao registrar a venda.',
         subtext: err.message
       });
+    } finally {
+      setIsSubmittingCart(false);
     }
-  };
-
-  const cancelSelection = () => {
-    setSelectedPizzaFlavor(null);
-    setSelectedProduct(null);
-    setCustomerName('');
-    setQuantity(1);
-    setShowNameError(false);
   };
 
   // AÇÕES RÁPIDAS: ADICIONAR E EXCLUIR ITEM DIRETAMENTE NA CATEGORIA (BOTÕES + E -)
   const handleOpenQuickAdd = (category) => {
     if (!category) return;
-    let defPrefix = category.prefixDefault || '';
-    if (!defPrefix) {
-      if (category.id === 'pizza') defPrefix = 'Pp-';
-      else if (category.id === 'acai') defPrefix = 'A-';
-      else if (category.id === 'batata') defPrefix = 'B-';
-      else defPrefix = `${category.name.substring(0, 3).toUpperCase()}-`;
-    }
-    setQuickAddName('');
-    setQuickAddPrice(category.id === 'pizza' ? '0,00' : '10,00');
-    setQuickAddPrefix(defPrefix);
-    setQuickAddDesc('');
     setQuickAddModal({ isOpen: true, category });
+    setQuickAddName('');
+    setQuickAddPrice('0,00');
+    setQuickAddPrefix(category.prefixDefault || (category.id === 'pizza' ? 'Pp-' : 'Ped-'));
+    setQuickAddDesc('');
   };
 
-  const handleSaveQuickAdd = (e) => {
-    if (e) e.preventDefault();
+  const handleConfirmQuickAdd = (e) => {
+    e.preventDefault();
     const cat = quickAddModal.category;
     if (!cat) return;
 
     const cleanName = quickAddName.trim();
-    if (!cleanName) {
-      setToast({
-        title: 'Atenção',
-        message: 'Por favor, digite o nome do item / sabor!',
-        type: 'error'
-      });
-      return;
-    }
+    if (!cleanName) return;
 
-    const priceNum = parseCurrencyMask(quickAddPrice);
-    const cleanPrefix = quickAddPrefix.trim() || (cat.prefixDefault || `${cat.id.substring(0, 3).toUpperCase()}-`);
-    const cleanDesc = quickAddDesc.trim();
+    const numericPrice = parseCurrencyMask(quickAddPrice);
+    const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
     const newItem = {
-      id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      name: cleanName.toUpperCase(),
-      price: priceNum,
-      prefix: cleanPrefix,
-      description: cleanDesc
+      id: newId,
+      name: cleanName,
+      price: numericPrice,
+      prefix: quickAddPrefix.trim() || cat.prefixDefault || 'Ped-',
+      description: quickAddDesc.trim() || cleanName
     };
 
     const updatedCategories = categories.map((c) => {
@@ -532,9 +542,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     storageService.saveProducts(updatedCategories);
     setCategories(updatedCategories);
 
-    // Se o item deletado for o atualmente selecionado no caixa, limpa a seleção
     if (selectedPizzaFlavor?.id === item.id) setSelectedPizzaFlavor(null);
-    if (selectedProduct?.item?.id === item.id) cancelSelection();
 
     setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null });
     setToast({
@@ -559,10 +567,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     storageService.saveProducts(updatedCategories);
     setCategories(updatedCategories);
 
-    if (selectedProduct?.category?.id === cat.id) {
-      cancelSelection();
-    }
-
     setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null });
     setToast({
       title: 'Categoria Excluída!',
@@ -577,8 +581,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   const otherCategories = categories.filter(c => !['pizza', 'acai', 'batata'].includes(c.id));
 
   const isNameFilled = customerName.trim().length > 0;
-
-
 
   return (
     <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden text-xs">
@@ -598,12 +600,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
         {/* CONTROLES SUPERIORES */}
         <div className="flex items-center gap-2">
-          {/* APENAS A BOLINHA PISCANTE, SEM BORDA NEM TEXTO */}
           <div className="flex items-center justify-center px-1" title={isFirebaseOnline ? 'Conexão Nuvem Online' : 'Modo Local'}>
             <span className={`w-2.5 h-2.5 rounded-full ${isFirebaseOnline ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
           </div>
 
-          {/* BOTÃO DA ENGRENAGEM (CONFIGURAÇÕES DO CAIXA) */}
           <button 
             onClick={() => onOpenConfig()}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-sm active:scale-95 border border-amber-500 cursor-pointer"
@@ -626,21 +626,194 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       <AutoToast toast={toast} onClose={() => setToast(null)} duration={1000} />
 
       {/* ========================================================
-          ÁREA DO TOPO DO CAIXA:
-          - SE NADA SELECIONADO: AVISO AMIGÁVEL
-          - QUANDO ESCOLHE (PEDAÇO/INTEIRO/ITEM): ABRE NOME, QTDE E BOTÃO VERDE ENVIAR!
+          BARRA DE ATENDIMENTO AO CLIENTE (FLUXO PEDIDO MULTI-ITENS)
+          PRIMEIRO DIGITA O NOME DO CLIENTE, E DEPOIS ESCOLHE OS ITENS!
          ======================================================== */}
-      {/* ========================================================
-          ÁREA DO TOPO DO CAIXA:
-          - DICA INICIAL AMIGÁVEL (QUANDO NENHUM ITEM ESCOLHIDO)
-          - AO ESCOLHER O PRODUTO, O FORMULÁRIO DESCE EM EFEITO CORTINA
-            DIRETAMENTE EMBAIXO DO ITEM SELECIONADO!
-         ======================================================== */}
+      <section className="bg-slate-950/95 border-b-2 border-amber-500/60 p-2.5 sm:p-3 shrink-0 shadow-xl z-20">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+          
+          {/* 1. NOME DO CLIENTE & FORMA DE PAGAMENTO */}
+          <div className="flex items-center gap-2 flex-1 flex-wrap sm:flex-nowrap">
+            <div className={`relative flex-1 min-w-[200px] ${nameShake ? 'animate-shake' : ''}`}>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-amber-400">
+                <User className="w-4 h-4" />
+              </div>
+              <input
+                ref={nameInputRef}
+                type="text"
+                placeholder="1º DIGITE O NOME DO CLIENTE (EX: JOÃO) *"
+                value={customerName}
+                onChange={(e) => {
+                  setCustomerName(e.target.value.toUpperCase());
+                  if (showNameError && e.target.value.trim()) setShowNameError(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (cart.length > 0 && customerName.trim()) {
+                      handleFinalizeCart();
+                    }
+                  }
+                }}
+                className={`w-full h-11 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase pl-9 pr-8 rounded-xl outline-none transition-all placeholder:text-amber-400/60 placeholder:normal-case placeholder:text-xs border-2 ${
+                  !isNameFilled 
+                    ? 'border-amber-500/80 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30' 
+                    : 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-950/20'
+                }`}
+              />
+              {customerName && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerName('');
+                    nameInputRef.current?.focus();
+                  }}
+                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* FORMA DE PAGAMENTO */}
+            <div className="w-36 shrink-0">
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full h-11 bg-slate-900 border-2 border-slate-700 text-white font-black text-xs px-2.5 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 transition-all cursor-pointer"
+              >
+                <option value="PIX">💳 PIX</option>
+                <option value="DINHEIRO">💵 Dinheiro</option>
+                <option value="DEBITO">💳 Débito</option>
+                <option value="CREDITO">💳 Crédito</option>
+              </select>
+            </div>
+
+            {/* BOTÃO LIMPAR PEDIDO SE HOUVER ITENS */}
+            {cart.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setCart([])}
+                className="h-11 px-2.5 bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white rounded-xl border border-rose-800 transition-all flex items-center justify-center gap-1 text-xs font-bold cursor-pointer shrink-0"
+                title="Limpar todos os itens da comanda atual"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Limpar</span>
+              </button>
+            )}
+          </div>
+
+          {/* 2. TOTALIZADOR E BOTÃO FINALIZAR VENDA */}
+          <div className="flex items-center gap-2 shrink-0 justify-between sm:justify-end">
+            <div className="bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-bold uppercase">Total:</span>
+              <span className="text-base sm:text-lg font-black text-emerald-400 font-mono">
+                R$ {cartTotal.toFixed(2)}
+              </span>
+              <span className="text-[10px] text-amber-300 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/40">
+                {cartItemCount} {cartItemCount === 1 ? 'item' : 'itens'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleFinalizeCart}
+              disabled={isSubmittingCart || cart.length === 0}
+              className={`h-11 px-4 sm:px-5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
+                cart.length > 0
+                  ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 border-emerald-300 shadow-emerald-950/80'
+                  : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-60'
+              }`}
+            >
+              <Send className="w-4 h-4 fill-current" />
+              <span>FINALIZAR PEDIDOS</span>
+              {cart.length > 0 && (
+                <span className="bg-slate-950/25 px-1.5 py-0.5 rounded font-mono text-xs font-black">
+                  R$ {cartTotal.toFixed(2)}
+                </span>
+              )}
+            </button>
+          </div>
+
+        </div>
+
+        {/* ITENS DA COMANDA ATUAL (CHIPS ROLÁVEIS COM QUANTIDADE E EXCLUIR) */}
+        {cart.length > 0 ? (
+          <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto pb-1">
+            <span className="text-[10px] font-black uppercase text-amber-400 shrink-0 flex items-center gap-1">
+              <ShoppingCart className="w-3.5 h-3.5" />
+              <span>Comanda de {customerName || 'Cliente'}:</span>
+            </span>
+
+            {cart.map((cItem) => (
+              <div
+                key={cItem.cartItemId}
+                className="bg-slate-900 border border-slate-700 hover:border-slate-500 px-2.5 py-1 rounded-xl flex items-center gap-2 shrink-0 shadow-sm transition-all"
+              >
+                <span className="text-xs font-bold text-white whitespace-nowrap">
+                  {cItem.description}
+                </span>
+                <span className="text-xs font-black text-emerald-400 font-mono">
+                  R$ {(cItem.unitPrice * cItem.quantity).toFixed(2)}
+                </span>
+
+                <div className="flex items-center gap-1 bg-slate-950 px-1 py-0.5 rounded-lg border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => updateCartQuantity(cItem.cartItemId, -1)}
+                    className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <span className="text-xs font-mono font-black text-amber-300 px-1">
+                    {cItem.quantity}x
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => updateCartQuantity(cItem.cartItemId, 1)}
+                    className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => removeFromCart(cItem.cartItemId)}
+                  className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
+                  title="Remover item da comanda"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-400">
+            <span>
+              💡 <strong className="text-slate-300">Como funciona:</strong> Digite o nome da pessoa acima (ex: <strong className="text-amber-300">JOÃO</strong>) e clique nos produtos abaixo (Pastel, Batata, Pizza, etc.) para montar a comanda completa!
+            </span>
+            {selectedPizzaFlavor && (
+              <span className="text-amber-400 font-bold animate-pulse">
+                Sabor selecionado: {selectedPizzaFlavor.name} &bull; Escolha Pedaço ou Inteira abaixo!
+              </span>
+            )}
+          </div>
+        )}
+
+        {showNameError && (
+          <div className="mt-2 text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2 animate-shake">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>Por favor, digite o nome do cliente no campo acima antes de finalizar!</span>
+          </div>
+        )}
+      </section>
+
       {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA) */}
       <main className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-6">
 
         {/* ========================================================
-            SEÇÃO 1: PIZZA (CLICOU NO SABOR -> ABRE PEDAÇO OU INTEIRO)
+            SEÇÃO 1: PIZZA (CLICOU NO SABOR -> ESCOLHE PEDAÇO OU INTEIRO)
            ======================================================== */}
         {pizzaCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
@@ -652,9 +825,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
                   PIZZA
                 </h2>
+                <span className="text-[10px] text-slate-400 hidden sm:inline">
+                  (Clique no sabor e adicione Pedaço ou Inteira à comanda)
+                </span>
               </div>
 
-              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO (REDONDOS SEM CAPTION) */}
+              {/* BOTÕES + E - PARA PIZZA */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -679,10 +855,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
               {pizzaCategory.items.map((flavor) => {
                 const isSelected = selectedPizzaFlavor?.id === flavor.id;
+                const inCartQty = getItemCartQuantity(flavor.id);
                 return (
                   <button
                     key={flavor.id}
-                    onClick={() => handleSelectPizzaFlavor(flavor)}
+                    onClick={() => setSelectedPizzaFlavor(flavor)}
                     className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] ${
                       isSelected
                         ? 'bg-amber-500 text-slate-950 border-amber-300 shadow ring-2 ring-amber-400 scale-[1.01]'
@@ -690,7 +867,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     }`}
                   >
                     <div>
-                      <div className="font-extrabold text-xs leading-tight">{flavor.name}</div>
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="font-extrabold text-xs leading-tight">{flavor.name}</div>
+                        {inCartQty > 0 && (
+                          <span className="text-[9px] font-black bg-emerald-500 text-slate-950 px-1 rounded-full shadow shrink-0">
+                            ✓ {inCartQty}x
+                          </span>
+                        )}
+                      </div>
                       <div className={`text-[9px] line-clamp-1 mt-0.5 ${isSelected ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
                         {flavor.description || 'Sabor tradicional'}
                       </div>
@@ -705,181 +889,57 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               })}
             </div>
 
-            {/* AO CLICAR NO SABOR: BARRA DE 1 LINHA APENAS */}
-            {selectedPizzaFlavor ? (
-              <div 
-                ref={drawerRef}
-                className="mt-2.5 p-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-emerald-500/80 shadow-2xl animate-curtain-down relative pr-9"
-              >
-                {/* BOTÃO X FECHAR NO CANTO SUPERIOR DIREITO */}
-                <button
-                  type="button"
-                  onClick={cancelSelection}
-                  className="absolute top-2.5 right-2 text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer z-10"
-                  title="Fechar e cancelar escolha"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {/* BARRA DE ESCOLHA DE VARIAÇÃO: PEDAÇO OU INTEIRA (ADICIONA DIRETO À COMANDA) */}
+            {selectedPizzaFlavor && (
+              <div className="mt-2.5 p-2.5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-xl border-2 border-amber-500/80 flex items-center justify-between flex-wrap gap-2 animate-fadeIn shadow-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-amber-300">
+                    Sabor: <strong className="text-white uppercase">{selectedPizzaFlavor.name}</strong>
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    &bull; Clique para adicionar à comanda de <strong className="text-white">{customerName || 'Cliente'}</strong>:
+                  </span>
+                </div>
 
-                {/* EM 1 LINHA APENAS: PEDAÇO/INTEIRA | NOME | QDTE | PAGAMENTO | ENVIAR */}
-                <form 
-                  onSubmit={handleConfirmAndSend}
-                  className="flex flex-row items-center gap-2 w-full bg-slate-950/70 p-2 rounded-xl border border-slate-800 flex-nowrap overflow-x-auto"
-                >
-                  {/* À ESQ: PEDAÇO E INTEIRA (SEM PP-XX E SEM 'SELECIONADO', COR MUDA QUANDO SELECIONA) */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {pizzaCategory.variations.map((variation) => {
-                      const isPedaco = variation.id === 'pedaco';
-                      const isCurrentChoice = selectedProduct?.variation?.id === variation.id;
-
-                      return (
-                        <button
-                          key={variation.id}
-                          type="button"
-                          onClick={() => handleSelectPizzaVariation(variation)}
-                          className={`h-10 px-3 rounded-xl border flex items-center gap-2 transition-all cursor-pointer select-none ${
-                            isCurrentChoice
-                              ? isPedaco
-                                ? 'bg-amber-500 text-slate-950 border-amber-300 shadow ring-2 ring-amber-400 font-black'
-                                : 'bg-red-600 text-white border-red-300 shadow ring-2 ring-red-400 font-black'
-                              : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500 font-bold'
-                          }`}
-                        >
-                          {isPedaco ? (
-                            <Pizza className={`w-4 h-4 shrink-0 ${isCurrentChoice ? 'text-slate-950' : 'text-amber-400'}`} />
-                          ) : (
-                            <Disc className={`w-4 h-4 shrink-0 ${isCurrentChoice ? 'text-white' : 'text-red-400'}`} />
-                          )}
-                          <span className="text-xs uppercase tracking-wide">{variation.name}</span>
-                          <span className={`text-xs font-mono font-black ${isCurrentChoice ? (isPedaco ? 'text-slate-950' : 'text-white') : 'text-amber-300'}`}>
-                            R$ {variation.price.toFixed(2)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* NOME (RETIRE 'DE QUEM COMPROU') */}
-                  <div className={`flex-1 min-w-[170px] relative ${nameShake ? 'animate-shake' : ''}`}>
-                    <input
-                      ref={nameInputRef}
-                      type="text"
-                      required
-                      placeholder="NOME *"
-                      value={customerName}
-                      onChange={(e) => {
-                        setCustomerName(e.target.value.toUpperCase());
-                        if (showNameError && e.target.value.trim()) setShowNameError(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (!customerName.trim()) {
-                            setNameShake(true);
-                            setShowNameError(true);
-                            setTimeout(() => setNameShake(false), 500);
-                          } else {
-                            qtyInputRef.current?.focus();
-                            qtyInputRef.current?.select();
-                          }
-                        }
-                      }}
-                      className={`w-full h-10 bg-slate-950 text-white text-xs sm:text-sm font-bold uppercase px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:normal-case placeholder:text-xs border-2 ${
-                        !isNameFilled 
-                          ? 'border-rose-500 glow-required-name' 
-                          : 'border-emerald-500 ring-2 ring-emerald-500/30'
-                      }`}
-                    />
-                  </div>
-
-                  {/* QDTE (PEQUENO) */}
-                  <div className="w-24 sm:w-28 shrink-0">
-                    <div className="h-10 flex items-center justify-between bg-slate-950 px-1.5 rounded-xl border border-slate-700">
-                      <button 
+                <div className="flex items-center gap-2">
+                  {pizzaCategory.variations.map((variation) => {
+                    const isPedaco = variation.id === 'pedaco';
+                    return (
+                      <button
+                        key={variation.id}
                         type="button"
-                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                        onClick={() => handleAddPizzaToCart(selectedPizzaFlavor, variation)}
+                        className={`h-9 px-3.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer font-black text-xs shadow-md active:scale-95 ${
+                          isPedaco
+                            ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300'
+                            : 'bg-red-600 hover:bg-red-500 text-white border-red-400'
+                        }`}
                       >
-                        -
+                        {isPedaco ? <Pizza className="w-4 h-4" /> : <Disc className="w-4 h-4" />}
+                        <span>+ {variation.name}</span>
+                        <span className="ml-1 bg-slate-950/30 px-1.5 py-0.5 rounded font-mono text-[11px]">
+                          R$ {variation.price.toFixed(2)}
+                        </span>
                       </button>
-                      <input 
-                        ref={qtyInputRef}
-                        type="number"
-                        min="1"
-                        max="99"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            paymentSelectRef.current?.focus();
-                          }
-                        }}
-                        className="w-8 text-center bg-transparent text-sm font-black text-amber-300 outline-none"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setQuantity(q => q + 1)}
-                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
+                    );
+                  })}
 
-                  {/* FORMA DE PAGAMENTO */}
-                  <div className="w-24 sm:w-28 shrink-0">
-                    <select
-                      ref={paymentSelectRef}
-                      value={paymentMethod}
-                      onChange={(e) => {
-                        setPaymentMethod(e.target.value);
-                        setTimeout(() => submitButtonRef.current?.focus(), 50);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          submitButtonRef.current?.focus();
-                        }
-                      }}
-                      className="w-full h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/40 transition-all cursor-pointer"
-                    >
-                      <option value="PIX">PIX</option>
-                      <option value="DINHEIRO">Dinheiro</option>
-                      <option value="DEBITO">Débito</option>
-                      <option value="CREDITO">Crédito</option>
-                    </select>
-                  </div>
-
-                  {/* BOTÃO ENVIAR (RETIRE 'PARA A COZINHA') */}
-                  <div className="shrink-0">
-                    <button
-                      ref={submitButtonRef}
-                      type="submit"
-                      className="h-10 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
-                    >
-                      <Send className="w-4 h-4 fill-current" />
-                      <span>ENVIAR</span>
-                      <span className="ml-0.5 bg-slate-950/25 px-1.5 py-0.5 rounded font-mono text-xs font-black">
-                        R$ {((selectedProduct?.variation?.price || 0) * quantity).toFixed(2)}
-                      </span>
-                    </button>
-                  </div>
-                </form>
-
-                {showNameError && (
-                  <div className="text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                    <span>Por favor, digite o nome para enviar!</span>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPizzaFlavor(null)}
+                    className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                    title="Fechar seleção"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            ) : null}
+            )}
           </div>
         )}
 
         {/* ========================================================
-            SEÇÃO 2: AÇAÍ
+            SEÇÃO 2: AÇAÍ (CLICOU NO ITEM -> ADICIONA DIRETO À COMANDA)
            ======================================================== */}
         {acaiCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
@@ -891,9 +951,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
                   AÇAÍ
                 </h2>
+                <span className="text-[10px] text-slate-400 hidden sm:inline">
+                  (Clique para adicionar diretamente à comanda)
+                </span>
               </div>
 
-              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO (REDONDOS SEM CAPTION) */}
+              {/* BOTÕES + E - PARA AÇAÍ */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -914,179 +977,44 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
             </div>
 
-            {/* CARDS DE AÇAÍ: MESMA ALTURA E FORMATO DE PIZZA */}
+            {/* CARDS DE AÇAÍ */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
               {acaiCategory.items.map((item) => {
-                const isSelected = selectedProduct?.category?.id === 'acai' && selectedProduct?.item?.id === item.id;
+                const inCartQty = getItemCartQuantity(item.id);
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => handleSelectDirectItem(acaiCategory, item)}
-                    className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] ${
-                      isSelected
-                        ? 'bg-purple-300 text-slate-950 border-purple-200 shadow ring-2 ring-purple-400 scale-[1.01]'
-                        : 'bg-slate-900/90 hover:bg-purple-950/70 text-slate-200 border-slate-700 hover:border-purple-500/70'
-                    }`}
+                    onClick={() => handleAddItemToCart(acaiCategory, item)}
+                    className="p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] bg-slate-900/90 hover:bg-purple-950/70 text-slate-200 border-slate-700 hover:border-purple-500/70 active:scale-98"
                   >
                     <div>
-                      <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
-                      <div className={`text-[13px] sm:text-sm font-mono font-black mt-0.5 ${isSelected ? 'text-black' : 'text-purple-300'}`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
+                        {inCartQty > 0 && (
+                          <span className="text-[9px] font-black bg-purple-500 text-white px-1.5 py-0.2 rounded-full shadow shrink-0">
+                            ✓ {inCartQty}x
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-purple-300">
                         R$ {item.price.toFixed(2)}
                       </div>
                     </div>
                     <div className="mt-1.5 flex items-center justify-end">
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-slate-950 text-white' : 'bg-slate-800 text-purple-400'}`}>
-                        {isSelected ? '✓ Selecionado' : 'Escolher'}
+                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-800 hover:bg-purple-600 text-purple-300 hover:text-white transition-colors">
+                        + Adicionar
                       </span>
                     </div>
                   </button>
                 );
               })}
             </div>
-
-            {/* AO CLICAR NO AÇAÍ: BARRA DE 1 LINHA APENAS */}
-            {selectedProduct?.category?.id === 'acai' && (
-              <div 
-                ref={drawerRef}
-                className="mt-2.5 p-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-purple-500/80 shadow-2xl animate-curtain-down relative pr-9"
-              >
-                {/* BOTÃO X FECHAR NO CANTO SUPERIOR DIREITO */}
-                <button
-                  type="button"
-                  onClick={cancelSelection}
-                  className="absolute top-2.5 right-2 text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer z-10"
-                  title="Fechar e cancelar escolha"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-
-                {/* EM 1 LINHA APENAS: NOME | QDTE | PAGAMENTO | ENVIAR */}
-                <form 
-                  onSubmit={handleConfirmAndSend}
-                  className="flex flex-row items-center gap-2 w-full bg-slate-950/70 p-2 rounded-xl border border-slate-800 flex-nowrap overflow-x-auto"
-                >
-                  {/* NOME */}
-                  <div className={`flex-1 min-w-[150px] relative shrink-0 ${nameShake ? 'animate-shake' : ''}`}>
-                    <input
-                      ref={nameInputRef}
-                      type="text"
-                      required
-                      placeholder="NOME *"
-                      value={customerName}
-                      onChange={(e) => {
-                        setCustomerName(e.target.value.toUpperCase());
-                        if (showNameError && e.target.value.trim()) setShowNameError(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (!customerName.trim()) {
-                            setNameShake(true);
-                            setShowNameError(true);
-                            setTimeout(() => setNameShake(false), 500);
-                          } else {
-                            qtyInputRef.current?.focus();
-                            qtyInputRef.current?.select();
-                          }
-                        }
-                      }}
-                      className={`w-full h-10 bg-slate-950 text-white text-xs sm:text-sm font-bold uppercase px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:normal-case placeholder:text-xs border-2 ${
-                        !isNameFilled 
-                          ? 'border-rose-500 glow-required-name' 
-                          : 'border-emerald-500 ring-2 ring-emerald-500/30'
-                      }`}
-                    />
-                  </div>
-
-                  {/* QDTE (PEQUENO) */}
-                  <div className="w-24 shrink-0">
-                    <div className="h-10 flex items-center justify-between bg-slate-950 px-1 rounded-xl border border-slate-700">
-                      <button 
-                        type="button"
-                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <input 
-                        ref={qtyInputRef}
-                        type="number"
-                        min="1"
-                        max="99"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            paymentSelectRef.current?.focus();
-                          }
-                        }}
-                        className="w-7 text-center bg-transparent text-sm font-black text-purple-300 outline-none"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setQuantity(q => q + 1)}
-                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* FORMA DE PAGAMENTO */}
-                  <div className="w-24 shrink-0">
-                    <select
-                      ref={paymentSelectRef}
-                      value={paymentMethod}
-                      onChange={(e) => {
-                        setPaymentMethod(e.target.value);
-                        setTimeout(() => submitButtonRef.current?.focus(), 50);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          submitButtonRef.current?.focus();
-                        }
-                      }}
-                      className="w-full h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2 rounded-xl outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/40 transition-all cursor-pointer"
-                    >
-                      <option value="PIX">PIX</option>
-                      <option value="DINHEIRO">Dinheiro</option>
-                      <option value="DEBITO">Débito</option>
-                      <option value="CREDITO">Crédito</option>
-                    </select>
-                  </div>
-
-                  {/* BOTÃO ENVIAR */}
-                  <div className="shrink-0">
-                    <button
-                      ref={submitButtonRef}
-                      type="submit"
-                      className="h-10 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
-                    >
-                      <Send className="w-4 h-4 fill-current" />
-                      <span>ENVIAR</span>
-                      <span className="ml-0.5 bg-slate-950/25 px-1.5 py-0.5 rounded font-mono text-xs font-black">
-                        R$ {((selectedProduct?.item?.price || 0) * quantity).toFixed(2)}
-                      </span>
-                    </button>
-                  </div>
-                </form>
-
-                {showNameError && (
-                  <div className="text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                    <span>Por favor, digite o nome para enviar!</span>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 
         {/* ========================================================
-            SEÇÃO 3: BATATA
+            SEÇÃO 3: BATATA FRITA (CLICOU NO ITEM -> ADICIONA DIRETO À COMANDA)
            ======================================================== */}
         {batataCategory && (
           <div className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
@@ -1096,11 +1024,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <UtensilsCrossed className="w-5 h-5" />
                 </span>
                 <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                  BATATA
+                  BATATA FRITA
                 </h2>
+                <span className="text-[10px] text-slate-400 hidden sm:inline">
+                  (Clique para adicionar diretamente à comanda)
+                </span>
               </div>
 
-              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO (REDONDOS SEM CAPTION) */}
+              {/* BOTÕES + E - PARA BATATA */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -1121,179 +1052,44 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
             </div>
 
-            {/* CARDS DE BATATA: MESMA ALTURA E FORMATO DE PIZZA */}
+            {/* CARDS DE BATATA */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
               {batataCategory.items.map((item) => {
-                const isSelected = selectedProduct?.category?.id === 'batata' && selectedProduct?.item?.id === item.id;
+                const inCartQty = getItemCartQuantity(item.id);
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => handleSelectDirectItem(batataCategory, item)}
-                    className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] ${
-                      isSelected
-                        ? 'bg-yellow-400 text-slate-950 border-yellow-300 shadow ring-2 ring-yellow-400 scale-[1.01]'
-                        : 'bg-slate-900/90 hover:bg-yellow-950/70 text-slate-200 border-slate-700 hover:border-yellow-500/70'
-                    }`}
+                    onClick={() => handleAddItemToCart(batataCategory, item)}
+                    className="p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] bg-slate-900/90 hover:bg-yellow-950/70 text-slate-200 border-slate-700 hover:border-yellow-500/70 active:scale-98"
                   >
                     <div>
-                      <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
-                      <div className={`text-[13px] sm:text-sm font-mono font-black mt-0.5 ${isSelected ? 'text-black' : 'text-yellow-400'}`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
+                        {inCartQty > 0 && (
+                          <span className="text-[9px] font-black bg-yellow-400 text-slate-950 px-1.5 py-0.2 rounded-full shadow shrink-0">
+                            ✓ {inCartQty}x
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-yellow-400">
                         R$ {item.price.toFixed(2)}
                       </div>
                     </div>
                     <div className="mt-1.5 flex items-center justify-end">
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-slate-950 text-white' : 'bg-slate-800 text-yellow-400'}`}>
-                        {isSelected ? '✓ Selecionado' : 'Escolher'}
+                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-800 hover:bg-yellow-500 text-yellow-300 hover:text-slate-950 transition-colors">
+                        + Adicionar
                       </span>
                     </div>
                   </button>
                 );
               })}
             </div>
-
-            {/* AO CLICAR NA BATATA: BARRA DE 1 LINHA APENAS */}
-            {selectedProduct?.category?.id === 'batata' && (
-              <div 
-                ref={drawerRef}
-                className="mt-2.5 p-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-yellow-500/80 shadow-2xl animate-curtain-down relative pr-9"
-              >
-                {/* BOTÃO X FECHAR NO CANTO SUPERIOR DIREITO */}
-                <button
-                  type="button"
-                  onClick={cancelSelection}
-                  className="absolute top-2.5 right-2 text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer z-10"
-                  title="Fechar e cancelar escolha"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-
-                {/* EM 1 LINHA APENAS: NOME | QDTE | PAGAMENTO | ENVIAR */}
-                <form 
-                  onSubmit={handleConfirmAndSend}
-                  className="flex flex-row items-center gap-2 w-full bg-slate-950/70 p-2 rounded-xl border border-slate-800 flex-nowrap overflow-x-auto"
-                >
-                  {/* NOME */}
-                  <div className={`flex-1 min-w-[150px] relative shrink-0 ${nameShake ? 'animate-shake' : ''}`}>
-                    <input
-                      ref={nameInputRef}
-                      type="text"
-                      required
-                      placeholder="NOME *"
-                      value={customerName}
-                      onChange={(e) => {
-                        setCustomerName(e.target.value.toUpperCase());
-                        if (showNameError && e.target.value.trim()) setShowNameError(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (!customerName.trim()) {
-                            setNameShake(true);
-                            setShowNameError(true);
-                            setTimeout(() => setNameShake(false), 500);
-                          } else {
-                            qtyInputRef.current?.focus();
-                            qtyInputRef.current?.select();
-                          }
-                        }
-                      }}
-                      className={`w-full h-10 bg-slate-950 text-white text-xs sm:text-sm font-bold uppercase px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:normal-case placeholder:text-xs border-2 ${
-                        !isNameFilled 
-                          ? 'border-rose-500 glow-required-name' 
-                          : 'border-emerald-500 ring-2 ring-emerald-500/30'
-                      }`}
-                    />
-                  </div>
-
-                  {/* QDTE (PEQUENO) */}
-                  <div className="w-24 shrink-0">
-                    <div className="h-10 flex items-center justify-between bg-slate-950 px-1 rounded-xl border border-slate-700">
-                      <button 
-                        type="button"
-                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <input 
-                        ref={qtyInputRef}
-                        type="number"
-                        min="1"
-                        max="99"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            paymentSelectRef.current?.focus();
-                          }
-                        }}
-                        className="w-7 text-center bg-transparent text-sm font-black text-yellow-300 outline-none"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setQuantity(q => q + 1)}
-                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* FORMA DE PAGAMENTO */}
-                  <div className="w-24 shrink-0">
-                    <select
-                      ref={paymentSelectRef}
-                      value={paymentMethod}
-                      onChange={(e) => {
-                        setPaymentMethod(e.target.value);
-                        setTimeout(() => submitButtonRef.current?.focus(), 50);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          submitButtonRef.current?.focus();
-                        }
-                      }}
-                      className="w-full h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2 rounded-xl outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40 transition-all cursor-pointer"
-                    >
-                      <option value="PIX">PIX</option>
-                      <option value="DINHEIRO">Dinheiro</option>
-                      <option value="DEBITO">Débito</option>
-                      <option value="CREDITO">Crédito</option>
-                    </select>
-                  </div>
-
-                  {/* BOTÃO ENVIAR */}
-                  <div className="shrink-0">
-                    <button
-                      ref={submitButtonRef}
-                      type="submit"
-                      className="h-10 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
-                    >
-                      <Send className="w-4 h-4 fill-current" />
-                      <span>ENVIAR</span>
-                      <span className="ml-0.5 bg-slate-950/25 px-1.5 py-0.5 rounded font-mono text-xs font-black">
-                        R$ {((selectedProduct?.item?.price || 0) * quantity).toFixed(2)}
-                      </span>
-                    </button>
-                  </div>
-                </form>
-
-                {showNameError && (
-                  <div className="text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                    <span>Por favor, digite o nome para enviar!</span>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 
         {/* ========================================================
-            SEÇÃO 4: OUTRAS CATEGORIAS / ITENS ADICIONADOS
+            SEÇÃO 4: OUTRAS CATEGORIAS (PASTEL, SALGADOS, BEBIDAS...)
            ======================================================== */}
         {otherCategories.map((cat) => (
           <div key={cat.id} className="bg-slate-800/70 rounded-xl p-2.5 border border-slate-700/80 shadow-md">
@@ -1305,9 +1101,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <h2 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
                   {cat.name}
                 </h2>
+                <span className="text-[10px] text-slate-400 hidden sm:inline">
+                  (Clique para adicionar diretamente à comanda)
+                </span>
               </div>
 
-              {/* BOTÕES + VERDINHO BRILHO E - VERMELHO FOSCO (REDONDOS SEM CAPTION) */}
+              {/* BOTÕES + E - PARA OUTRAS CATEGORIAS */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -1328,178 +1127,43 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
             </div>
 
-            {/* CARDS: MESMA ALTURA E FORMATO DE PIZZA */}
+            {/* CARDS DOS ITENS */}
             {(!cat.items || cat.items.length === 0) ? (
               <div className="py-3 text-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-dashed border-slate-700/80">
-                Nenhum item cadastrado em {cat.name}. Clique no botão <strong className="text-emerald-400 font-bold">+ Adicionar</strong> acima para cadastrar!
+                Nenhum item cadastrado em {cat.name}. Clique no botão <strong className="text-emerald-400 font-bold">+</strong> acima para cadastrar!
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
                 {cat.items.map((item) => {
-                const isSelected = selectedProduct?.category?.id === cat.id && selectedProduct?.item?.id === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleSelectDirectItem(cat, item)}
-                    className={`p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] ${
-                      isSelected
-                        ? 'bg-cyan-400 text-slate-950 border-cyan-300 shadow ring-2 ring-cyan-400 scale-[1.01]'
-                        : 'bg-slate-900/90 hover:bg-cyan-950/70 text-slate-200 border-slate-700 hover:border-cyan-500/70'
-                    }`}
-                  >
-                    <div>
-                      <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
-                      <div className={`text-[13px] sm:text-sm font-mono font-black mt-0.5 ${isSelected ? 'text-black' : 'text-cyan-300'}`}>
-                        R$ {item.price.toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="mt-1.5 flex items-center justify-end">
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-slate-950 text-white' : 'bg-slate-800 text-cyan-400'}`}>
-                        {isSelected ? '✓ Selecionado' : 'Escolher'}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            )}
-
-            {/* AO CLICAR NO ITEM: BARRA DE 1 LINHA APENAS */}
-            {selectedProduct?.category?.id === cat.id && (
-              <div 
-                ref={drawerRef}
-                className="mt-2.5 p-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl border-2 border-cyan-500/80 shadow-2xl animate-curtain-down relative pr-9"
-              >
-                {/* BOTÃO X FECHAR NO CANTO SUPERIOR DIREITO */}
-                <button
-                  type="button"
-                  onClick={cancelSelection}
-                  className="absolute top-2.5 right-2 text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer z-10"
-                  title="Fechar e cancelar escolha"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-
-                {/* EM 1 LINHA APENAS: NOME | QDTE | PAGAMENTO | ENVIAR */}
-                <form 
-                  onSubmit={handleConfirmAndSend}
-                  className="flex flex-row items-center gap-2 w-full bg-slate-950/70 p-2 rounded-xl border border-slate-800 flex-nowrap overflow-x-auto"
-                >
-                  {/* NOME */}
-                  <div className={`flex-1 min-w-[150px] relative shrink-0 ${nameShake ? 'animate-shake' : ''}`}>
-                    <input
-                      ref={nameInputRef}
-                      type="text"
-                      required
-                      placeholder="NOME *"
-                      value={customerName}
-                      onChange={(e) => {
-                        setCustomerName(e.target.value.toUpperCase());
-                        if (showNameError && e.target.value.trim()) setShowNameError(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (!customerName.trim()) {
-                            setNameShake(true);
-                            setShowNameError(true);
-                            setTimeout(() => setNameShake(false), 500);
-                          } else {
-                            qtyInputRef.current?.focus();
-                            qtyInputRef.current?.select();
-                          }
-                        }
-                      }}
-                      className={`w-full h-10 bg-slate-950 text-white text-xs sm:text-sm font-bold uppercase px-3 rounded-xl outline-none transition-all placeholder:text-slate-500 placeholder:normal-case placeholder:text-xs border-2 ${
-                        !isNameFilled 
-                          ? 'border-rose-500 glow-required-name' 
-                          : 'border-emerald-500 ring-2 ring-emerald-500/30'
-                      }`}
-                    />
-                  </div>
-
-                  {/* QDTE (PEQUENO) */}
-                  <div className="w-24 shrink-0">
-                    <div className="h-10 flex items-center justify-between bg-slate-950 px-1 rounded-xl border border-slate-700">
-                      <button 
-                        type="button"
-                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <input 
-                        ref={qtyInputRef}
-                        type="number"
-                        min="1"
-                        max="99"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            paymentSelectRef.current?.focus();
-                          }
-                        }}
-                        className="w-7 text-center bg-transparent text-sm font-black text-cyan-300 outline-none"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setQuantity(q => q + 1)}
-                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-sm rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* FORMA DE PAGAMENTO */}
-                  <div className="w-24 shrink-0">
-                    <select
-                      ref={paymentSelectRef}
-                      value={paymentMethod}
-                      onChange={(e) => {
-                        setPaymentMethod(e.target.value);
-                        setTimeout(() => submitButtonRef.current?.focus(), 50);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          submitButtonRef.current?.focus();
-                        }
-                      }}
-                      className="w-full h-10 bg-slate-950 border border-slate-700 text-white font-black text-xs px-2 rounded-xl outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/40 transition-all cursor-pointer"
-                    >
-                      <option value="PIX">PIX</option>
-                      <option value="DINHEIRO">Dinheiro</option>
-                      <option value="DEBITO">Débito</option>
-                      <option value="CREDITO">Crédito</option>
-                    </select>
-                  </div>
-
-                  {/* BOTÃO ENVIAR */}
-                  <div className="shrink-0">
+                  const inCartQty = getItemCartQuantity(item.id);
+                  return (
                     <button
-                      ref={submitButtonRef}
-                      type="submit"
-                      className="h-10 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer border-2 border-emerald-300 glow-btn-focused"
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleAddItemToCart(cat, item)}
+                      className="p-2 rounded-lg text-left transition-all flex flex-col justify-between border cursor-pointer min-h-[64px] bg-slate-900/90 hover:bg-cyan-950/70 text-slate-200 border-slate-700 hover:border-cyan-500/70 active:scale-98"
                     >
-                      <Send className="w-4 h-4 fill-current" />
-                      <span>ENVIAR</span>
-                      <span className="ml-0.5 bg-slate-950/25 px-1.5 py-0.5 rounded font-mono text-xs font-black">
-                        R$ {((selectedProduct?.item?.price || 0) * quantity).toFixed(2)}
-                      </span>
+                      <div>
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="font-extrabold text-xs leading-tight truncate">{item.name}</div>
+                          {inCartQty > 0 && (
+                            <span className="text-[9px] font-black bg-cyan-400 text-slate-950 px-1.5 py-0.2 rounded-full shadow shrink-0">
+                              ✓ {inCartQty}x
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[13px] sm:text-sm font-mono font-black mt-0.5 text-cyan-300">
+                          R$ {item.price.toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-end">
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-800 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 transition-colors">
+                          + Adicionar
+                        </span>
+                      </div>
                     </button>
-                  </div>
-                </form>
-
-                {showNameError && (
-                  <div className="text-xs text-rose-300 font-bold bg-rose-950/90 px-3 py-1.5 rounded-lg border border-rose-500/50 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                    <span>Por favor, digite o nome para enviar!</span>
-                  </div>
-                )}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1507,18 +1171,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       </main>
 
       {/* ========================================================
-          RODAPÉ DO CAIXA: 3 COLUNAS COM ATÉ 10 ITENS (ROLÁVEL)
-          - EM PREPARAÇÃO, PRONTAS, RETIRADAS
-          - MAIS NOVOS EM CIMA
-          - CARDS: ÍCONE NR PEDIDO | NOME | ITEM
-          - CORES DIFERENTES: PIZZA (AMBER), AÇAÍ (ROXO), BATATA (AMARELO)
-         ======================================================== */}
-      {/* ========================================================
           RODAPÉ DO CAIXA: 3 COLUNAS REDIMENSIONÁVEIS (ARRASTAR LINHA SUPERIOR)
           - EM PREPARAÇÃO, PRONTAS, RETIRADAS
-          - CLIQUE, SEGURE E ARRASTE A LINHA SUPERIOR PARA CIMA/BAIXO
-          - CARDS: ÍCONE NR PEDIDO | NOME | ITEM
-          - CORES DIFERENTES: PIZZA (AMBER), AÇAÍ (ROXO), BATATA (AMARELO)
          ======================================================== */}
       <footer 
         style={{ height: `${footerHeight}px` }}
@@ -1531,7 +1185,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           className="absolute -top-3 left-0 right-0 h-6 flex items-center justify-center cursor-ns-resize group z-30 touch-none"
           title="Clique, segure e arraste para cima ou para baixo para ajustar a altura da seção"
         >
-          {/* BARRA VISUAL DE AGARRE */}
           <div className="h-1.5 w-24 sm:w-32 bg-slate-600 group-hover:bg-amber-400 group-active:bg-amber-400 rounded-full transition-all shadow-md flex items-center justify-center">
             <GripHorizontal className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-950" />
           </div>
@@ -1557,7 +1210,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </div>
         </div>
 
-        {/* 3 COLUNAS: EM PREPARAÇÃO, PRONTAS, RETIRADAS (FLEX-1 PARA PREENCHER A ALTURA ARRASTADA) */}
+        {/* 3 COLUNAS: EM PREPARAÇÃO, PRONTAS, RETIRADAS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5 flex-1 min-h-0 pt-1">
           
           {/* COLUNA 1: EM PREPARAÇÃO */}
@@ -1598,13 +1251,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
 
                       <span className="text-[11px] font-black text-white uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
-                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                        {order.customerName}
                       </span>
 
                       <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
 
-                      <span className={`text-[10px] font-bold ${style.textColor} truncate flex-1`} title={itemText}>
-                        {itemText} {order.quantity > 1 ? `(${order.quantity}x)` : ''}
+                      <span className={`text-[11px] font-medium truncate flex-1 ${style.textColor}`} title={itemText}>
+                        {order.quantity > 1 && <strong className="text-amber-400 font-mono mr-1">({order.quantity}x)</strong>}
+                        {itemText}
                       </span>
                     </div>
                   );
@@ -1617,9 +1271,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <div className="bg-slate-900/80 rounded-xl border border-emerald-500/40 p-2 flex flex-col shadow-inner min-h-0">
             <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-emerald-500/25 shrink-0">
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
-                  PRONTAS
+                  PRONTAS (RETIRAR)
                 </span>
               </div>
               <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-950/80 px-2 py-0.2 rounded border border-emerald-500/30">
@@ -1651,13 +1305,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
 
                       <span className="text-[11px] font-black text-white uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
-                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                        {order.customerName}
                       </span>
 
                       <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
 
-                      <span className={`text-[10px] font-bold ${style.textColor} truncate flex-1`} title={itemText}>
-                        {itemText} {order.quantity > 1 ? `(${order.quantity}x)` : ''}
+                      <span className={`text-[11px] font-medium truncate flex-1 ${style.textColor}`} title={itemText}>
+                        {order.quantity > 1 && <strong className="text-amber-400 font-mono mr-1">({order.quantity}x)</strong>}
+                        {itemText}
                       </span>
                     </div>
                   );
@@ -1666,16 +1321,16 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             </div>
           </div>
 
-          {/* COLUNA 3: RETIRADAS */}
-          <div className="bg-slate-900/80 rounded-xl border border-blue-500/40 p-2 flex flex-col shadow-inner min-h-0">
-            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-blue-500/25 shrink-0">
+          {/* COLUNA 3: RETIRADAS / ENTREGUES */}
+          <div className="bg-slate-900/80 rounded-xl border border-slate-700/60 p-2 flex flex-col shadow-inner min-h-0">
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800 shrink-0">
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-[11px] font-black uppercase tracking-wider text-blue-300">
-                  RETIRADAS
+                <CheckCircle2 className="w-3 h-3 text-slate-400" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                  RETIRADAS / ENTREGUES
                 </span>
               </div>
-              <span className="text-[10px] font-mono font-black text-blue-400 bg-blue-950/80 px-2 py-0.2 rounded border border-blue-500/30">
+              <span className="text-[10px] font-mono font-black text-slate-400 bg-slate-950 px-2 py-0.2 rounded border border-slate-800">
                 {deliveredList.length}
               </span>
             </div>
@@ -1683,7 +1338,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0">
               {deliveredList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium">
-                  Nenhum pedido retirado ainda
+                  Nenhum pedido entregue
                 </div>
               ) : (
                 deliveredList.map((order) => {
@@ -1692,25 +1347,25 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   return (
                     <div 
                       key={order.id}
-                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${style.border} ${style.bg} transition-all shadow-sm text-xs`}
+                      className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-800/80 bg-slate-950/40 text-slate-400 text-xs"
                     >
                       <div className="flex items-center gap-1 shrink-0">
-                        {style.icon}
-                        <span className={`font-mono font-black text-[11px] px-1.5 py-0.2 rounded border ${style.badgeColor}`}>
+                        <span className="font-mono font-bold text-[10px] text-slate-400">
                           {order.orderNumber}
                         </span>
                       </div>
 
-                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+                      <span className="text-slate-700 select-none text-[10px]">|</span>
 
-                      <span className="text-[11px] font-black text-white uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
-                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                      <span className="text-[11px] font-bold text-slate-300 uppercase truncate max-w-[85px] sm:max-w-[110px]" title={order.customerName}>
+                        {order.customerName}
                       </span>
 
-                      <span className="text-slate-600 font-bold select-none text-[10px]">|</span>
+                      <span className="text-slate-700 select-none text-[10px]">|</span>
 
-                      <span className={`text-[10px] font-bold ${style.textColor} truncate flex-1`} title={itemText}>
-                        {itemText} {order.quantity > 1 ? `(${order.quantity}x)` : ''}
+                      <span className="text-[11px] text-slate-400 truncate flex-1" title={itemText}>
+                        {order.quantity > 1 && <span className="font-mono mr-1">({order.quantity}x)</span>}
+                        {itemText}
                       </span>
                     </div>
                   );
@@ -1720,119 +1375,110 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </div>
 
         </div>
-
       </footer>
 
-      {/* MODAL RÁPIDO: ADICIONAR OPÇÃO DE PRODUTO (+ VERDINHO BRILHO) */}
+      {/* ========================================================
+          MODAL RÁPIDO: ADICIONAR NOVO ITEM NA CATEGORIA (+)
+         ======================================================== */}
       {quickAddModal.isOpen && quickAddModal.category && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn">
-          <div className="bg-slate-900 border border-emerald-500/50 rounded-3xl p-5 max-w-md w-full shadow-2xl shadow-black space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
-                  <Plus className="w-5 h-5 stroke-[2.5]" />
+        <div 
+          onClick={() => setQuickAddModal({ isOpen: false, category: null })}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-emerald-500/60 w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-5 text-slate-100 font-sans cursor-default animate-scaleUp"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/40">
+                  <Plus className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-black text-white tracking-wide uppercase">
-                    Adicionar Opção em {quickAddModal.category.name}
+                  <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
+                    Adicionar em {quickAddModal.category.name}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Cadastre uma nova opção para venda imediata no caixa
-                  </p>
+                  <p className="text-[11px] text-slate-400">Novo sabor ou opção para venda rápida</p>
                 </div>
               </div>
-              <button
-                type="button"
+              <button 
                 onClick={() => setQuickAddModal({ isOpen: false, category: null })}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveQuickAdd} className="space-y-3.5">
+            <form onSubmit={handleConfirmQuickAdd} className="space-y-3.5">
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">
-                  {quickAddModal.category.id === 'pizza' ? 'Sabor da Pizza: *' : 'Nome da Opção: *'}
+                  Nome do Item / Sabor:
                 </label>
                 <input
                   type="text"
                   required
-                  autoFocus
-                  placeholder={
-                    quickAddModal.category.id === 'pizza'
-                      ? 'Ex: Quatro Queijos, Bacon Especial...'
-                      : quickAddModal.category.id === 'acai'
-                      ? 'Ex: Copo 500ml, Tigela 700ml...'
-                      : 'Ex: Porção Grande, Lata 350ml...'
-                  }
+                  placeholder="Ex: Pastel de Carne, Coca-Cola 350ml, etc."
                   value={quickAddName}
-                  onChange={(e) => setQuickAddName(e.target.value.toUpperCase())}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-emerald-400"
+                  onChange={(e) => setQuickAddName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-emerald-400"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Preço de Venda (R$): *
-                  </label>
-                  <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-emerald-400">
-                    <span className="text-xs font-bold text-emerald-400 mr-1.5">R$</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      required
-                      placeholder="0,00"
-                      value={quickAddPrice}
-                      onChange={(e) => setQuickAddPrice(formatCurrencyMask(e.target.value))}
-                      className="w-full bg-transparent text-sm font-mono font-bold text-white outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Prefixo Senha: *
+                    Preço (R$):
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ex: A-, B-, Pp-"
+                    value={quickAddPrice}
+                    onChange={(e) => setQuickAddPrice(formatCurrencyMask(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-emerald-400 font-mono font-black outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Prefixo da Comanda:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Pas-, B-, Ref-"
                     value={quickAddPrefix}
                     onChange={(e) => setQuickAddPrefix(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none focus:border-emerald-400"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-300 font-mono font-bold outline-none focus:border-emerald-400"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Descrição (Opcional):
+                  Descrição ou Ingredientes (Opcional):
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: Acompanha granola e leite condensado..."
+                  placeholder="Ex: Carne moída temperada com azeitonas"
                   value={quickAddDesc}
                   onChange={(e) => setQuickAddDesc(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-400"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-800">
+              <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setQuickAddModal({ isOpen: false, category: null })}
-                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                  className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                  className="py-2 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
                 >
-                  <Plus className="w-4 h-4 stroke-[3]" />
-                  <span>Adicionar Opção</span>
+                  <Check className="w-4 h-4" />
+                  <span>Salvar Item</span>
                 </button>
               </div>
             </form>
@@ -1840,68 +1486,70 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
       )}
 
-      {/* MODAL: EXCLUIR ITEM OU CATEGORIA (- VERMELHO FOSCO) */}
+      {/* ========================================================
+          MODAL RÁPIDO: EXCLUIR ITEM OU CATEGORIA (-)
+         ======================================================== */}
       {quickDeleteModal.isOpen && quickDeleteModal.category && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fadeIn">
-          <div className="bg-slate-900 border border-rose-500/50 rounded-3xl p-5 max-w-md w-full shadow-2xl shadow-black space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/30">
+        <div 
+          onClick={() => setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null })}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-rose-500/60 w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-5 text-slate-100 font-sans cursor-default animate-scaleUp"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/40">
                   <Trash2 className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-black text-rose-400 tracking-wide uppercase">
-                    Excluir em {quickDeleteModal.category.name}
+                  <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
+                    Gerenciar Exclusão em {quickDeleteModal.category.name}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Escolha qual item quer excluir ou exclua a categoria inteira
-                  </p>
+                  <p className="text-[11px] text-slate-400">Escolha o item a remover ou exclua a categoria</p>
                 </div>
               </div>
-              <button
-                type="button"
+              <button 
                 onClick={() => setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null })}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* SE UM ITEM FOI SELECIONADO PARA EXCLUSÃO: CONFIRMAÇÃO */}
             {quickDeleteModal.itemToDelete ? (
-              <div className="bg-rose-950/30 border border-rose-500/50 rounded-2xl p-4 space-y-3 animate-fadeIn">
-                <p className="text-sm font-bold text-slate-200 leading-relaxed">
-                  Tem certeza que deseja excluir o item <strong className="text-rose-400 uppercase">"{quickDeleteModal.itemToDelete.name}"</strong>? Ele deixará de aparecer para venda no caixa.
-                </p>
-
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs font-mono flex items-center justify-between">
-                  <span className="text-slate-400 font-sans">Valor:</span>
-                  <span className="font-black text-emerald-400">R$ {formatCurrencyMask(quickDeleteModal.itemToDelete.price)}</span>
+              <div className="space-y-4">
+                <div className="bg-rose-950/60 border border-rose-500/50 rounded-2xl p-4 text-center space-y-2">
+                  <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+                  <div className="font-bold text-white text-sm">
+                    Tem certeza que deseja excluir "{quickDeleteModal.itemToDelete.name}"?
+                  </div>
+                  <div className="text-xs text-rose-300">
+                    Este item deixará de aparecer no cardápio do caixa imediatamente.
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                   <button
                     type="button"
                     onClick={() => setQuickDeleteModal(prev => ({ ...prev, itemToDelete: null }))}
-                    className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
                   >
-                    NÃO
+                    Voltar
                   </button>
                   <button
                     type="button"
                     onClick={() => handleConfirmQuickDelete(quickDeleteModal.itemToDelete)}
-                    className="py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                    className="py-2 px-5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span>SIM, EXCLUIR ITEM</span>
+                    <span>Confirmar Exclusão</span>
                   </button>
                 </div>
               </div>
             ) : (
-              /* DUAS OPÇÕES: EXCLUIR CATEGORIA INTEIRA OU ESCOLHER QUAL ITEM EXCLUIR */
               <div className="space-y-3.5">
-                
-                {/* OPÇÃO 1: EXCLUIR TODA A CATEGORIA (SE FOR CATEGORIA PERSONALIZADA) */}
                 {!['pizza', 'acai', 'batata'].includes(quickDeleteModal.category.id) && (
                   <div className="bg-rose-950/40 border border-rose-500/50 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-md">
                     <div className="min-w-0">
@@ -1924,7 +1572,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   </div>
                 )}
 
-                {/* OPÇÃO 2: LISTAGEM DE ITENS DA CATEGORIA PARA ESCOLHER QUAL EXCLUIR */}
                 <div className="space-y-2">
                   <div className="text-xs font-black text-slate-300 uppercase tracking-wide flex items-center justify-between">
                     <span>Escolha qual item quer excluir:</span>

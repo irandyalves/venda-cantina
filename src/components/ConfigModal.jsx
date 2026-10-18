@@ -39,7 +39,8 @@ import {
   EyeOff,
   Volume2,
   Maximize2,
-  BellRing
+  BellRing,
+  Download
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -1220,6 +1221,164 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     return new Date(o.createdAt).toLocaleDateString('pt-BR') === reportDateFilter;
   });
 
+  // Estado e lógica de ordenação da tabela de fechamento de caixa
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' | 'desc'
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedDisplayedOrders = [...displayedOrders].sort((a, b) => {
+    let comparison = 0;
+    if (sortField === 'orderNumber') {
+      const numA = parseInt(String(a.orderNumber || '').replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(String(b.orderNumber || '').replace(/\D/g, ''), 10) || 0;
+      comparison = numA - numB;
+      if (comparison === 0) {
+        comparison = String(a.orderNumber || '').localeCompare(String(b.orderNumber || ''));
+      }
+    } else if (sortField === 'customerName') {
+      comparison = String(a.customerName || '').localeCompare(String(b.customerName || ''), 'pt-BR', { sensitivity: 'base' });
+    } else if (sortField === 'itemName') {
+      const descA = a.fullDescription || a.itemName || '';
+      const descB = b.fullDescription || b.itemName || '';
+      comparison = descA.localeCompare(descB, 'pt-BR', { sensitivity: 'base' });
+    } else if (sortField === 'quantity') {
+      comparison = (Number(a.quantity) || 0) - (Number(b.quantity) || 0);
+    } else if (sortField === 'paymentMethod') {
+      comparison = String(a.paymentMethod || '').localeCompare(String(b.paymentMethod || ''));
+    } else if (sortField === 'totalPrice') {
+      comparison = (Number(a.totalPrice) || 0) - (Number(b.totalPrice) || 0);
+    } else if (sortField === 'createdAt') {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      comparison = timeA - timeB;
+    }
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  // Exportar dados em CSV com BOM UTF-8 e delimitador ';' para abrir perfeitamente no Excel pt-BR
+  const exportToCSV = () => {
+    if (!sortedDisplayedOrders || sortedDisplayedOrders.length === 0) {
+      showToast('Nenhum dado para exportar.', 'Aviso', 'info');
+      return;
+    }
+
+    const headers = ['Comanda', 'Cliente', 'Item / Descrição', 'Quantidade', 'Forma de Pagamento', 'Valor Unitário (R$)', 'Valor Total (R$)', 'Data / Hora', 'Status'];
+    const rows = sortedDisplayedOrders.map(ord => {
+      const isCancelled = ord.status === 'cancelado';
+      const dateStr = ord.createdAt ? new Date(ord.createdAt).toLocaleString('pt-BR') : '';
+      return [
+        `"${ord.orderNumber || ''}"`,
+        `"${(ord.customerName || '').replace(/"/g, '""')}"`,
+        `"${(ord.fullDescription || ord.itemName || '').replace(/"/g, '""')}"`,
+        ord.quantity || 1,
+        `"${ord.paymentMethod || ''}"`,
+        (Number(ord.unitPrice) || 0).toFixed(2).replace('.', ','),
+        (Number(ord.totalPrice) || 0).toFixed(2).replace('.', ','),
+        `"${dateStr}"`,
+        isCancelled ? '"CANCELADO / EXCLUÍDO"' : '"CONFIRMADO"'
+      ].join(';');
+    });
+
+    const csvContent = '\uFEFF' + headers.join(';') + '\n' + rows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const dateFile = new Date().toISOString().split('T')[0];
+    link.setAttribute('href', url);
+    link.setAttribute('download', `fechamento_caixa_cantina_${dateFile}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Arquivo .CSV exportado com sucesso!', 'Exportação Concluída', 'success');
+  };
+
+  // Exportar dados em .XLS (formato compatível Excel com formatação)
+  const exportToXLS = () => {
+    if (!sortedDisplayedOrders || sortedDisplayedOrders.length === 0) {
+      showToast('Nenhum dado para exportar.', 'Aviso', 'info');
+      return;
+    }
+
+    const dateFile = new Date().toISOString().split('T')[0];
+    let tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+          th { background-color: #0f172a; color: #f59e0b; font-weight: bold; padding: 8px 12px; border: 1px solid #334155; font-size: 12px; }
+          td { padding: 6px 10px; border: 1px solid #cbd5e1; font-size: 11px; }
+          .cancelled { color: #dc2626; text-decoration: line-through; background-color: #fee2e2; }
+          .currency { text-align: right; font-weight: bold; color: #047857; font-family: monospace; }
+        </style>
+      </head>
+      <body>
+        <h3>FECHAMENTO DE CAIXA - CANTINA</h3>
+        <p><strong>Evento:</strong> ${currentEvent?.name || 'Cantina Geral'} &bull; <strong>Gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+        <p><strong>Total Faturado:</strong> R$ ${totalGeral.toFixed(2)} &bull; <strong>Vendas Ativas:</strong> ${activeOrders.length}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Comanda</th>
+              <th>Cliente</th>
+              <th>Item / Descrição</th>
+              <th>Qtde</th>
+              <th>Pagamento</th>
+              <th>Valor Unit. (R$)</th>
+              <th>Total (R$)</th>
+              <th>Data/Hora</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    sortedDisplayedOrders.forEach(ord => {
+      const isCancelled = ord.status === 'cancelado';
+      const dateStr = ord.createdAt ? new Date(ord.createdAt).toLocaleString('pt-BR') : '';
+      tableHtml += `
+        <tr class="${isCancelled ? 'cancelled' : ''}">
+          <td style="font-weight: bold; color: #ea580c; font-family: monospace;">${ord.orderNumber || ''}</td>
+          <td>${ord.customerName || ''}</td>
+          <td>${ord.fullDescription || ord.itemName || ''}</td>
+          <td style="text-align: center;">${ord.quantity || 1}</td>
+          <td>${ord.paymentMethod || ''}</td>
+          <td class="currency">${(Number(ord.unitPrice) || 0).toFixed(2).replace('.', ',')}</td>
+          <td class="currency">${(Number(ord.totalPrice) || 0).toFixed(2).replace('.', ',')}</td>
+          <td>${dateStr}</td>
+          <td>${isCancelled ? 'CANCELADO' : 'CONFIRMADO'}</td>
+        </tr>
+      `;
+    });
+
+    tableHtml += `
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `fechamento_caixa_cantina_${dateFile}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Planilha .XLS exportada com sucesso!', 'Exportação Concluída', 'success');
+  };
+
   // Vendas ativas (exclui vendas canceladas/excluídas do cálculo financeiro)
   const activeOrders = displayedOrders.filter(o => o.status !== 'cancelado');
   const totalGeral = activeOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
@@ -1947,7 +2106,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                               {hist.event?.name || 'Cantina Geral'}
                             </span>
                             <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 shrink-0">
-                              📅 {hist.archivedAtFormatted || new Date(hist.archivedAt).toLocaleString('pt-BR')}
+                              📅 {hist.archivedAtFormatted || (hist.archivedAt ? (typeof hist.archivedAt?.toDate === 'function' ? hist.archivedAt.toDate().toLocaleString('pt-BR') : new Date(hist.archivedAt).toLocaleString('pt-BR')) : 'Turno Arquivado')}
                             </span>
                           </div>
                           <div className="text-right shrink-0">
@@ -1997,7 +2156,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     </div>
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
                       <div className="text-[9px] font-bold text-rose-400 uppercase leading-none">Excluídas</div>
-                      <div className="text-xs sm:text-sm font-black text-rose-400 font-mono leading-tight mt-0.5">{todayOrders.length - activeOrders.length}</div>
+                      <div className="text-xs sm:text-sm font-black text-rose-400 font-mono leading-tight mt-0.5">{orders.length - activeOrders.length}</div>
                     </div>
                   </div>
                 </div>
@@ -2018,14 +2177,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800">
-                        {todayOrders.length === 0 ? (
+                        {orders.length === 0 ? (
                           <tr>
                             <td colSpan="7" className="p-4 text-center text-slate-500 italic">
                               Nenhuma venda registrada no turno atual.
                             </td>
                           </tr>
                         ) : (
-                          todayOrders.map((ord) => {
+                          orders.map((ord) => {
                             const isCancelled = ord.status === 'cancelado';
                             return (
                               <tr 
@@ -2315,6 +2474,28 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         ))}
                       </select>
                     )}
+
+                    {/* BOTÕES DE EXPORTAÇÃO XLS E CSV */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={exportToXLS}
+                        className="px-2.5 py-1 bg-emerald-700/30 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-xl border border-emerald-500/50 text-[11px] font-bold flex items-center gap-1 transition-all shadow-sm cursor-pointer"
+                        title="Exportar planilha completa em Excel (.XLS)"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        <span>Exportar XLS</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={exportToCSV}
+                        className="px-2.5 py-1 bg-slate-700/60 hover:bg-slate-600 text-slate-200 hover:text-white rounded-xl border border-slate-600 text-[11px] font-bold flex items-center gap-1 transition-all shadow-sm cursor-pointer"
+                        title="Exportar dados em formato (.CSV)"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Exportar CSV</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* CARDS COM TOTALIZADORES NA FRENTE DO TÍTULO */}
@@ -2370,17 +2551,96 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <table className="w-full text-left text-xs text-slate-300">
                       <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider z-10 shadow-sm">
                         <tr>
-                          <th className="py-1.5 px-2.5">Comanda</th>
-                          <th className="py-1.5 px-2.5">Cliente</th>
-                          <th className="py-1.5 px-2.5">Item</th>
-                          <th className="py-1.5 px-2.5 text-center">Qtde</th>
-                          <th className="py-1.5 px-2.5">Pagamento</th>
-                          <th className="py-1.5 px-2.5 text-right">Valor</th>
+                          {/* COLUNA COMANDA */}
+                          <th 
+                            onClick={() => handleSort('orderNumber')}
+                            className="py-1.5 px-2.5 cursor-pointer hover:text-white transition-colors group select-none"
+                            title="Clique para ordenar por comanda"
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Comanda</span>
+                              <span className={`text-xs ${sortField === 'orderNumber' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                                {sortField === 'orderNumber' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
+                              </span>
+                            </div>
+                          </th>
+
+                          {/* COLUNA CLIENTE */}
+                          <th 
+                            onClick={() => handleSort('customerName')}
+                            className="py-1.5 px-2.5 cursor-pointer hover:text-white transition-colors group select-none"
+                            title="Clique para ordenar por cliente"
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Cliente</span>
+                              <span className={`text-xs ${sortField === 'customerName' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                                {sortField === 'customerName' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
+                              </span>
+                            </div>
+                          </th>
+
+                          {/* COLUNA ITEM */}
+                          <th 
+                            onClick={() => handleSort('itemName')}
+                            className="py-1.5 px-2.5 cursor-pointer hover:text-white transition-colors group select-none"
+                            title="Clique para ordenar por item"
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Item</span>
+                              <span className={`text-xs ${sortField === 'itemName' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                                {sortField === 'itemName' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
+                              </span>
+                            </div>
+                          </th>
+
+                          {/* COLUNA QTDE */}
+                          <th 
+                            onClick={() => handleSort('quantity')}
+                            className="py-1.5 px-2.5 text-center cursor-pointer hover:text-white transition-colors group select-none"
+                            title="Clique para ordenar por quantidade"
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                              <span>Qtde</span>
+                              <span className={`text-xs ${sortField === 'quantity' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                                {sortField === 'quantity' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
+                              </span>
+                            </div>
+                          </th>
+
+                          {/* COLUNA PAGAMENTO */}
+                          <th 
+                            onClick={() => handleSort('paymentMethod')}
+                            className="py-1.5 px-2.5 cursor-pointer hover:text-white transition-colors group select-none"
+                            title="Clique para ordenar por forma de pagamento"
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Pagamento</span>
+                              <span className={`text-xs ${sortField === 'paymentMethod' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                                {sortField === 'paymentMethod' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
+                              </span>
+                            </div>
+                          </th>
+
+                          {/* COLUNA VALOR */}
+                          <th 
+                            onClick={() => handleSort('totalPrice')}
+                            className="py-1.5 px-2.5 text-right cursor-pointer hover:text-white transition-colors group select-none"
+                            title="Clique para ordenar por valor"
+                          >
+                            <div className="flex items-center justify-end gap-1">
+                              <span>Valor</span>
+                              <span className={`text-xs ${sortField === 'totalPrice' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                                {sortField === 'totalPrice' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
+                              </span>
+                            </div>
+                          </th>
+
+                          {/* COLUNA AÇÕES */}
                           <th className="py-1.5 px-2.5 text-center">Ações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/70 text-[11px] sm:text-xs">
-                        {displayedOrders.map((ord) => {
+                        {sortedDisplayedOrders.map((ord) => {
                           const isCancelled = ord.status === 'cancelado';
                           return (
                             <tr 
@@ -2432,7 +2692,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             </tr>
                           );
                         })}
-                        {displayedOrders.length === 0 && (
+                        {sortedDisplayedOrders.length === 0 && (
                           <tr>
                             <td colSpan="7" className="p-6 text-center text-slate-500 text-xs italic">
                               Nenhuma venda encontrada para o período selecionado.
