@@ -848,7 +848,7 @@ class StorageService {
   formatPrice(val, showSymbol = null) {
     const shouldShow = showSymbol !== null ? Boolean(showSymbol) : this.getShowCurrencySymbol();
     const num = Number(val) || 0;
-    const formatted = num.toFixed(2).replace('.', ',');
+    const formatted = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
     return shouldShow ? `R$ ${formatted}` : formatted;
   }
 
