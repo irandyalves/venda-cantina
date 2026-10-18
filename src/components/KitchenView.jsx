@@ -489,38 +489,37 @@ export default function KitchenView({ environment, onNavigate }) {
                   )}
 
                   {/* BLOCO 1: SENHA ÚNICA GERAL + NOME DO CLIENTE */}
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    <div className="p-1.5 bg-slate-950 rounded-lg border border-slate-800 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="p-1 bg-slate-950 rounded-lg border border-slate-800 shrink-0">
                       {getCategoryIcon(order.category)}
                     </div>
                     <div>
-                      {/* CÓDIGO DA SENHA ÚNICA */}
-                      <div className="text-lg sm:text-xl font-black text-orange-400 font-mono tracking-tight flex items-center leading-none">
+                      {/* CÓDIGO DA SENHA ÚNICA (Reduzido em 40%) */}
+                      <div className="text-sm sm:text-base font-black text-orange-400 font-mono tracking-tight flex items-center leading-none">
                         <span>{order.orderNumber}</span>
                       </div>
-                      {/* NOME DO CLIENTE */}
-                      <div className="text-xs font-black text-white flex items-center gap-1 leading-tight mt-0.5">
-                        <User className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="uppercase truncate max-w-[130px]">{order.customerName}</span>
+                      {/* NOME DO CLIENTE (Sem ícone de pessoa, reduzido em 40%) */}
+                      <div className="text-[10px] sm:text-[11px] font-black text-white leading-tight uppercase truncate max-w-[130px] mt-0.5">
+                        {order.customerName}
                       </div>
                     </div>
                   </div>
 
                   {/* BLOCO 2: TODOS OS PEDIDOS DO CLIENTE NO MESMO CARD (01 Cone | 01 Copo 500ml | 01 Pedaço...) */}
-                  <div className="flex-1 bg-slate-950/70 p-2 rounded-xl border border-slate-800/80 flex items-center gap-2 flex-wrap min-h-[42px]">
+                  <div className="flex-1 bg-slate-950/70 px-2 py-1 rounded-xl border border-slate-800/80 flex items-center gap-1.5 flex-wrap min-h-[36px]">
                     {itemsList.map((it, idx) => (
                       <span
                         key={idx}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-semibold shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
                       >
-                        <span className="font-black text-orange-400 font-mono text-[13px]">
+                        <span className="font-black text-orange-400 font-mono text-[11px] sm:text-[12px]">
                           {String(it.quantity).padStart(2, '0')}
                         </span>
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-white text-[10px] sm:text-[11px]">
                           {it.description || it.name || it.itemName}
                         </span>
                         {idx < itemsList.length - 1 && (
-                          <span className="text-slate-400 font-black ml-1 select-none">•</span>
+                          <span className="text-slate-400 font-black ml-1 select-none text-[9px]">•</span>
                         )}
                       </span>
                     ))}
@@ -530,7 +529,7 @@ export default function KitchenView({ environment, onNavigate }) {
                   <div className="flex items-center justify-between md:justify-end gap-1.5 sm:gap-2 shrink-0">
                     {!isDelivered ? (
                       <div className="flex items-center gap-1.5 sm:gap-2">
-                        {/* TEMPO INTELIGENTE */}
+                        {/* TEMPO INTELIGENTE (MANTIDO INTACTO) */}
                         <div 
                           className={`text-[11px] font-mono font-bold px-2.5 h-[32px] rounded-lg border flex items-center justify-center gap-1.5 transition-all shadow-sm ${timeStatus.classes}`}
                           title={
@@ -564,10 +563,10 @@ export default function KitchenView({ environment, onNavigate }) {
                         {/* ENTREGAR */}
                         <button
                           onClick={() => handleDeliver(order)}
-                          className="px-3.5 h-[32px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs rounded-lg transition-all shadow-md flex items-center gap-1.5 border border-emerald-400 cursor-pointer"
+                          className="px-3 h-[32px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-[11px] rounded-lg transition-all shadow-md flex items-center gap-1.5 border border-emerald-400 cursor-pointer"
                           title="Entregar pedido concluído"
                         >
-                          <Check className="w-4 h-4 stroke-[3]" />
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
                           <span>ENTREGAR</span>
                         </button>
                       </div>
