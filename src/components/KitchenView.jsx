@@ -444,9 +444,9 @@ export default function KitchenView({ environment, onNavigate }) {
       {/* ========================================================
           LISTA DOS PEDIDOS EM FORMATO DE LINHAS (ROW CARDS)
          ======================================================== */}
-      <main className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5">
+      <main className="flex-1 overflow-y-auto py-2 pl-3 sm:pl-4 pr-0 space-y-2">
         {displayedOrders.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center text-slate-500">
+          <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 pr-3 sm:pr-4">
             <Flame className="w-14 h-14 text-slate-700 mb-2 animate-pulse" />
             <h2 className="text-xl font-bold text-slate-400">
               {activeFilter === 'active' ? 'Nenhum pedido em espera!' : 'Nenhum pedido entregue nesta sessão!'}
@@ -456,7 +456,7 @@ export default function KitchenView({ environment, onNavigate }) {
             </p>
           </div>
         ) : (
-          <div className="space-y-1.5 max-w-6xl mx-auto">
+          <div className="space-y-1.5 w-full">
             {displayedOrders.map((order) => {
               const isReady = order.status === 'pronto';
               const isDelivered = order.status === 'entregue';
@@ -468,16 +468,16 @@ export default function KitchenView({ environment, onNavigate }) {
               return (
                 <div
                   key={order.id}
-                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-1 px-2.5 rounded-xl border transition-all shadow-md gap-1.5 relative ${
+                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-1 pl-2.5 pr-3 sm:pr-4 rounded-l-xl rounded-r-none border-y border-l-[6px] border-r-0 transition-all shadow-md gap-1.5 relative ${
                     isDelivered
-                      ? 'bg-slate-900/40 border-slate-800 opacity-60'
+                      ? 'bg-slate-900/40 border-slate-800 border-l-slate-600 opacity-60'
                       : isNewestHighlight
-                        ? 'glow-new-order-line border-amber-400'
+                        ? 'glow-new-order-line border-amber-400 border-l-amber-300'
                         : isReady
-                          ? 'bg-emerald-950/40 border-emerald-500 shadow-emerald-500/10'
+                          ? 'bg-emerald-950/40 border-emerald-500 border-l-emerald-400 shadow-emerald-500/10'
                           : timeStatus.isBypassed
-                            ? 'bg-rose-950/30 border-rose-500/80 shadow-md shadow-rose-950/40'
-                            : 'bg-slate-900/90 border-slate-700/80 hover:border-orange-500/60'
+                            ? 'bg-rose-950/30 border-rose-500/80 border-l-rose-500 shadow-md shadow-rose-950/40'
+                            : 'bg-slate-900/90 border-slate-700/80 border-l-orange-500 hover:border-orange-500/60'
                   }`}
                 >
                   {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
