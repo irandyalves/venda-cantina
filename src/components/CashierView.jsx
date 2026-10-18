@@ -747,7 +747,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <span className="text-slate-600 font-bold select-none text-xs shrink-0">|</span>
 
           {/* NOME DO CLIENTE */}
-          <span className="text-xs font-black text-white uppercase tracking-wider truncate max-w-[120px]" title={order.customerName}>
+          <span className="text-xs font-normal text-slate-100 uppercase tracking-wider truncate max-w-[120px]" title={order.customerName}>
             {order.customerName}
           </span>
 
@@ -1776,7 +1776,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   >
                     <span className="text-amber-400 font-black shrink-0">{qtyStr}</span>
                     <span className="text-slate-500 font-bold shrink-0">-</span>
-                    <span className="text-slate-100 font-bold tracking-wide break-words">
+                    <span className="text-slate-100 font-normal tracking-wide break-words">
                       {nameStr}
                     </span>
                   </div>

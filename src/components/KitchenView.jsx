@@ -521,26 +521,26 @@ export default function KitchenView({ environment, onNavigate }) {
                       <span>{order.orderNumber}</span>
                     </div>
                     {/* NOME DO CLIENTE */}
-                    <div className="text-[10px] sm:text-[11px] font-black text-white leading-tight uppercase truncate max-w-[130px] mt-0.5">
+                    <div className="text-[10px] sm:text-[11px] font-normal text-slate-100 leading-tight uppercase truncate max-w-[130px] mt-0.5">
                       {order.customerName}
                     </div>
                   </div>
 
-                  {/* BLOCO 2: TODOS OS PEDIDOS DO CLIENTE NO MESMO CARD (ESPAÇO REDUZIDO EM 70%) */}
+                  {/* BLOCO 2: TODOS OS PEDIDOS DO CLIENTE NO MESMO CARD (FONTE FINA NAS DESCRIÇÕES) */}
                   <div className="flex-1 bg-slate-950/70 px-1.5 py-0.5 rounded-lg border border-slate-800/80 flex items-center gap-1 flex-wrap min-h-0">
                     {itemsList.map((it, idx) => (
                       <span
                         key={idx}
-                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold leading-tight shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-normal leading-tight shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
                       >
                         <span className="font-black text-orange-400 font-mono text-[11px] sm:text-[12px]">
                           {String(it.quantity).padStart(2, '0')}
                         </span>
-                        <span className="font-bold text-white text-[10px] sm:text-[11px]">
+                        <span className="font-normal text-slate-100 text-[10px] sm:text-[11px]">
                           {it.description || it.name || it.itemName}
                         </span>
                         {idx < itemsList.length - 1 && (
-                          <span className="text-slate-400 font-black ml-0.5 select-none text-[8px]">•</span>
+                          <span className="text-slate-400 font-normal ml-0.5 select-none text-[8px]">•</span>
                         )}
                       </span>
                     ))}
