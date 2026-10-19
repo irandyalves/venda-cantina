@@ -117,6 +117,20 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   // Sabor de pizza ativo para escolha de Pedaço ou Inteira
   const [selectedPizzaFlavor, setSelectedPizzaFlavor] = useState(null);
   const [activeOptionCardId, setActiveOptionCardId] = useState(null);
+  const [clickedCardId, setClickedCardId] = useState(null);
+  const clickFeedbackTimerRef = useRef(null);
+
+  const triggerCardClickFeedback = (cardKey) => {
+    setClickedCardId(null);
+    requestAnimationFrame(() => {
+      setClickedCardId(cardKey);
+    });
+    if (clickFeedbackTimerRef.current) clearTimeout(clickFeedbackTimerRef.current);
+    clickFeedbackTimerRef.current = setTimeout(() => {
+      setClickedCardId(null);
+    }, 750);
+  };
+
   const closeFlavorTimerRef = useRef(null);
 
   const handleFlavorMouseEnter = () => {
@@ -621,15 +635,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     if (!customerName.trim()) {
       setTimeout(() => nameInputRef.current?.focus(), 80);
     }
+    triggerCardClickFeedback(`${category.id}_${item.id}`);
   };
 
   // Clique no card ou botão: se tiver mais de uma opção, as opções aparecem forçando a escolha
+  // Se tiver só uma opção, faz o efeito de clique com bordas brilhantes que somem aos poucos
   const handleCardClick = (category, item) => {
+    const cardKey = `${category.id}_${item.id}`;
     const options = getItemOptions(category, item);
     if (options && options.length > 1) {
-      const cardKey = `${category.id}_${item.id}`;
       setActiveOptionCardId(prev => prev === cardKey ? null : cardKey);
     } else {
+      triggerCardClickFeedback(cardKey);
       handleAddItemToCart(category, item);
     }
   };
@@ -1511,9 +1528,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   }
                 }}
                 className={`rounded-2xl bg-slate-900/95 hover:bg-slate-900 border transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[168px] overflow-hidden cursor-pointer ${
-                  isCardActive 
-                    ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.3)]' 
-                    : 'border-slate-700/80 hover:border-slate-600'
+                  clickedCardId === cardKey
+                    ? 'animate-card-click-glow'
+                    : isCardActive 
+                      ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.3)]' 
+                      : 'border-slate-700/80 hover:border-slate-600'
                 }`}
               >
                 {/* CONTEÚDO SUPERIOR E CORPO DO CARD COM PADDING */}
