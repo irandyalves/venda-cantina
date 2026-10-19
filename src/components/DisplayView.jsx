@@ -7,6 +7,7 @@ import {
   Sparkles, 
   CheckCircle2, 
   Flame,
+  Bell,
   Lock,
   ArrowRight
 } from 'lucide-react';
@@ -198,12 +199,46 @@ export default function DisplayView({ environment, onNavigate }) {
 
   // Pedidos destinados ao Painel TV (filtrados exclusivamente se vinculado a uma cozinha)
   const tvOrders = orders.filter(isOrderForThisDisplay);
-  const preparingOrders = tvOrders.filter(o => o.status === 'em_preparo' || o.status === 'pronto');
-  const deliveredOrders = tvOrders.filter(o => o.status === 'entregue').slice(0, 8);
+  const preparingOrders = tvOrders.filter(o => o.status === 'em_preparo');
+  const readyOrders = tvOrders.filter(o => o.status === 'pronto');
+  const deliveredOrders = tvOrders.filter(o => o.status === 'entregue').slice(0, 20);
 
   // Helper para formatar o texto do item conforme o padrão solicitado:
   // Ex: PIZZA [PEDAÇO (verde bold)] : MARGUERITTA (lilás brilho bold)
   const renderItemDetails = (order) => {
+    // Se o pedido tiver múltiplos itens na comanda
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      return (
+        <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm">
+          {order.items.map((it, idx) => {
+            const cat = (it.categoryName || it.category || '').toUpperCase();
+            const varName = (it.variationName || '').toUpperCase();
+            const name = (it.itemName || it.name || '').toUpperCase();
+            const qty = it.quantity || 1;
+            return (
+              <span key={idx} className="inline-flex items-center gap-1">
+                {idx > 0 && <span className="text-slate-500 font-bold">+</span>}
+                <span className="font-black text-slate-200 tracking-wide">{qty > 1 ? `${qty}x ` : ''}{cat || name}</span>
+                {varName && (
+                  <span className="text-emerald-400 font-black bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-500/50 text-[10px] sm:text-xs shadow-sm">
+                    [{varName}]
+                  </span>
+                )}
+                {cat && name && cat !== name && (
+                  <>
+                    <span className="text-slate-400 font-bold">:</span>
+                    <span className="text-purple-300 font-black tracking-wider uppercase drop-shadow-[0_0_8px_rgba(216,180,254,0.7)] text-xs sm:text-sm">
+                      {name}
+                    </span>
+                  </>
+                )}
+              </span>
+            );
+          })}
+        </div>
+      );
+    }
+
     const categoryName = (order.categoryName || order.category || 'ITEM').toUpperCase();
     const variationName = (order.variationName || '').toUpperCase();
     const itemName = (order.itemName || '').toUpperCase();
@@ -333,134 +368,198 @@ export default function DisplayView({ environment, onNavigate }) {
       )}
 
       {/* ========================================================
-          ÁREA PRINCIPAL: EM PREPARAÇÃO CENTRALIZADO
-          - BORDAS ESQUERDA E DIREITA RETIRADAS DOS CARDS
-          - LINHAS SUPERIOR E INFERIOR ENCOSTAM NA BORDA DA SEÇÃO
+          ÁREA PRINCIPAL: 3 COLUNAS
+          1. EM PREPARAÇÃO (Âmbar)
+          2. PRONTOS - RETIRAR (Verde / Esmeralda)
+          3. ENTREGUES (Azul)
+          - CARDS: LINHAS SUP/INF ENCOSTAM NAS BORDAS DO CONTAINER
          ======================================================== */}
-      <main className={`flex-1 px-0 py-3 sm:py-4 overflow-hidden ${
-        tvSettings.showDelivered 
-          ? 'grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6' 
-          : 'flex flex-col items-center justify-center px-4'
-      }`}>
-        
-        {/* COLUNA CENTRAL: EM PREPARAÇÃO (SEM BORDA ESQ, LINHAS SUP/INF ENCOSTAM NA JANELA, BORDA GROSSA À DIREITA) */}
-        <section className={`flex flex-col bg-slate-900/85 rounded-l-none rounded-r-3xl border-y-2 border-l-0 border-r-[6px] border-amber-500/60 border-r-amber-400 shadow-[4px_0_24px_rgba(245,158,11,0.25)] overflow-hidden ${
-          tvSettings.showDelivered ? 'lg:col-span-7' : 'w-full max-w-5xl h-full'
+      <main className="flex-1 p-2 sm:p-3 md:p-4 overflow-hidden min-h-0">
+        <div className={`grid gap-2.5 sm:gap-3 md:gap-4 h-full min-h-0 ${
+          tvSettings.showDelivered 
+            ? 'grid-cols-1 md:grid-cols-3' 
+            : 'grid-cols-1 md:grid-cols-2'
         }`}>
           
-          {/* CABEÇALHO DA SEÇÃO EM PREPARAÇÃO */}
-          <div className="flex items-center justify-between border-b-2 border-amber-500/40 p-2.5 pl-4 sm:pl-6 pb-2 shrink-0 bg-slate-900/90">
-            <div className="flex items-center gap-2.5">
-              <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-xl">
-                <Flame className="w-5 h-5 animate-pulse" />
-              </span>
-              <div>
-                <h2 className="text-lg sm:text-xl font-black text-amber-300 uppercase tracking-widest leading-tight">
-                  EM PREPARAÇÃO
-                </h2>
-                <p className="text-[10px] text-slate-400">Na cozinha sendo preparado agora</p>
-              </div>
-            </div>
-
-            <span className="text-lg sm:text-xl font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-0.5 rounded-xl font-mono mr-2">
-              {preparingOrders.length}
-            </span>
-          </div>
-
-          {/* LISTA DE CARDS: AS LINHAS SUPERIOR E INFERIOR ENCOSTAM NA BORDA DA SEÇÃO (SEM BORDAS ESQ E DIR) */}
-          <div className="flex-1 overflow-y-auto space-y-1.5 py-1">
-            {preparingOrders.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-8 px-5">
-                <Clock className="w-10 h-10 mb-2 opacity-40 animate-pulse" />
-                <p className="text-sm font-bold text-slate-400">Nenhum pedido em preparo no momento</p>
-                <p className="text-[10px] text-slate-600 mt-0.5">Os novos pedidos do caixa aparecerão aqui automaticamente</p>
-              </div>
-            ) : (
-              preparingOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="w-full bg-slate-950/90 px-4 sm:px-6 py-1.5 border-y border-amber-500/60 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all relative"
-                >
-                  {/* EM 1 LINHA: CÓDIGO DA COMANDA — NOME DO CLIENTE — ITEM ESCOLHIDO NA FRENTE */}
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-                    
-                    {/* CÓDIGO DA COMANDA */}
-                    <span className="text-lg sm:text-xl md:text-2xl font-black text-amber-400 font-mono tracking-tight shrink-0">
-                      {order.orderNumber}
-                    </span>
-
-                    <span className="text-xs font-black text-slate-600 hidden sm:inline">—</span>
-
-                    {/* NOME DE QUEM PEDIU EM MAIÚSCULO */}
-                    <span className="text-xs sm:text-sm md:text-base font-black text-white uppercase tracking-wide shrink-0">
-                      {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
-                    </span>
-
-                    <span className="text-xs font-black text-slate-600 hidden sm:inline">—</span>
-
-                    {/* ITEM ESCOLHIDO MOVIDO PARA A FRENTE DO NOME */}
-                    <div className="inline-flex items-center">
-                      {renderItemDetails(order)}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* COLUNA LATERAL: ENTREGUES (SEM BORDA DIR, LINHAS SUP/INF ENCOSTAM NA JANELA, BORDA GROSSA À ESQUERDA) */}
-        {tvSettings.showDelivered && (
-          <section className="lg:col-span-5 flex flex-col bg-slate-900/85 rounded-r-none rounded-l-3xl border-y-2 border-r-0 border-l-[6px] border-blue-500/50 border-l-blue-400 shadow-[-4px_0_24px_rgba(59,130,246,0.25)] overflow-hidden">
-            
-            <div className="flex items-center justify-between border-b-2 border-blue-500/30 p-2.5 pr-4 sm:pr-6 pb-2 shrink-0 bg-slate-900/90 ml-2">
+          {/* COLUNA 1: EM PREPARAÇÃO */}
+          <section className="flex flex-col bg-slate-900/85 rounded-2xl border-2 border-amber-500/60 shadow-[0_0_24px_rgba(245,158,11,0.2)] overflow-hidden h-full min-h-0">
+            {/* CABEÇALHO */}
+            <div className="flex items-center justify-between border-b-2 border-amber-500/40 px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 bg-slate-900/95">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-blue-500/20 text-blue-400 rounded-xl">
-                  <CheckCircle2 className="w-4 h-4" />
+                <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-xl">
+                  <Flame className="w-5 h-5 animate-pulse" />
                 </span>
                 <div>
-                  <h2 className="text-sm sm:text-base font-black text-blue-300 uppercase tracking-wider leading-tight">
-                    ENTREGUES
+                  <h2 className="text-base sm:text-lg font-black text-amber-300 uppercase tracking-widest leading-tight">
+                    EM PREPARAÇÃO
                   </h2>
+                  <p className="text-[10px] text-slate-400">Na cozinha sendo preparado</p>
                 </div>
               </div>
-              <span className="text-sm sm:text-base font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2.5 py-0.2 rounded-xl font-mono">
-                {deliveredOrders.length}
+
+              <span className="text-base sm:text-lg font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-xl font-mono">
+                {preparingOrders.length}
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-1 py-1">
-              {deliveredOrders.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-6 px-4">
-                  <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-30" />
-                  <p className="text-[10px] font-semibold">Nenhum pedido entregue ainda</p>
+            {/* LISTA DE PEDIDOS */}
+            <div className="flex-1 overflow-y-auto space-y-1.5 py-1 min-h-0">
+              {preparingOrders.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-8 px-4">
+                  <Clock className="w-10 h-10 mb-2 opacity-40 animate-pulse text-amber-500" />
+                  <p className="text-xs sm:text-sm font-bold text-slate-400">Nenhum pedido em preparo</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5">Os novos pedidos do caixa aparecerão aqui</p>
                 </div>
               ) : (
-                deliveredOrders.map((order) => (
+                preparingOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="w-full bg-slate-950/70 px-4 py-1.5 border-y border-blue-500/40 border-x-0 rounded-none flex items-center justify-between shadow-sm"
+                    className="w-full bg-slate-950/90 px-3 sm:px-4 py-2 border-y border-amber-500/50 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all"
                   >
-                    <div>
-                      <div className="text-xs sm:text-sm font-black text-blue-400 font-mono">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                      
+                      <span className="text-base sm:text-lg md:text-xl font-black text-amber-400 font-mono tracking-tight shrink-0">
                         {order.orderNumber}
-                      </div>
-                      <div className="text-[10px] sm:text-[11px] font-bold text-slate-200 uppercase">
-                        {order.customerName}
+                      </span>
+
+                      <span className="text-xs font-black text-slate-600 shrink-0">—</span>
+
+                      <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wide shrink-0">
+                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                      </span>
+
+                      <span className="text-xs font-black text-slate-600 hidden sm:inline shrink-0">—</span>
+
+                      <div className="inline-flex items-center">
+                        {renderItemDetails(order)}
                       </div>
                     </div>
-                    <span className="text-[9px] font-bold text-blue-300 bg-blue-950/60 px-1.5 py-0.2 rounded border border-blue-500/30">
-                      ✓ Entregue
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          {/* COLUNA 2: PRONTOS (RETIRAR) */}
+          <section className="flex flex-col bg-slate-900/85 rounded-2xl border-2 border-emerald-500/70 shadow-[0_0_24px_rgba(16,185,129,0.25)] overflow-hidden h-full min-h-0">
+            {/* CABEÇALHO */}
+            <div className="flex items-center justify-between border-b-2 border-emerald-500/40 px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 bg-slate-900/95">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                  <Sparkles className="w-5 h-5 animate-pulse" />
+                </span>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-emerald-300 uppercase tracking-widest leading-tight">
+                    PRONTOS (RETIRAR)
+                  </h2>
+                  <p className="text-[10px] text-slate-400">Aguardando retirada no balcão</p>
+                </div>
+              </div>
+
+              <span className="text-base sm:text-lg font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-xl font-mono">
+                {readyOrders.length}
+              </span>
+            </div>
+
+            {/* LISTA DE PEDIDOS */}
+            <div className="flex-1 overflow-y-auto space-y-1.5 py-1 min-h-0">
+              {readyOrders.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-8 px-4">
+                  <Bell className="w-10 h-10 mb-2 opacity-40 animate-pulse text-emerald-500" />
+                  <p className="text-xs sm:text-sm font-bold text-slate-400">Nenhum pedido pronto para retirar</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5">Quando a cozinha finalizar, o pedido virá para cá</p>
+                </div>
+              ) : (
+                readyOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="w-full bg-emerald-950/30 px-3 sm:px-4 py-2 border-y border-emerald-500/60 border-x-0 rounded-none shadow-md hover:bg-emerald-950/50 transition-all flex flex-wrap items-center justify-between gap-2"
+                  >
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                      
+                      <span className="text-base sm:text-lg md:text-xl font-black text-emerald-400 font-mono tracking-tight shrink-0">
+                        {order.orderNumber}
+                      </span>
+
+                      <span className="text-xs font-black text-slate-600 shrink-0">—</span>
+
+                      <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wide shrink-0">
+                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                      </span>
+
+                      <span className="text-xs font-black text-slate-600 hidden sm:inline shrink-0">—</span>
+
+                      <div className="inline-flex items-center">
+                        {renderItemDetails(order)}
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] sm:text-xs font-black text-emerald-300 bg-emerald-900/80 border border-emerald-400/80 px-2 py-0.5 rounded uppercase tracking-wider shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.3)] animate-pulse">
+                      ✓ RETIRAR
                     </span>
                   </div>
                 ))
               )}
             </div>
-
           </section>
-        )}
 
+          {/* COLUNA 3: ENTREGUES */}
+          {tvSettings.showDelivered && (
+            <section className="flex flex-col bg-slate-900/85 rounded-2xl border-2 border-blue-500/60 shadow-[0_0_24px_rgba(59,130,246,0.2)] overflow-hidden h-full min-h-0">
+              {/* CABEÇALHO */}
+              <div className="flex items-center justify-between border-b-2 border-blue-500/30 px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 bg-slate-900/95">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 bg-blue-500/20 text-blue-400 rounded-xl">
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </span>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-black text-blue-300 uppercase tracking-wider leading-tight">
+                      ENTREGUES
+                    </h2>
+                    <p className="text-[10px] text-slate-400">Últimos pedidos entregues</p>
+                  </div>
+                </div>
+
+                <span className="text-base sm:text-lg font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2.5 py-0.5 rounded-xl font-mono">
+                  {deliveredOrders.length}
+                </span>
+              </div>
+
+              {/* LISTA DE PEDIDOS */}
+              <div className="flex-1 overflow-y-auto space-y-1 py-1 min-h-0">
+                {deliveredOrders.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-6 px-4">
+                    <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-30 text-blue-500" />
+                    <p className="text-[11px] font-semibold text-slate-400">Nenhum pedido entregue ainda</p>
+                    <p className="text-[10px] text-slate-600 mt-0.5">Histórico dos pedidos já retirados</p>
+                  </div>
+                ) : (
+                  deliveredOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="w-full bg-slate-950/70 px-3 sm:px-4 py-2 border-y border-blue-500/40 border-x-0 rounded-none flex items-center justify-between shadow-sm hover:bg-slate-900/60 transition-all"
+                    >
+                      <div>
+                        <div className="text-xs sm:text-sm md:text-base font-black text-blue-400 font-mono">
+                          {order.orderNumber}
+                        </div>
+                        <div className="text-[10px] sm:text-xs font-bold text-slate-200 uppercase truncate">
+                          {order.customerName || 'CLIENTE'}
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-blue-300 bg-blue-950/60 px-2 py-0.5 rounded border border-blue-500/30 shrink-0">
+                        ✓ Entregue
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          )}
+
+        </div>
       </main>
 
     </div>
