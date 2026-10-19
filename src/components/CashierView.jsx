@@ -1609,7 +1609,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     {/* TOPO DO MODALZINHO */}
                     <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
                         <span className="text-[10px] sm:text-[11px] font-black text-amber-300 uppercase tracking-wider truncate">
                           ESCOLHA UMA OPÇÃO:
                         </span>
@@ -1624,7 +1624,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       </button>
                     </div>
 
-                    {/* AS DUAS (OU MAIS) OPÇÕES CLICÁVEIS FORÇANDO A ESCOLHA */}
+                    {/* AS DUAS (OU MAIS) OPÇÕES CLICÁVEIS FORÇANDO A ESCOLHA - ESTÁVEIS SEM PISCAR */}
                     <div className="grid grid-cols-2 gap-2 my-auto">
                       {options.map((opt, idx) => {
                         const isFirst = idx === 0;
@@ -1637,10 +1637,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                               handleAddOptionToCart(category, item, opt);
                               setActiveOptionCardId(null);
                             }}
-                            className={`py-3 px-2 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-lg border ${
+                            className={`py-3 px-2 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-md border ${
                               isFirst
-                                ? 'bg-amber-950/90 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border-amber-500/70 hover:border-amber-400 card-pizza-fatia'
-                                : 'bg-yellow-950/90 hover:bg-yellow-400 text-yellow-300 hover:text-slate-950 border-yellow-500/70 hover:border-yellow-300 card-pizza-inteira'
+                                ? 'bg-amber-950/70 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border-amber-500/60 hover:border-amber-400'
+                                : 'bg-yellow-950/70 hover:bg-yellow-400 text-yellow-300 hover:text-slate-950 border-yellow-500/60 hover:border-yellow-300'
                             }`}
                             title={`Escolher ${opt.name} por ${formatPrice(opt.price, showCurrencySymbol)}`}
                           >
