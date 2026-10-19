@@ -648,7 +648,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     showToast('Tempos restaurados para o padrão!', 'Padrão Restaurado');
   };
 
-  // Salvar tudo de forma centralizada (Garante que tudo seja persistido)
+  // Salvar tudo de forma centralizada (Garante que tudo seja persistido e fecha o modal)
   const handleSaveAll = () => {
     storageService.saveProducts(categories);
     storageService.saveProductionRouting(productionRouting);
@@ -659,6 +659,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     storageService.saveSystemSettings(systemSettings);
     setHasUnsavedChanges(false);
     showToast('Todas as alterações foram salvas com sucesso!', 'Salvo com Sucesso', 'success');
+    if (onClose) onClose();
   };
 
   // Fechamento seguro: se houver alterações, salva automaticamente antes de fechar
@@ -4184,14 +4185,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             <span>Tamanho da Textura</span>
                           </label>
                           <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            {bgSettings.textureSize ?? 100}% {Number(bgSettings.textureSize || 100) > 130 ? '(Amplo)' : Number(bgSettings.textureSize || 100) < 70 ? '(Micro)' : '(Padrão)'}
+                            {bgSettings.textureSize ?? 100}% {Number(bgSettings.textureSize || 100) > 130 ? '(Amplo)' : Number(bgSettings.textureSize || 100) < 50 ? '(Micro)' : '(Padrão)'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500">30%</span>
+                          <span className="text-[10px] text-slate-500">15%</span>
                           <input
                             type="range"
-                            min="30"
+                            min="15"
                             max="250"
                             step="5"
                             value={bgSettings.textureSize ?? 100}
