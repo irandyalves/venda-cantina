@@ -34,12 +34,12 @@ const LOCAL_SCREENS_LOCKED_KEY = 'cantina_screens_locked';
 
 // Configuração padrão lida a partir das variáveis de ambiente (.env)
 export const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAujmh1TuWRCS53zz1BZXIQvgHbXVibKwo",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "carga-patrimonio.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "carga-patrimonio",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "carga-patrimonio.firebasestorage.app",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "478068393511",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:478068393511:web:d61f883ee1c1506887b002"
 };
 
 // BroadcastChannel para sincronização instantânea entre abas no mesmo navegador
