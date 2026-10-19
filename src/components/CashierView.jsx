@@ -2044,17 +2044,21 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
          ======================================================== */}
       <footer 
         style={{ height: `${footerHeight}px` }}
-        className="bg-slate-950 border-t-2 border-slate-700/80 px-2.5 sm:px-3 pb-2 shrink-0 shadow-2xl flex flex-col relative select-none"
+        className="bg-slate-950 px-2.5 sm:px-3 pb-2 shrink-0 flex flex-col relative select-none z-30 shadow-[0_-12px_28px_rgba(0,0,0,0.85),0_-4px_10px_rgba(0,0,0,0.6)]"
       >
-        {/* LINHA SUPERIOR REDIMENSIONÁVEL / BARRA DE PUXAR COM MOUSE E TOUCH */}
+        {/* LINHA / BARRA SUPERIOR CREME (REDUZIDA EM 80% - 2px) COM SOMBRA PROJETADA SOBRE OS CARDS */}
         <div 
           onMouseDown={handleStartResize}
           onTouchStart={handleStartResize}
-          className="absolute -top-3 left-0 right-0 h-6 flex items-center justify-center cursor-ns-resize group z-30 touch-none"
+          className="absolute -top-1.5 left-0 right-0 h-4 flex items-center justify-center cursor-ns-resize group z-40 touch-none"
           title="Clique, segure e arraste para cima ou para baixo para ajustar a altura da seção"
         >
-          <div className="h-1.5 w-24 sm:w-32 bg-slate-600 group-hover:bg-amber-400 group-active:bg-amber-400 rounded-full transition-all shadow-md flex items-center justify-center">
-            <GripHorizontal className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-950" />
+          {/* Linha Creme fininha (reduzida em 80%) com sombra marcante */}
+          <div className="absolute top-1 left-0 right-0 h-0.5 bg-[#eace9a] shadow-[0_2px_8px_rgba(0,0,0,0.9),0_6px_20px_rgba(0,0,0,0.7)] pointer-events-none" />
+
+          {/* Pegador central sutil para puxar */}
+          <div className="relative z-10 h-1 w-16 sm:w-20 bg-slate-700/90 group-hover:bg-amber-400 group-active:bg-amber-400 rounded-full transition-all shadow-md flex items-center justify-center">
+            <GripHorizontal className="w-2.5 h-2.5 text-slate-300 group-hover:text-slate-950" />
           </div>
         </div>
         
