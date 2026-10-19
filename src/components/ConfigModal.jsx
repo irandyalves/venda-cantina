@@ -839,14 +839,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       const result = await processProductImage(file, {
         removeBackground: autoRemoveBg,
         maxSize: 180,
-        quality: 0.85
+        quality: 0.82
       });
+      const dataUrl = typeof result === 'string' ? result : (result?.dataUrl || '');
       setGearItemData(prev => ({
         ...prev,
-        image: result.dataUrl,
+        image: dataUrl,
         icon2d: null
       }));
-      showToast('Foto do produto processada e fundo removido com sucesso!', 'Imagem do Produto', 'success');
+      const sizeMsg = result?.sizeKb ? ` (~${result.sizeKb} KB - reduzido para o banco)` : ' - reduzido para o banco';
+      showToast(`Nova foto carregada com sucesso!${sizeMsg}`, 'Imagem do Produto', 'success');
     } catch (err) {
       console.error('Erro ao processar imagem:', err);
       showToast('Não foi possível processar a imagem do produto.', 'Erro ao Carregar', 'error');
@@ -4218,6 +4220,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <ImageIcon className="w-3.5 h-3.5" />
                         <span>{showPresetPicker ? 'Fechar Galeria' : 'Galeria 2D (50 Ícones)'}</span>
                       </button>
+
+                      {/* Indicador de Foto Ativa com Tamanho Reduzido */}
+                      {gearItemData.image && (
+                        <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-1 rounded-lg inline-flex items-center gap-1 shadow-xs animate-fadeIn">
+                          <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
+                          <span>Foto Ativa (~{Math.max(1, Math.round((gearItemData.image.length * 0.75) / 1024))} KB)</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Toggle de Remoção Automática de Fundo */}

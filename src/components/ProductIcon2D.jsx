@@ -172,10 +172,10 @@ export default function ProductIcon2D({ item, category, className = 'w-14 h-14',
     return (
       <div className={`relative flex items-center justify-center shrink-0 ${className}`}>
         <img
+          key={String(item.image).slice(-32)}
           src={item.image}
           alt={item.name || 'Produto'}
           className="w-full h-full object-contain filter drop-shadow-[0_8px_12px_rgba(0,0,0,0.65)] select-none transition-transform hover:scale-105"
-          loading="lazy"
         />
       </div>
     );

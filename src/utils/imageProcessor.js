@@ -1,17 +1,19 @@
 // Utilitário para processamento, redimensionamento e remoção inteligente de fundo de imagens de produtos
 
 /**
- * Processa a imagem do produto no navegador:
- * - Redimensiona para max 180x180 px (ultra leve para Firestore e localStorage, ~8KB a 15KB em WebP)
- * - Remove automaticamente fundos brancos, claros ou monocromáticos (fundo transparente estilo sticker 2D)
- * - Suaviza as bordas (anti-aliasing) para acabamento profissional
+ * Processa a imagem do produto no navegador com ultra compressão para o banco de dados:
+ * - Redimensiona para max 180x180 px (ultra leve para Firestore e localStorage, ~5KB a 15KB em WebP)
+ * - Suavização e anti-aliasing em alta definição
+ * - Remove automaticamente fundos brancos, claros ou monocromáticos quando solicitado
+ * - Mantém transparências já existentes sem corrupção
+ * - Retorna objeto completo com dataUrl e tamanho em KB
  */
 export async function processProductImage(file, options = {}) {
   const {
     maxSize = 180,
     removeBackground = true,
-    quality = 0.85,
-    threshold = 28 // Tolerância para remoção de fundo (0-100)
+    quality = 0.82,
+    threshold = 30 // Tolerância para remoção de fundo (0-100)
   } = options;
 
   return new Promise((resolve, reject) => {
@@ -26,8 +28,8 @@ export async function processProductImage(file, options = {}) {
       img.onerror = () => reject(new Error('Erro ao decodificar imagem.'));
       img.onload = () => {
         try {
-          const resultDataUrl = processImageCanvas(img, { maxSize, removeBackground, quality, threshold });
-          resolve(resultDataUrl);
+          const result = processImageCanvas(img, { maxSize, removeBackground, quality, threshold });
+          resolve(result);
         } catch (err) {
           reject(err);
         }
@@ -39,13 +41,13 @@ export async function processProductImage(file, options = {}) {
 }
 
 function processImageCanvas(img, { maxSize, removeBackground, quality, threshold }) {
-  // 1. Calcula proporção mantendo aspect ratio quadrado
+  // 1. Calcula proporção mantendo aspect ratio
   const originalWidth = img.naturalWidth || img.width;
   const originalHeight = img.naturalHeight || img.height;
   
   const scale = Math.min(maxSize / originalWidth, maxSize / originalHeight, 1);
-  const targetWidth = Math.round(originalWidth * scale);
-  const targetHeight = Math.round(originalHeight * scale);
+  const targetWidth = Math.max(1, Math.round(originalWidth * scale));
+  const targetHeight = Math.max(1, Math.round(originalHeight * scale));
 
   const canvas = document.createElement('canvas');
   canvas.width = targetWidth;
@@ -56,6 +58,10 @@ function processImageCanvas(img, { maxSize, removeBackground, quality, threshold
     throw new Error('Não foi possível inicializar contexto Canvas.');
   }
 
+  // Ativa anti-aliasing de alta qualidade para o redimensionamento
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
   // Desenha a imagem redimensionada
   ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
@@ -64,54 +70,62 @@ function processImageCanvas(img, { maxSize, removeBackground, quality, threshold
     const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
     const data = imgData.data;
 
-    // Amostragem das 4 pontas para detectar a cor média de fundo
-    const corners = [
+    // Amostragem das pontas e bordas para detectar a cor de fundo
+    const samplePoints = [
       getPixel(data, 0, 0, targetWidth),
       getPixel(data, targetWidth - 1, 0, targetWidth),
       getPixel(data, 0, targetHeight - 1, targetWidth),
       getPixel(data, targetWidth - 1, targetHeight - 1, targetWidth),
       getPixel(data, Math.floor(targetWidth / 2), 0, targetWidth),
-      getPixel(data, 0, Math.floor(targetHeight / 2), targetWidth)
+      getPixel(data, 0, Math.floor(targetHeight / 2), targetWidth),
+      getPixel(data, targetWidth - 1, Math.floor(targetHeight / 2), targetWidth),
+      getPixel(data, Math.floor(targetWidth / 2), targetHeight - 1, targetWidth)
     ];
 
-    // Média da cor dos cantos
-    const bgR = Math.round(corners.reduce((s, c) => s + c.r, 0) / corners.length);
-    const bgG = Math.round(corners.reduce((s, c) => s + c.g, 0) / corners.length);
-    const bgB = Math.round(corners.reduce((s, c) => s + c.b, 0) / corners.length);
+    // Ignora pixels já transparentes
+    const opaqueSamples = samplePoints.filter(c => c.a > 120);
 
-    // Se o fundo for claro (branco, bege, cinza claro) ou muito próximo da cor das bordas
-    const isLightOrUniform = (bgR + bgG + bgB) / 3 > 180 || isCornersSimilar(corners);
+    // Se todos os cantos já forem transparentes, o arquivo já tem fundo transparente!
+    if (opaqueSamples.length >= 2) {
+      // Média da cor dos cantos opacos
+      const bgR = Math.round(opaqueSamples.reduce((s, c) => s + c.r, 0) / opaqueSamples.length);
+      const bgG = Math.round(opaqueSamples.reduce((s, c) => s + c.g, 0) / opaqueSamples.length);
+      const bgB = Math.round(opaqueSamples.reduce((s, c) => s + c.b, 0) / opaqueSamples.length);
 
-    if (isLightOrUniform) {
-      const distThreshold = threshold * 2.55; // converte de 0-100 para distância RGB
-      const featherRange = 25; // margem para transição suave / anti-aliasing
+      // Se o fundo for claro (branco, bege, cinza) ou os cantos forem similares
+      const isLightOrUniform = (bgR + bgG + bgB) / 3 > 170 || isCornersSimilar(opaqueSamples);
 
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const a = data[i + 3];
+      if (isLightOrUniform) {
+        const distThreshold = threshold * 2.55; // converte de 0-100 para distância RGB
+        const featherRange = 25; // margem para transição suave / anti-aliasing
 
-        if (a === 0) continue;
+        for (let i = 0; i < data.length; i += 4) {
+          const a = data[i + 3];
+          if (a === 0) continue;
 
-        // Distância euclidiana de cor em relação ao fundo
-        const dist = Math.sqrt(
-          (r - bgR) ** 2 +
-          (g - bgG) ** 2 +
-          (b - bgB) ** 2
-        );
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
 
-        if (dist <= distThreshold) {
-          // Totalmente transparente
-          data[i + 3] = 0;
-        } else if (dist < distThreshold + featherRange) {
-          // Transição suave nas bordas
-          const alphaFactor = (dist - distThreshold) / featherRange;
-          data[i + 3] = Math.round(a * alphaFactor);
+          // Distância euclidiana de cor em relação ao fundo
+          const dist = Math.sqrt(
+            (r - bgR) ** 2 +
+            (g - bgG) ** 2 +
+            (b - bgB) ** 2
+          );
+
+          if (dist <= distThreshold) {
+            // Totalmente transparente
+            data[i + 3] = 0;
+          } else if (dist < distThreshold + featherRange) {
+            // Transição suave nas bordas
+            const alphaFactor = (dist - distThreshold) / featherRange;
+            data[i + 3] = Math.round(a * alphaFactor);
+          }
         }
-      }
 
-      ctx.putImageData(imgData, 0, 0);
+        ctx.putImageData(imgData, 0, 0);
+      }
     }
   }
 
@@ -126,7 +140,19 @@ function processImageCanvas(img, { maxSize, removeBackground, quality, threshold
     finalUrl = canvas.toDataURL('image/png');
   }
 
-  return finalUrl;
+  // Calcula tamanho aproximado em KB
+  const sizeBytes = Math.round((finalUrl.length * 3) / 4);
+  const sizeKb = parseFloat(((sizeBytes) / 1024).toFixed(1));
+
+  return {
+    dataUrl: finalUrl,
+    sizeBytes,
+    sizeKb,
+    width: targetWidth,
+    height: targetHeight,
+    toString() { return finalUrl; },
+    valueOf() { return finalUrl; }
+  };
 }
 
 function getPixel(data, x, y, width) {
@@ -140,11 +166,13 @@ function getPixel(data, x, y, width) {
 }
 
 function isCornersSimilar(corners) {
+  if (corners.length < 2) return true;
   const first = corners[0];
   let maxDiff = 0;
   for (let i = 1; i < corners.length; i++) {
     const diff = Math.abs(corners[i].r - first.r) + Math.abs(corners[i].g - first.g) + Math.abs(corners[i].b - first.b);
     if (diff > maxDiff) maxDiff = diff;
   }
-  return maxDiff < 90; // cantos com cores semelhantes indicam fundo sólido
+  return maxDiff < 95;
 }
+
