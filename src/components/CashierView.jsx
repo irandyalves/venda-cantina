@@ -29,7 +29,10 @@ import {
   Unlock,
   Pencil,
   LayoutGrid,
-  Save
+  Save,
+  Banknote,
+  CreditCard,
+  QrCode
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
 import { authService } from '../services/auth';
@@ -1299,18 +1302,33 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               )}
             </div>
 
-            {/* FORMA DE PAGAMENTO */}
-            <div className="w-32 sm:w-36 shrink-0">
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full h-11 bg-slate-900 border-2 border-slate-700 text-white font-black text-xs px-2.5 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 transition-all cursor-pointer"
-              >
-                <option value="PIX">💳 PIX</option>
-                <option value="DINHEIRO">💵 Dinheiro</option>
-                <option value="DEBITO">💳 Débito</option>
-                <option value="CREDITO">💳 Crédito</option>
-              </select>
+            {/* BOTÕES DE FORMA DE PAGAMENTO: PIX, DÉBITO, CRÉDITO, DINHEIRO */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {[
+                { id: 'PIX', label: 'PIX', icon: QrCode },
+                { id: 'DEBITO', label: 'DÉBITO', icon: CreditCard },
+                { id: 'CREDITO', label: 'CRÉDITO', icon: CreditCard },
+                { id: 'DINHEIRO', label: 'DINHEIRO', icon: Banknote },
+              ].map((pm) => {
+                const isSelected = paymentMethod === pm.id;
+                const IconComp = pm.icon;
+                return (
+                  <button
+                    key={pm.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(pm.id)}
+                    className={`h-11 px-2.5 sm:px-3 rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 border-2 ${
+                      isSelected
+                        ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-[0_0_14px_rgba(251,191,36,0.4)] ring-2 ring-amber-400/40'
+                        : 'bg-slate-900/90 hover:bg-slate-850 text-slate-300 hover:text-white border-slate-700/80 hover:border-slate-500'
+                    }`}
+                    title={`Forma de pagamento: ${pm.label}`}
+                  >
+                    <IconComp className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400'}`} />
+                    <span>{pm.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* BOTÃO LIMPAR PEDIDO SE HOUVER ITENS */}
