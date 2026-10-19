@@ -32,13 +32,19 @@ import {
   Save,
   Banknote,
   CreditCard,
-  QrCode
+  QrCode,
+  Upload,
+  ImageIcon,
+  Eraser,
+  Palette
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
 import { authService } from '../services/auth';
 import ProfileSelector from './ProfileSelector';
 import AutoToast from './AutoToast';
-import ProductIcon2D from './ProductIcon2D';
+import ProductIcon2D, { PRODUCT_2D_PRESETS } from './ProductIcon2D';
+import { ITEM_COLOR_PALETTE } from './ConfigModal';
+import { processProductImage } from '../utils/imageProcessor';
 
 // Ícone Oficial do PIX (losangos entrelaçados estilizados do Banco Central)
 const PixIcon = ({ className = "w-4 h-4", isSelected }) => (
@@ -335,8 +341,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     name: '',
     price: '0,00',
     pedacoPrice: '0,00',
-    inteiraPrice: '0,00'
+    inteiraPrice: '0,00',
+    color: '#eab308',
+    image: null,
+    icon2d: null
   });
+  const [quickEditShowPresets, setQuickEditShowPresets] = useState(false);
+  const [quickEditAutoRemoveBg, setQuickEditAutoRemoveBg] = useState(true);
+  const [quickEditIsProcessingImg, setQuickEditIsProcessingImg] = useState(false);
 
   // Máscara monetária em Reais 0,00
   const formatCurrencyMask = (val) => {
@@ -1107,6 +1119,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const pedacoVar = category.variations?.find(v => v.id === 'pedaco') || { price: 9 };
     const inteiraVar = category.variations?.find(v => v.id === 'inteira') || { price: 48 };
 
+    setQuickEditShowPresets(false);
     setQuickEditModal({
       isOpen: true,
       item,
@@ -1114,13 +1127,57 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       name: item.name || '',
       price: formatCurrencyMask(item.price || 0),
       pedacoPrice: formatCurrencyMask(pedacoVar.price || 0),
-      inteiraPrice: formatCurrencyMask(inteiraVar.price || 0)
+      inteiraPrice: formatCurrencyMask(inteiraVar.price || 0),
+      color: item.color || getCategoryColor(category),
+      image: item.image || null,
+      icon2d: item.icon2d || null
     });
+  };
+
+  const handleQuickEditImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setQuickEditIsProcessingImg(true);
+      const result = await processProductImage(file, {
+        removeBackground: quickEditAutoRemoveBg,
+        maxSize: 180,
+        quality: 0.82
+      });
+      const dataUrl = typeof result === 'string' ? result : (result?.dataUrl || '');
+      setQuickEditModal(prev => ({
+        ...prev,
+        image: dataUrl,
+        icon2d: null
+      }));
+    } catch (err) {
+      console.error('Erro ao processar imagem:', err);
+    } finally {
+      setQuickEditIsProcessingImg(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleQuickEditSelectPreset = (presetId) => {
+    setQuickEditModal(prev => ({
+      ...prev,
+      icon2d: presetId,
+      image: null
+    }));
+    setQuickEditShowPresets(false);
+  };
+
+  const handleQuickEditClearCustomArt = () => {
+    setQuickEditModal(prev => ({
+      ...prev,
+      image: null,
+      icon2d: null
+    }));
   };
 
   const handleSaveQuickEdit = (e) => {
     e.preventDefault();
-    const { category, item, name, price, pedacoPrice, inteiraPrice } = quickEditModal;
+    const { category, item, name, price, pedacoPrice, inteiraPrice, color, image, icon2d } = quickEditModal;
     if (!category || !item) return;
 
     const isPizza = category.id === 'pizza';
@@ -1136,7 +1193,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           });
           const updatedItems = (c.items || []).map(it => {
             if (it.id === item.id) {
-              return { ...it, name: cleanName };
+              return { 
+                ...it, 
+                name: cleanName,
+                color: color || it.color,
+                image: image || null,
+                icon2d: icon2d || null
+              };
             }
             return it;
           });
@@ -1145,7 +1208,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           const numericPrice = parseCurrencyMask(price);
           const updatedItems = (c.items || []).map(it => {
             if (it.id === item.id) {
-              return { ...it, name: cleanName, price: numericPrice };
+              return { 
+                ...it, 
+                name: cleanName, 
+                price: numericPrice,
+                color: color || it.color,
+                image: image || null,
+                icon2d: icon2d || null
+              };
             }
             return it;
           });
@@ -1157,10 +1227,21 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
     storageService.saveProducts(updatedCategories);
     setCategories(updatedCategories);
-    setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00' });
+    setQuickEditModal({ 
+      isOpen: false, 
+      item: null, 
+      category: null, 
+      name: '', 
+      price: '0,00', 
+      pedacoPrice: '0,00', 
+      inteiraPrice: '0,00',
+      color: '#eab308',
+      image: null,
+      icon2d: null
+    });
     setToast({
       type: 'success',
-      title: 'PREÇO ATUALIZADO!',
+      title: 'ITEM ATUALIZADO!',
       orderNumber: 'OK',
       customerName: cleanName.toUpperCase(),
       destination: category.name,
@@ -2260,16 +2341,16 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       )}
 
       {/* ========================================================
-          MODAL RÁPIDO: EDITAR PREÇO E NOME (LAPIZINHO ✏️)
+          MODAL RÁPIDO: EDITAR ITEM / PREÇO / ÍCONE / COR (LÁPIS ✏️)
          ======================================================== */}
       {quickEditModal.isOpen && quickEditModal.item && quickEditModal.category && (
         <div 
-          onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00' })}
+          onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null })}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="bg-slate-900 border-2 border-emerald-500/80 w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl p-5 text-slate-100 font-sans cursor-default animate-scaleUp space-y-4"
+            className="bg-slate-900 border-2 border-emerald-500/80 w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-3xl shadow-2xl p-5 text-slate-100 font-sans cursor-default animate-scaleUp space-y-4"
           >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5">
@@ -2278,7 +2359,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </span>
                 <div>
                   <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
-                    Editar Preço / Item
+                    Editar Item / Preço / Ícone / Cor
                   </h3>
                   <p className="text-[11px] text-amber-400 font-bold uppercase tracking-wider">
                     {quickEditModal.category.name}
@@ -2287,7 +2368,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
               <button 
                 type="button"
-                onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00' })}
+                onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null })}
                 className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -2351,10 +2432,173 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </div>
               )}
 
+              {/* SEÇÃO DE ARTE / FOTO / ÍCONE 2D */}
+              <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Arte / Foto do Produto</span>
+                  </label>
+                  {(quickEditModal.image || quickEditModal.icon2d) && (
+                    <button
+                      type="button"
+                      onClick={handleQuickEditClearCustomArt}
+                      className="text-[11px] font-bold text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Restaurar ícone padrão da categoria"
+                    >
+                      <Eraser className="w-3 h-3" />
+                      <span>Restaurar Padrão</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Preview da Arte Atual */}
+                  <div 
+                    className="w-16 h-16 rounded-2xl border-2 flex items-center justify-center p-1.5 shrink-0 shadow-lg relative overflow-hidden transition-all"
+                    style={{
+                      borderColor: quickEditModal.color || '#eab308',
+                      backgroundColor: `${quickEditModal.color || '#eab308'}15`
+                    }}
+                  >
+                    <ProductIcon2D
+                      image={quickEditModal.image}
+                      iconKey={quickEditModal.icon2d}
+                      category={quickEditModal.category?.id}
+                      name={quickEditModal.name}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+
+                  {/* Ações de Foto e Presets */}
+                  <div className="flex-1 space-y-2 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="cursor-pointer px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{quickEditIsProcessingImg ? 'Processando...' : 'Carregar Foto'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleQuickEditImageUpload}
+                          disabled={quickEditIsProcessingImg}
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => setQuickEditShowPresets(prev => !prev)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all border cursor-pointer ${
+                          quickEditShowPresets
+                            ? 'bg-blue-600/30 text-blue-300 border-blue-500/60'
+                            : 'bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700'
+                        }`}
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>{quickEditShowPresets ? 'Fechar Galeria' : 'Galeria 2D (50 Ícones)'}</span>
+                      </button>
+
+                      {quickEditModal.image && (
+                        <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
+                          <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
+                          <span>Foto Ativa (~{Math.max(1, Math.round((quickEditModal.image.length * 0.75) / 1024))} KB)</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={quickEditAutoRemoveBg}
+                        onChange={(e) => setQuickEditAutoRemoveBg(e.target.checked)}
+                        className="rounded border-slate-700 text-amber-500 focus:ring-0 focus:ring-offset-0 bg-slate-900 cursor-pointer w-3.5 h-3.5"
+                      />
+                      <span className="text-[11px] text-slate-300">
+                        Remover fundo automaticamente (efeito adesivo)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Galeria Expansível 2D */}
+                {quickEditShowPresets && (
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800 animate-fadeIn">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Toque para escolher entre os 50 ícones vetoriais 2D:
+                    </span>
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-950 rounded-xl border border-slate-800/80">
+                      {PRODUCT_2D_PRESETS.map((preset) => {
+                        const isSelected = quickEditModal.icon2d === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => handleQuickEditSelectPreset(preset.id)}
+                            className={`p-1.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/50 scale-105 shadow-md'
+                                : 'bg-slate-900/60 border-slate-800 hover:border-slate-600 hover:bg-slate-850'
+                            }`}
+                            title={preset.label}
+                          >
+                            <ProductIcon2D iconKey={preset.id} className="w-7 h-7" />
+                            <span className="text-[9px] font-bold text-slate-300 text-center truncate w-full">
+                              {preset.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SELEÇÃO DE COR DE DESTAQUE */}
+              <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Cor de Destaque do Item</span>
+                  </label>
+                  <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                    <span 
+                      className="w-3.5 h-3.5 rounded-full inline-block border border-white/60 shadow-sm"
+                      style={{ backgroundColor: quickEditModal.color || '#eab308' }}
+                    />
+                    <span className="font-bold text-slate-200">
+                      {ITEM_COLOR_PALETTE.find(c => c.hex.toLowerCase() === (quickEditModal.color || '#eab308').toLowerCase())?.name || quickEditModal.color}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-950/80 rounded-xl border border-slate-800 justify-start">
+                  {ITEM_COLOR_PALETTE.map((col) => {
+                    const isSelected = (quickEditModal.color || '#eab308').toLowerCase() === col.hex.toLowerCase();
+                    return (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={() => setQuickEditModal(prev => ({ ...prev, color: col.hex }))}
+                        title={col.name}
+                        className={`w-6 h-6 rounded-full transition-transform hover:scale-115 relative flex items-center justify-center cursor-pointer border ${
+                          isSelected 
+                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 border-white scale-110 shadow-md z-10' 
+                            : 'border-white/30 hover:border-white/80 opacity-90 hover:opacity-100'
+                        }`}
+                        style={{ backgroundColor: col.hex }}
+                      >
+                        {isSelected && (
+                          <Check className="w-3 h-3 text-white stroke-[3] drop-shadow-md" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00' })}
+                  onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null })}
                   className="py-2 px-4 bg-slate-800 hover:bg-slate-750 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
                 >
                   Cancelar
@@ -2364,7 +2608,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   className="py-2 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Salvar Preço</span>
+                  <span>Salvar Alterações</span>
                 </button>
               </div>
             </form>
