@@ -536,12 +536,21 @@ class StorageService {
         if (event.data?.type === 'SCREENS_LOCKED_UPDATED') {
           window.dispatchEvent(new CustomEvent('cantina_screens_locked_changed', { detail: !!event.data.payload }));
         }
+        if (event.data?.type === 'BACKGROUND_SETTINGS_UPDATED') {
+          window.dispatchEvent(new CustomEvent('cantina_background_settings_changed', { detail: event.data.payload }));
+        }
       };
     }
 
     // Escuta evento 'storage' para navegadores que não compartilham BroadcastChannel
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
+        if (e.key === 'cantina_card_section_background') {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            window.dispatchEvent(new CustomEvent('cantina_background_settings_changed', { detail: parsed }));
+          } catch (_) {}
+        }
         if (e.key === SHOW_CURRENCY_SYMBOL_KEY) {
           window.dispatchEvent(new CustomEvent('cantina_currency_changed', { detail: e.newValue === 'true' }));
         }
@@ -792,6 +801,37 @@ class StorageService {
       syncChannel.postMessage({ type: 'KITCHEN_SETTINGS_UPDATED', payload: settings });
     }
     window.dispatchEvent(new CustomEvent('cantina_kitchen_settings_changed', { detail: settings }));
+  }
+
+  // --- CONFIGURAÇÕES DE FUNDO DA SEÇÃO DOS CARDS (CAIXA) ---
+  getBackgroundSettings() {
+    const defaultSettings = {
+      theme: 'cream', // 'cream', 'dark', 'kraft', 'wood', 'slate', 'custom'
+      textureOpacity: 100, // 0 a 100 (% de intensidade da textura)
+      darkness: 0, // 0 a 90 (% para tornar mais claro ou escuro)
+      customColor: '#eace9a'
+    };
+    try {
+      const raw = localStorage.getItem('cantina_card_section_background');
+      if (raw) return { ...defaultSettings, ...JSON.parse(raw) };
+    } catch (e) {
+      console.error('Erro ao ler configurações de fundo:', e);
+    }
+    return defaultSettings;
+  }
+
+  saveBackgroundSettings(settings) {
+    const safeSettings = {
+      theme: settings?.theme || 'cream',
+      textureOpacity: Math.max(0, Math.min(100, Number(settings?.textureOpacity ?? 100))),
+      darkness: Math.max(0, Math.min(90, Number(settings?.darkness ?? 0))),
+      customColor: settings?.customColor || '#eace9a'
+    };
+    localStorage.setItem('cantina_card_section_background', JSON.stringify(safeSettings));
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'BACKGROUND_SETTINGS_UPDATED', payload: safeSettings });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_background_settings_changed', { detail: safeSettings }));
   }
 
   // --- LIMITES DE TEMPO E CORES DOS PEDIDOS (COZINHA) ---
@@ -1370,3 +1410,72 @@ class StorageService {
 
 export const storageService = new StorageService();
 export const formatPrice = (val, showSymbol = null) => storageService.formatPrice(val, showSymbol);
+
+export const BACKGROUND_PRESETS = [
+  {
+    id: 'cream',
+    name: 'Creme Texturado',
+    desc: 'Clássico artesanal de cantina',
+    bgColor: '#eace9a',
+    bgImage: "url('/cream-texture.png')",
+    bgSize: '460px auto',
+    previewColor: '#eace9a'
+  },
+  {
+    id: 'dark',
+    name: 'Escuro Clássico',
+    desc: 'Dark slate elegante e moderno',
+    bgColor: '#0f172a',
+    bgImage: "url('/cream-texture.png')",
+    bgSize: '460px auto',
+    previewColor: '#0f172a'
+  },
+  {
+    id: 'kraft',
+    name: 'Papel Kraft',
+    desc: 'Tom terroso de pacote rústico',
+    bgColor: '#b89065',
+    bgImage: "url('/cream-texture.png')",
+    bgSize: '400px auto',
+    previewColor: '#b89065'
+  },
+  {
+    id: 'wood',
+    name: 'Madeira Aconchegante',
+    desc: 'Tom acolhedor amadeirado',
+    bgColor: '#694326',
+    bgImage: "url('/cream-texture.png')",
+    bgSize: '480px auto',
+    previewColor: '#694326'
+  },
+  {
+    id: 'slate',
+    name: 'Ardósia / Grafite',
+    desc: 'Fundo neutro escuro com relevo',
+    bgColor: '#1e293b',
+    bgImage: "url('/cream-texture.png')",
+    bgSize: '460px auto',
+    previewColor: '#1e293b'
+  },
+  {
+    id: 'custom',
+    name: 'Personalizado',
+    desc: 'Escolha livre da cor de fundo',
+    bgColor: '#eace9a',
+    bgImage: "url('/cream-texture.png')",
+    bgSize: '460px auto',
+    previewColor: '#d97706'
+  }
+];
+
+export const getSectionBackgroundStyle = (settings) => {
+  const theme = settings?.theme || 'cream';
+  const customColor = settings?.customColor || '#eace9a';
+  const preset = BACKGROUND_PRESETS.find(p => p.id === theme) || BACKGROUND_PRESETS[0];
+
+  return {
+    bgColor: theme === 'custom' ? customColor : preset.bgColor,
+    bgImage: preset.bgImage,
+    bgSize: preset.bgSize
+  };
+};

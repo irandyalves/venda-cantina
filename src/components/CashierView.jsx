@@ -39,7 +39,7 @@ import {
   Palette,
   Flame
 } from 'lucide-react';
-import { storageService, formatPrice } from '../services/storage';
+import { storageService, formatPrice, getSectionBackgroundStyle } from '../services/storage';
 import { authService } from '../services/auth';
 import ProfileSelector from './ProfileSelector';
 import AutoToast from './AutoToast';
@@ -183,6 +183,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   // Trava de telas dos monitores e tablets (Cozinha e Telão)
   const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
 
+  // Configuração do Fundo da Seção dos Cards
+  const [bgSettings, setBgSettings] = useState(() => storageService.getBackgroundSettings());
+
   const kitchenEnvironments = environments.filter(e => e.type === 'kitchen');
 
   useEffect(() => {
@@ -195,13 +198,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const handleScreensLockChange = (e) => {
       setScreensLocked(!!e.detail);
     };
+    const handleBgChange = (e) => {
+      setBgSettings(e.detail || storageService.getBackgroundSettings());
+    };
     window.addEventListener('cantina_currency_changed', handleCurrencyChanged);
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
     window.addEventListener('cantina_screens_locked_changed', handleScreensLockChange);
+    window.addEventListener('cantina_background_settings_changed', handleBgChange);
     return () => {
       window.removeEventListener('cantina_currency_changed', handleCurrencyChanged);
       window.removeEventListener('cantina_environments_changed', handleEnvsChange);
       window.removeEventListener('cantina_screens_locked_changed', handleScreensLockChange);
+      window.removeEventListener('cantina_background_settings_changed', handleBgChange);
     };
   }, []);
 
@@ -484,6 +492,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [quickEditModal.isOpen, quickDeleteModal.isOpen, quickAddModal.isOpen, activeOptionCardId, closingOptionCardId, selectedPizzaFlavor, cart.length]);
+
+  // Estilo do fundo da seção de produtos (Caixa)
+  const bgStyle = getSectionBackgroundStyle(bgSettings);
 
   // Totais e listas do rodapé (mais novos em cima)
   const todayOrders = orders.filter(o => {
@@ -1675,16 +1686,40 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
       {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA COM ORGANIZAÇÃO POR TIPO) */}
       <main 
-        className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-3.5 relative shadow-inner"
+        className="flex-1 overflow-y-auto relative shadow-inner"
         style={{
-          backgroundColor: '#eace9a',
-          backgroundImage: "url('/cream-texture.png')",
-          backgroundRepeat: 'repeat',
-          backgroundSize: '460px auto'
+          backgroundColor: bgStyle.bgColor
         }}
       >
+        <div className="relative min-h-full p-2.5 sm:p-3 space-y-3.5">
+          {/* Camada de Textura com Opacidade Configurável */}
+          {bgStyle.bgImage && (
+            <div 
+              aria-hidden="true"
+              className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+              style={{
+                backgroundImage: bgStyle.bgImage,
+                backgroundRepeat: 'repeat',
+                backgroundSize: bgStyle.bgSize || '460px auto',
+                opacity: (bgSettings.textureOpacity ?? 100) / 100
+              }}
+            />
+          )}
 
-        {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (ORGANIZAÇÃO INTELIGENTE POR TIPO) */}
+          {/* Camada de Escurecimento / Clareamento */}
+          {Number(bgSettings.darkness || 0) > 0 && (
+            <div 
+              aria-hidden="true"
+              className="absolute inset-0 pointer-events-none bg-black transition-opacity duration-300"
+              style={{
+                opacity: (Number(bgSettings.darkness || 0)) / 100
+              }}
+            />
+          )}
+
+          {/* Conteúdo Real dos Produtos e Filtros */}
+          <div className="relative z-10 space-y-3.5">
+            {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (ORGANIZAÇÃO INTELIGENTE POR TIPO) */}
         <div className="flex items-center justify-between gap-2 flex-wrap bg-slate-950/85 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.18)]">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
@@ -1969,6 +2004,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </button>
             </div>
           )}
+          </div>
+          </div>
         </div>
       </main>
 
