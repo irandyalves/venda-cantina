@@ -282,6 +282,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('pizza');
+  const [newItemDestination, setNewItemDestination] = useState('COZINHA');
   const [newItemPrice, setNewItemPrice] = useState('0,00');
   const [newItemPrefix, setNewItemPrefix] = useState('Pp-');
   const [newItemDesc, setNewItemDesc] = useState('');
@@ -301,7 +302,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     variationId: null,
     color: '#eab308',
     image: null,
-    icon2d: null
+    icon2d: null,
+    destination: 'COZINHA'
   });
   const [confirmDeleteGear, setConfirmDeleteGear] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -850,6 +852,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const isToTV = routing.showOnTV?.[targetId] !== undefined
       ? routing.showOnTV[targetId]
       : (routing.showOnTV?.[catId] !== undefined ? routing.showOnTV[catId] : (catId === 'pizza'));
+    const currentDest = routing.destinationEnv?.[targetId] !== undefined
+      ? routing.destinationEnv[targetId]
+      : (routing.destinationEnv?.[catId] !== undefined 
+          ? routing.destinationEnv[catId] 
+          : (isToKitchen ? 'COZINHA' : 'none'));
 
     // Busca o item ou variação original nas categorias para garantir a imagem e ícone mais recentes
     let realItem = null;
@@ -875,7 +882,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       categoryId: catId,
       isVariation: Boolean(item.isVariation),
       variationId: item.variationId || null,
-      sendToKitchen: isToKitchen,
+      destination: currentDest,
+      sendToKitchen: currentDest !== 'none',
       showOnTV: isToTV,
       color: item.color || realItem?.color || '#eab308',
       image: item.image || realItem?.image || null,
@@ -1032,13 +1040,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     // Salva roteamento de produção (Cozinha vs Tenda / TV)
     const targetId = gearItemData.isVariation ? gearItemData.variationId : gearItemData.id;
     const currentRouting = storageService.getProductionRouting();
+    const targetEnv = gearItemData.destination || (gearItemData.sendToKitchen ? 'COZINHA' : 'none');
+    const isKitchen = targetEnv !== 'none';
     const updatedRouting = {
+      ...currentRouting,
       sendToKitchen: {
-        ...currentRouting.sendToKitchen,
-        [targetId]: Boolean(gearItemData.sendToKitchen)
+        ...(currentRouting.sendToKitchen || {}),
+        [targetId]: isKitchen
+      },
+      destinationEnv: {
+        ...(currentRouting.destinationEnv || {}),
+        [targetId]: targetEnv
       },
       showOnTV: {
-        ...currentRouting.showOnTV,
+        ...(currentRouting.showOnTV || {}),
         [targetId]: Boolean(gearItemData.showOnTV)
       }
     };
@@ -1166,11 +1181,31 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     storageService.saveProducts(updated);
     setCategories(updated);
+
+    // Salva roteamento de produção do novo item
+    const targetDest = newItemDestination || (finalCatId === 'pizza' ? 'COZINHA' : 'none');
+    const isKitchen = targetDest !== 'none';
+    const currentRouting = storageService.getProductionRouting();
+    const updatedRouting = {
+      ...currentRouting,
+      sendToKitchen: {
+        ...(currentRouting.sendToKitchen || {}),
+        [newItem.id]: isKitchen
+      },
+      destinationEnv: {
+        ...(currentRouting.destinationEnv || {}),
+        [newItem.id]: targetDest
+      }
+    };
+    storageService.saveProductionRouting(updatedRouting);
+    setProductionRouting(updatedRouting);
+
     setShowAddItemModal(false);
     setNewItemName('');
     setNewItemPrice('0,00');
     setNewItemPrefix('Pp-');
     setNewItemCategory('pizza');
+    setNewItemDestination('COZINHA');
     setNewCategoryName('');
     setNewItemDesc('');
     setNewItemColor('#eab308');
@@ -2392,17 +2427,44 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           </div>
 
                           <div className="min-w-0">
-                            {/* BADGE DA CATEGORIA COM COR DINÂMICA */}
-                            <span 
-                              className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border font-mono inline-block truncate max-w-full"
-                              style={{ 
-                                color: item.color || '#f59e0b', 
-                                borderColor: `${item.color || '#f59e0b'}50`, 
-                                backgroundColor: `${item.color || '#f59e0b'}18` 
-                              }}
-                            >
-                              {item.categoryName}
-                            </span>
+                            {/* BADGE DA CATEGORIA COM COR DINÂMICA E DESTINO DA COZINHA */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span 
+                                className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border font-mono inline-block truncate max-w-full"
+                                style={{ 
+                                  color: item.color || '#f59e0b', 
+                                  borderColor: `${item.color || '#f59e0b'}50`, 
+                                  backgroundColor: `${item.color || '#f59e0b'}18` 
+                                }}
+                              >
+                                {item.categoryName}
+                              </span>
+
+                              {(() => {
+                                const targetId = item.isVariation ? item.variationId : item.id;
+                                const catId = item.categoryId;
+                                const isToKitchen = productionRouting.sendToKitchen?.[targetId] !== undefined
+                                  ? productionRouting.sendToKitchen[targetId]
+                                  : (productionRouting.sendToKitchen?.[catId] !== undefined ? productionRouting.sendToKitchen[catId] : (catId === 'pizza'));
+                                const currentDest = productionRouting.destinationEnv?.[targetId] !== undefined
+                                  ? productionRouting.destinationEnv[targetId]
+                                  : (productionRouting.destinationEnv?.[catId] !== undefined ? productionRouting.destinationEnv[catId] : (isToKitchen ? 'COZINHA' : 'none'));
+                                const destEnvObj = environments.find(e => e.id === currentDest);
+                                const destName = destEnvObj ? destEnvObj.name : (currentDest !== 'none' ? currentDest : 'Balcão');
+                                return (
+                                  <span 
+                                    className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border inline-flex items-center gap-0.5 ${
+                                      currentDest !== 'none'
+                                        ? 'bg-blue-950/80 text-blue-300 border-blue-500/40'
+                                        : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                                    }`}
+                                    title={currentDest !== 'none' ? `Enviado para preparo em: ${destName}` : 'Entrega direta no balcão'}
+                                  >
+                                    {currentDest !== 'none' ? `🍳 ${destName}` : '📦 Balcão'}
+                                  </span>
+                                );
+                              })()}
+                            </div>
                             <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wide truncate block mt-0.5" title={item.name}>
                               {item.name}
                             </h4>
@@ -4497,7 +4559,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             </div>
 
             <form onSubmit={handleAddNewSaleItem} className="space-y-3.5">
-              {/* LINHA 1: CATEGORIA E PREFIXO DA SENHA */}
+              {/* LINHA 1: CATEGORIA (50%) + COZINHA DE PREPARO (50%) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
@@ -4508,10 +4570,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     onChange={(e) => {
                       const newCat = e.target.value;
                       setNewItemCategory(newCat);
-                      if (newCat === 'acai') setNewItemPrefix('A-');
-                      else if (newCat === 'batata') setNewItemPrefix('B-');
-                      else if (newCat === 'pizza') setNewItemPrefix('Pp-');
-                      else if (newCat === '__NEW_CATEGORY__') {
+                      if (newCat === 'acai') {
+                        setNewItemPrefix('A-');
+                        setNewItemDestination('COZINHA');
+                      } else if (newCat === 'batata') {
+                        setNewItemPrefix('B-');
+                        setNewItemDestination('COZINHA');
+                      } else if (newCat === 'pizza') {
+                        setNewItemPrefix('Pp-');
+                        setNewItemDestination('COZINHA');
+                      } else if (newCat === '__NEW_CATEGORY__') {
                         setNewCategoryName('');
                         setNewItemPrefix('');
                       } else {
@@ -4528,46 +4596,70 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </select>
                 </div>
 
-                {newItemCategory === '__NEW_CATEGORY__' && (
-                  <div className="col-span-1 sm:col-span-2 bg-amber-950/20 border border-amber-500/40 rounded-xl p-3 space-y-1.5">
-                    <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                      <span>Nome da Nova Categoria: *</span>
-                      <span className="text-[10px] text-amber-400/80 font-normal">(ex: Salada, Pão na Chapa, Sobremesas)</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Salada, Pão na Chapa..."
-                      value={newCategoryName}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setNewCategoryName(val);
-                        if (!newItemPrefix || newItemPrefix.endsWith('-')) {
-                          const autoP = val.trim().substring(0, 3).toUpperCase();
-                          if (autoP) setNewItemPrefix(`${autoP}-`);
-                        }
-                      }}
-                      className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-amber-400"
-                    />
-                  </div>
-                )}
-
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Prefixo Senha: * <span className="text-[10px] text-slate-400 font-normal">(Maiúsculo/Minúsculo)</span>
+                  <label className="text-xs font-bold text-slate-300 block mb-1 flex items-center gap-1.5">
+                    <ChefHat className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Cozinha de Preparo: *</span>
+                  </label>
+                  <select
+                    value={newItemDestination}
+                    onChange={(e) => setNewItemDestination(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold outline-none focus:border-emerald-400 cursor-pointer"
+                  >
+                    <optgroup label="🍳 Fogões / Cozinhas de Preparo" className="bg-slate-950 text-amber-400 font-bold">
+                      {environments
+                        .filter(env => 
+                          env.type === 'kitchen' && 
+                          env.id !== 'PUBLICO' && 
+                          env.id !== 'ADMIN' && 
+                          env.id !== 'TENDA' && 
+                          !env.id.includes('TENDA') && 
+                          (env.name || '').toUpperCase() !== 'TENDA' &&
+                          !(env.id === 'COZINHA_2' && (env.description || '').toLowerCase().includes('fogões adicionais'))
+                        )
+                        .map((env) => (
+                          <option key={env.id} value={env.id} className="bg-slate-900 text-white font-bold">
+                            🍳 {env.name}
+                          </option>
+                        ))}
+                      {!environments.some(e => e.id === 'COZINHA' && e.type === 'kitchen') && (
+                        <option value="COZINHA" className="bg-slate-900 text-white font-bold">🍳 COZINHA PIZZA</option>
+                      )}
+                    </optgroup>
+                    <optgroup label="📦 Direto sem Cozinha" className="bg-slate-950 text-emerald-400 font-bold">
+                      <option value="none" className="bg-slate-900 text-emerald-300 font-bold">
+                        📦 Balcão (Sem Preparo / Entrega Direta)
+                      </option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              {newItemCategory === '__NEW_CATEGORY__' && (
+                <div className="bg-amber-950/20 border border-amber-500/40 rounded-xl p-3 space-y-1.5">
+                  <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <span>Nome da Nova Categoria: *</span>
+                    <span className="text-[10px] text-amber-400/80 font-normal">(ex: Salada, Pão na Chapa, Sobremesas)</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ex: Pp-, Pi-, A-, B-, Ref-"
-                    value={newItemPrefix}
-                    onChange={(e) => setNewItemPrefix(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none focus:border-emerald-400"
+                    placeholder="Ex: Salada, Pão na Chapa..."
+                    value={newCategoryName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewCategoryName(val);
+                      if (!newItemPrefix || newItemPrefix.endsWith('-')) {
+                        const autoP = val.trim().substring(0, 3).toUpperCase();
+                        if (autoP) setNewItemPrefix(`${autoP}-`);
+                      }
+                    }}
+                    className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-amber-400"
                   />
                 </div>
-              </div>
+              )}
 
-              {/* LINHA 2: SABOR/NOME DO ITEM + PREÇO DE VENDA NA FRENTE */}
+              {/* LINHA 2: SABOR/NOME DO ITEM (50%) + PREÇO DE VENDA (50%) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
@@ -4606,22 +4698,38 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
-              {/* LINHA 3: DESCRIÇÃO EMBAIXO */}
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Descrição / Detalhes:
-                </label>
-                <input
-                  type="text"
-                  placeholder={
-                    newItemCategory === 'pizza'
-                      ? 'Opcional (ex: Molho especial, queijo, tomate, orégano)'
-                      : 'Opcional (ex: Gelada 350ml, porção 500g)'
-                  }
-                  value={newItemDesc}
-                  onChange={(e) => setNewItemDesc(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-400"
-                />
+              {/* LINHA 3: PREFIXO SENHA (50%) + DESCRIÇÃO (50%) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Prefixo Senha: * <span className="text-[10px] text-slate-400 font-normal">(Maiúsculo/Minúsculo)</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Pp-, Pi-, A-, B-, Ref-"
+                    value={newItemPrefix}
+                    onChange={(e) => setNewItemPrefix(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Descrição / Detalhes:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={
+                      newItemCategory === 'pizza'
+                        ? 'Opcional (ex: Molho especial, queijo)'
+                        : 'Opcional (ex: Gelada 350ml, 500g)'
+                    }
+                    value={newItemDesc}
+                    onChange={(e) => setNewItemDesc(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-400"
+                  />
+                </div>
               </div>
 
               {/* SELETOR DE COR DO ITEM (24 BOLINHAS) */}
@@ -4721,9 +4829,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             </div>
 
             <form onSubmit={handleSaveGearModal} className="space-y-3.5">
-              {/* NOME DO ITEM E LISTBOX PARA ESCOLHER A CATEGORIA LADO A LADO */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
+              {/* LINHA 1: NOME DO ITEM (50%) + CATEGORIA (50%) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
                     Nome do Item: *
                   </label>
@@ -4755,19 +4863,48 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
+              {/* LINHA 2: COZINHA DE PREPARO (50%) + PREÇO DE VENDA (50%) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Prefixo da Senha / Comanda: *
+                  <label className="text-xs font-bold text-slate-300 block mb-1 flex items-center gap-1.5">
+                    <ChefHat className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Cozinha de Preparo: *</span>
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Pp-, Pi-, A-, B-"
-                    value={gearItemData.prefix}
-                    onChange={(e) => setGearItemData(prev => ({ ...prev, prefix: e.target.value }))}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none focus:border-amber-400"
-                  />
+                  <select
+                    value={gearItemData.destination || (gearItemData.categoryId === 'pizza' ? 'COZINHA' : 'none')}
+                    onChange={(e) => setGearItemData(prev => ({ 
+                      ...prev, 
+                      destination: e.target.value,
+                      sendToKitchen: e.target.value !== 'none'
+                    }))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-300 font-bold outline-none focus:border-amber-400 cursor-pointer"
+                  >
+                    <optgroup label="🍳 Fogões / Cozinhas de Preparo" className="bg-slate-950 text-amber-400 font-bold">
+                      {environments
+                        .filter(env => 
+                          env.type === 'kitchen' && 
+                          env.id !== 'PUBLICO' && 
+                          env.id !== 'ADMIN' && 
+                          env.id !== 'TENDA' && 
+                          !env.id.includes('TENDA') && 
+                          (env.name || '').toUpperCase() !== 'TENDA' &&
+                          !(env.id === 'COZINHA_2' && (env.description || '').toLowerCase().includes('fogões adicionais'))
+                        )
+                        .map((env) => (
+                          <option key={env.id} value={env.id} className="bg-slate-900 text-white font-bold">
+                            🍳 {env.name}
+                          </option>
+                        ))}
+                      {!environments.some(e => e.id === 'COZINHA' && e.type === 'kitchen') && (
+                        <option value="COZINHA" className="bg-slate-900 text-white font-bold">🍳 COZINHA PIZZA</option>
+                      )}
+                    </optgroup>
+                    <optgroup label="📦 Direto sem Cozinha" className="bg-slate-950 text-emerald-400 font-bold">
+                      <option value="none" className="bg-slate-900 text-emerald-300 font-bold">
+                        📦 Balcão (Sem Preparo / Entrega Direta)
+                      </option>
+                    </optgroup>
+                  </select>
                 </div>
 
                 <div>
@@ -4789,17 +4926,34 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Descrição / Ingredientes:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Descrição opcional do produto"
-                  value={gearItemData.description}
-                  onChange={(e) => setGearItemData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
-                />
+              {/* LINHA 3: PREFIXO DA SENHA (50%) + DESCRIÇÃO (50%) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Prefixo da Senha / Comanda: *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Pp-, Pi-, A-, B-"
+                    value={gearItemData.prefix}
+                    onChange={(e) => setGearItemData(prev => ({ ...prev, prefix: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Descrição / Ingredientes:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Descrição opcional do produto"
+                    value={gearItemData.description}
+                    onChange={(e) => setGearItemData(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
+                  />
+                </div>
               </div>
 
               {/* FOTO REAL OU ÍCONE 2D VETORIAL DO PRODUTO (CARDS INTUITIVOS) */}
