@@ -812,20 +812,35 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       ? routing.showOnTV[targetId]
       : (routing.showOnTV?.[catId] !== undefined ? routing.showOnTV[catId] : (catId === 'pizza'));
 
+    // Busca o item ou variação original nas categorias para garantir a imagem e ícone mais recentes
+    let realItem = null;
+    if (item.isVariation) {
+      const pCat = categories.find(c => c.id === 'pizza');
+      realItem = pCat?.variations?.find(v => v.id === item.variationId);
+    } else {
+      for (const cat of categories) {
+        const found = (cat.items || []).find(it => it.id === item.id);
+        if (found) {
+          realItem = found;
+          break;
+        }
+      }
+    }
+
     setGearItemData({
       id: item.id,
-      name: item.name || '',
-      price: formatCurrencyMask(item.price || 0),
-      prefix: item.prefix || '',
-      description: item.description || '',
+      name: item.name || realItem?.name || '',
+      price: formatCurrencyMask(item.price !== undefined ? item.price : (realItem?.price || 0)),
+      prefix: item.prefix || realItem?.prefix || '',
+      description: item.description || realItem?.description || '',
       categoryId: catId,
       isVariation: Boolean(item.isVariation),
       variationId: item.variationId || null,
       sendToKitchen: isToKitchen,
       showOnTV: isToTV,
-      color: item.color || '#eab308',
-      image: item.image || null,
-      icon2d: item.icon2d || null
+      color: item.color || realItem?.color || '#eab308',
+      image: item.image || realItem?.image || null,
+      icon2d: item.icon2d || realItem?.icon2d || null
     });
     setShowGearModal(true);
   };
@@ -1706,6 +1721,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   if (pizzaCat?.variations) {
     pizzaCat.variations.forEach(v => {
       allSaleItems.push({
+        ...v,
         id: v.id,
         name: `Pizza ${v.name}`,
         categoryName: 'PIZZA',
@@ -1715,6 +1731,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         isVariation: true,
         variationId: v.id,
         color: v.color || '#eab308',
+        image: v.image || null,
+        icon2d: v.icon2d || null,
         description: v.id === 'pedaco' ? 'Fatia individual de pizza' : 'Pizza inteira 8 fatias'
       });
     });
@@ -1724,6 +1742,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   if (acaiCat?.items) {
     acaiCat.items.forEach(it => {
       allSaleItems.push({
+        ...it,
         id: it.id,
         name: it.name,
         categoryName: 'AÇAÍ',
@@ -1732,6 +1751,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         categoryId: 'acai',
         isVariation: false,
         color: it.color || '#a855f7',
+        image: it.image || null,
+        icon2d: it.icon2d || null,
         description: it.description || 'Opção de açaí'
       });
     });
@@ -1741,6 +1762,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   if (batataCat?.items) {
     batataCat.items.forEach(it => {
       allSaleItems.push({
+        ...it,
         id: it.id,
         name: it.name,
         categoryName: 'BATATA FRITA',
@@ -1749,6 +1771,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         categoryId: 'batata',
         isVariation: false,
         color: it.color || '#f97316',
+        image: it.image || null,
+        icon2d: it.icon2d || null,
         description: it.description || 'Opção de batata frita'
       });
     });
@@ -1758,6 +1782,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   categories.filter(c => !['pizza', 'acai', 'batata'].includes(c.id)).forEach(cat => {
     (cat.items || []).forEach(it => {
       allSaleItems.push({
+        ...it,
         id: it.id,
         name: it.name,
         categoryName: (cat.name || cat.id).toUpperCase(),
@@ -1766,6 +1791,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         categoryId: cat.id,
         isVariation: false,
         color: it.color || '#06b6d4',
+        image: it.image || null,
+        icon2d: it.icon2d || null,
         description: it.description || ''
       });
     });
