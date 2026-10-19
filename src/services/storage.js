@@ -815,10 +815,13 @@ class StorageService {
   // --- CONFIGURAÇÕES DE FUNDO DA SEÇÃO DOS CARDS (CAIXA) ---
   getBackgroundSettings() {
     const defaultSettings = {
-      theme: 'cream', // 'cream', 'dark', 'kraft', 'wood', 'slate', 'custom'
+      theme: 'cream', // 'cream', 'dark', 'kraft', 'wood', 'slate', 'brick', 'linen', 'marble', 'terracotta', 'metal', 'carbon', 'custom', 'upload'
       textureOpacity: 100, // 0 a 100 (% de intensidade da textura)
-      darkness: 0, // 0 a 90 (% para tornar mais claro ou escuro)
-      customColor: '#eace9a'
+      textureDepth: 100, // 40 a 200 (% de profundidade / relevo da textura)
+      textureSize: 100, // 30 a 250 (% do tamanho da textura)
+      darkness: 0, // 0 a 80 (% para tornar mais claro ou escuro)
+      customColor: '#eace9a',
+      customImage: ''
     };
     try {
       const raw = localStorage.getItem('cantina_card_section_background');
@@ -833,8 +836,11 @@ class StorageService {
     const safeSettings = {
       theme: settings?.theme || 'cream',
       textureOpacity: Math.max(0, Math.min(100, Number(settings?.textureOpacity ?? 100))),
+      textureDepth: Math.max(30, Math.min(250, Number(settings?.textureDepth ?? 100))),
+      textureSize: Math.max(20, Math.min(300, Number(settings?.textureSize ?? 100))),
       darkness: Math.max(0, Math.min(90, Number(settings?.darkness ?? 0))),
-      customColor: settings?.customColor || '#eace9a'
+      customColor: settings?.customColor || '#eace9a',
+      customImage: settings?.customImage || ''
     };
     localStorage.setItem('cantina_card_section_background', JSON.stringify(safeSettings));
     if (syncChannel) {
@@ -1482,14 +1488,30 @@ class StorageService {
 export const storageService = new StorageService();
 export const formatPrice = (val, showSymbol = null) => storageService.formatPrice(val, showSymbol);
 
+// Textura clássica artesanal
+const CREAM_TEXTURE = "url('cream-texture.png')";
+
+// SVGs procedurais de alta fidelidade para as texturas adicionais
+const SVG_WOOD = `url("data:image/svg+xml,%3Csvg width='120' height='60' viewBox='0 0 120 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h120v2H0zM0 30h120v2H0zM0 58h120v2H0z' fill='%23000000' fill-opacity='0.25'/%3E%3Cpath d='M0 2h120v1H0zM0 32h120v1H0z' fill='%23ffffff' fill-opacity='0.08'/%3E%3Cpath d='M60 0v30h2V0zM30 30v30h2V30zM90 30v30h2V30z' fill='%23000000' fill-opacity='0.2'/%3E%3C/svg%3E"), url('cream-texture.png')`;
+
+const SVG_BRICK = `url("data:image/svg+xml,%3Csvg width='60' height='30' viewBox='0 0 60 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h60v2H0V0zm0 15h60v2H0v-2zm30 0h2v15h-2V15zM0 0h2v15H0V0zm60 0h-2v15h2V0z' fill='%23000000' fill-opacity='0.32'/%3E%3Cpath d='M0 2h60v1H0V2zm0 15h60v1H0v-1z' fill='%23ffffff' fill-opacity='0.1'/%3E%3C/svg%3E"), url('cream-texture.png')`;
+
+const SVG_LINEN = `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20zm20 0H0V0h20v20z' fill='%23ffffff' fill-opacity='0.06' fill-rule='evenodd'/%3E%3Cpath d='M0 10h40v1H0v-1zm0 20h40v1H0v-1zM10 0v40h1V0h-1zm20 0v40h1V0h-1z' fill='%23000000' fill-opacity='0.08'/%3E%3C/svg%3E"), url('cream-texture.png')`;
+
+const SVG_MARBLE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.18'/%3E%3C/svg%3E"), url('cream-texture.png')`;
+
+const SVG_METAL = `url("data:image/svg+xml,%3Csvg width='120' height='24' viewBox='0 0 120 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h120v1H0zM0 6h120v1H0zM0 12h120v1H0zM0 18h120v1H0z' fill='%23ffffff' fill-opacity='0.12'/%3E%3Cpath d='M0 3h120v1H0zM0 9h120v1H0zM0 15h120v1H0zM0 21h120v1H0z' fill='%23000000' fill-opacity='0.18'/%3E%3C/svg%3E"), url('cream-texture.png')`;
+
+const SVG_CARBON = `url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='8' height='8' fill='%23ffffff' fill-opacity='0.05'/%3E%3Crect x='8' y='8' width='8' height='8' fill='%23ffffff' fill-opacity='0.05'/%3E%3Crect x='8' width='8' height='8' fill='%23000000' fill-opacity='0.18'/%3E%3Crect y='8' width='8' height='8' fill='%23000000' fill-opacity='0.18'/%3E%3C/svg%3E")`;
+
 export const BACKGROUND_PRESETS = [
   {
     id: 'cream',
     name: 'Creme Texturado',
     desc: 'Clássico artesanal de cantina',
     bgColor: '#eace9a',
-    bgImage: "url('/cream-texture.png')",
-    bgSize: '460px auto',
+    bgImage: CREAM_TEXTURE,
+    baseSize: 460,
     previewColor: '#eace9a'
   },
   {
@@ -1497,8 +1519,8 @@ export const BACKGROUND_PRESETS = [
     name: 'Escuro Clássico',
     desc: 'Dark slate elegante e moderno',
     bgColor: '#0f172a',
-    bgImage: "url('/cream-texture.png')",
-    bgSize: '460px auto',
+    bgImage: CREAM_TEXTURE,
+    baseSize: 460,
     previewColor: '#0f172a'
   },
   {
@@ -1506,47 +1528,128 @@ export const BACKGROUND_PRESETS = [
     name: 'Papel Kraft',
     desc: 'Tom terroso de pacote rústico',
     bgColor: '#b89065',
-    bgImage: "url('/cream-texture.png')",
-    bgSize: '400px auto',
+    bgImage: CREAM_TEXTURE,
+    baseSize: 400,
     previewColor: '#b89065'
   },
   {
     id: 'wood',
     name: 'Madeira Aconchegante',
-    desc: 'Tom acolhedor amadeirado',
-    bgColor: '#694326',
-    bgImage: "url('/cream-texture.png')",
-    bgSize: '480px auto',
-    previewColor: '#694326'
+    desc: 'Tom acolhedor amadeirado de tábua',
+    bgColor: '#5a3518',
+    bgImage: SVG_WOOD,
+    baseSize: 480,
+    previewColor: '#5a3518'
   },
   {
     id: 'slate',
     name: 'Ardósia / Grafite',
-    desc: 'Fundo neutro escuro com relevo',
+    desc: 'Fundo neutro escuro com relevo mineral',
     bgColor: '#1e293b',
-    bgImage: "url('/cream-texture.png')",
-    bgSize: '460px auto',
+    bgImage: CREAM_TEXTURE,
+    baseSize: 460,
     previewColor: '#1e293b'
+  },
+  // NOVOS 6 PRESETS RICOS:
+  {
+    id: 'brick',
+    name: 'Tijolo / Forno à Lenha',
+    desc: 'Estilo rústico tradicional de cantina e pizzaria',
+    bgColor: '#7a2712',
+    bgImage: SVG_BRICK,
+    baseSize: 360,
+    previewColor: '#7a2712'
+  },
+  {
+    id: 'linen',
+    name: 'Linho / Tecido Cru',
+    desc: 'Trama artesanal de toalha aconchegante',
+    bgColor: '#d4c2a5',
+    bgImage: SVG_LINEN,
+    baseSize: 320,
+    previewColor: '#d4c2a5'
+  },
+  {
+    id: 'marble',
+    name: 'Mármore Nero / Granito',
+    desc: 'Bancada escura nobre e refinada',
+    bgColor: '#151518',
+    bgImage: SVG_MARBLE,
+    baseSize: 440,
+    previewColor: '#151518'
+  },
+  {
+    id: 'terracotta',
+    name: 'Terracota Italiana',
+    desc: 'Argila tostada quente tradicional da Toscana',
+    bgColor: '#963616',
+    bgImage: CREAM_TEXTURE,
+    baseSize: 420,
+    previewColor: '#963616'
+  },
+  {
+    id: 'metal',
+    name: 'Aço Escovado / Inox',
+    desc: 'Cozinha industrial e lanchonete moderna',
+    bgColor: '#334155',
+    bgImage: SVG_METAL,
+    baseSize: 380,
+    previewColor: '#475569'
+  },
+  {
+    id: 'carbon',
+    name: 'Carbono / Moderno',
+    desc: 'Visual esportivo e tecnológico de alta performance',
+    bgColor: '#090d16',
+    bgImage: SVG_CARBON,
+    baseSize: 260,
+    previewColor: '#090d16'
   },
   {
     id: 'custom',
     name: 'Personalizado',
-    desc: 'Escolha livre da cor de fundo',
+    desc: 'Escolha livre da cor com textura clássica',
     bgColor: '#eace9a',
-    bgImage: "url('/cream-texture.png')",
-    bgSize: '460px auto',
+    bgImage: CREAM_TEXTURE,
+    baseSize: 460,
     previewColor: '#d97706'
+  },
+  {
+    id: 'upload',
+    name: 'Upload Próprio',
+    desc: 'Sua própria imagem ou foto de textura',
+    bgColor: '#1e293b',
+    bgImage: '',
+    baseSize: 460,
+    previewColor: '#06b6d4'
   }
 ];
 
 export const getSectionBackgroundStyle = (settings) => {
   const theme = settings?.theme || 'cream';
   const customColor = settings?.customColor || '#eace9a';
+  const customImage = settings?.customImage || '';
   const preset = BACKGROUND_PRESETS.find(p => p.id === theme) || BACKGROUND_PRESETS[0];
 
+  let bgImage = preset.bgImage;
+  let baseSize = preset.baseSize || 460;
+
+  if (theme === 'upload') {
+    bgImage = customImage ? `url('${customImage}')` : '';
+    baseSize = 480;
+  }
+
+  // Escala dinâmica do tamanho da textura (reduzir / aumentar)
+  const textureScale = (Number(settings?.textureSize ?? 100)) / 100;
+  const calculatedBgSize = bgImage ? `${Math.round(baseSize * textureScale)}px auto` : 'auto';
+
   return {
-    bgColor: theme === 'custom' ? customColor : preset.bgColor,
-    bgImage: preset.bgImage,
-    bgSize: preset.bgSize
+    bgColor: theme === 'custom' ? customColor : (theme === 'upload' ? (customColor || '#1e293b') : preset.bgColor),
+    bgImage,
+    bgSize: calculatedBgSize,
+    textureDepth: Number(settings?.textureDepth ?? 100),
+    textureSize: Number(settings?.textureSize ?? 100),
+    textureOpacity: Number(settings?.textureOpacity ?? 100),
+    darkness: Number(settings?.darkness ?? 0)
   };
 };

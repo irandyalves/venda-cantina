@@ -1794,16 +1794,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         }}
       >
         <div className="relative min-h-full p-2.5 sm:p-3 space-y-3.5">
-          {/* Camada de Textura com Opacidade Configurável */}
+          {/* Camada de Textura com Opacidade, Tamanho e Profundidade Configuráveis */}
           {bgStyle.bgImage && (
             <div 
               aria-hidden="true"
-              className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+              className="absolute inset-0 pointer-events-none transition-all duration-200"
               style={{
                 backgroundImage: bgStyle.bgImage,
                 backgroundRepeat: 'repeat',
                 backgroundSize: bgStyle.bgSize || '460px auto',
-                opacity: (bgSettings.textureOpacity ?? 100) / 100
+                opacity: (bgSettings.textureOpacity ?? 100) / 100,
+                filter: `contrast(${(bgSettings.textureDepth ?? 100)}%) saturate(${Math.min(140, Math.max(60, (bgSettings.textureDepth ?? 100)))}%)`,
+                transform: 'translateZ(0)'
               }}
             />
           )}

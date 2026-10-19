@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Settings, 
@@ -339,6 +339,45 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const nextSettings = {
       ...bgSettings,
       [key]: val
+    };
+    setBgSettings(nextSettings);
+    storageService.saveBackgroundSettings(nextSettings);
+    setHasUnsavedChanges(true);
+  };
+
+  const bgUploadInputRef = useRef(null);
+
+  const handleUploadBgFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      alert('A imagem é muito grande. Escolha uma imagem de até 8MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result;
+      if (base64) {
+        const nextSettings = {
+          ...bgSettings,
+          theme: 'upload',
+          customImage: base64
+        };
+        setBgSettings(nextSettings);
+        storageService.saveBackgroundSettings(nextSettings);
+        setHasUnsavedChanges(true);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveUploadedBg = () => {
+    const nextSettings = {
+      ...bgSettings,
+      theme: 'cream',
+      customImage: ''
     };
     setBgSettings(nextSettings);
     storageService.saveBackgroundSettings(nextSettings);
@@ -3956,9 +3995,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </label>
               </div>
 
-              {/* PAINEL 1: FUNDO DA SEÇÃO DOS CARDS (CAIXA) - COMPACTO (50% MENOR NA ALTURA) */}
-              <div className="bg-slate-900/95 rounded-2xl border border-amber-500/30 p-3.5 sm:p-4 shadow-xl space-y-3 relative overflow-hidden">
-                {/* CABEÇALHO COMPACTO: TÍTULO, BADGE E RESTAURAR */}
+              {/* PAINEL 1: FUNDO DA SEÇÃO DOS CARDS (CAIXA) - NOVO LAYOUT 2 COLUNAS */}
+              <div className="bg-slate-900/95 rounded-2xl border border-amber-500/30 p-3.5 sm:p-4 shadow-xl space-y-3.5 relative overflow-hidden">
+                {/* CABEÇALHO: TÍTULO, BADGE E RESTAURAR */}
                 <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
@@ -3969,7 +4008,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         FUNDO DA SEÇÃO DOS CARDS (CAIXA)
                       </h3>
                       <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                        {BACKGROUND_PRESETS.find(p => p.id === bgSettings.theme)?.name || 'Personalizado'}
+                        {BACKGROUND_PRESETS.find(p => p.id === bgSettings.theme)?.name || (bgSettings.theme === 'upload' ? 'Upload Próprio' : 'Personalizado')}
                       </span>
                     </div>
                   </div>
@@ -3977,7 +4016,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <button
                     type="button"
                     onClick={() => {
-                      const def = { theme: 'cream', textureOpacity: 100, darkness: 0, customColor: '#eace9a' };
+                      const def = { theme: 'cream', textureOpacity: 100, textureDepth: 100, textureSize: 100, darkness: 0, customColor: '#eace9a', customImage: '' };
                       setBgSettings(def);
                       storageService.saveBackgroundSettings(def);
                     }}
@@ -3989,166 +4028,315 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </div>
 
-                {/* SELETOR DE PRESETS: BOTÕES HORIZONTAIS COMPACTOS */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5">
-                  {BACKGROUND_PRESETS.map((preset) => {
-                    const isSelected = bgSettings.theme === preset.id;
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => handleUpdateBgSetting('theme', preset.id)}
-                        className={`py-1.5 px-2.5 rounded-xl border text-left transition-all cursor-pointer relative flex items-center justify-between gap-1.5 ${
-                          isSelected
-                            ? 'bg-slate-800 border-amber-400 ring-2 ring-amber-400/50 shadow-md'
-                            : 'bg-slate-950/70 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
-                        }`}
-                        title={preset.desc}
-                      >
+                {/* CORPO PRINCIPAL EM 2 COLUNAS: À ESQUERDA (TIPOS + EFEITOS), À DIREITA (PREVIEW REDUZIDO EM LARGURA E MAIS ALTO) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
+                  {/* COLUNA ESQUERDA (Lg: col-span-8): SEÇÃO DE TIPOS DE FUNDOS E CONTROLES DE EFEITOS */}
+                  <div className="lg:col-span-8 space-y-3">
+                    {/* 1. SEÇÃO DE TIPOS DE FUNDO */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Tipos de Texturas e Fundos</span>
+                        </label>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {BACKGROUND_PRESETS.length} opções disponíveis
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-1.5">
+                        {BACKGROUND_PRESETS.map((preset) => {
+                          const isSelected = bgSettings.theme === preset.id;
+                          return (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => {
+                                handleUpdateBgSetting('theme', preset.id);
+                                if (preset.id === 'upload' && !bgSettings.customImage && bgUploadInputRef.current) {
+                                  bgUploadInputRef.current.click();
+                                }
+                              }}
+                              className={`py-1.5 px-2 rounded-xl border text-left transition-all cursor-pointer relative flex items-center justify-between gap-1.5 ${
+                                isSelected
+                                  ? 'bg-slate-800 border-amber-400 ring-2 ring-amber-400/50 shadow-md'
+                                  : 'bg-slate-950/70 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                              }`}
+                              title={preset.desc}
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div 
+                                  className="w-3 h-3 rounded-full border border-white/30 shadow-xs shrink-0" 
+                                  style={{ backgroundColor: preset.previewColor }}
+                                />
+                                <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                                  {preset.name}
+                                </span>
+                              </div>
+                              {isSelected && (
+                                <Check className="w-3 h-3 text-amber-400 stroke-[3] shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* UPLOAD DE FUNDO PERSONALIZADO */}
+                    <input 
+                      type="file" 
+                      ref={bgUploadInputRef} 
+                      onChange={handleUploadBgFile} 
+                      accept="image/*" 
+                      className="hidden" 
+                    />
+
+                    {bgSettings.theme === 'upload' && (
+                      <div className="py-2 px-3 bg-cyan-950/40 rounded-xl border border-cyan-500/40 flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div 
-                            className="w-3.5 h-3.5 rounded-full border border-white/30 shadow-xs shrink-0" 
-                            style={{ backgroundColor: preset.previewColor }}
-                          />
-                          <span className={`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                            {preset.name}
+                          <span className="p-1.5 bg-cyan-500/20 text-cyan-300 rounded-lg shrink-0">
+                            <Upload className="w-4 h-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white truncate">
+                              {bgSettings.customImage ? 'Fundo Personalizado Carregado' : 'Nenhuma imagem enviada'}
+                            </p>
+                            <p className="text-[10px] text-cyan-300/80">
+                              Aceita PNG, JPG, WebP ou SVG (máx. 8MB)
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => bgUploadInputRef.current?.click()}
+                            className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-sm"
+                          >
+                            <Upload className="w-3 h-3" />
+                            <span>{bgSettings.customImage ? 'Trocar Imagem' : 'Fazer Upload'}</span>
+                          </button>
+                          {bgSettings.customImage && (
+                            <button
+                              type="button"
+                              onClick={handleRemoveUploadedBg}
+                              className="px-2 py-1 bg-red-950 hover:bg-red-900 text-red-300 rounded-lg text-xs font-bold transition-all border border-red-800/60 cursor-pointer"
+                              title="Remover imagem enviada"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* COR PERSONALIZADA (SOMENTE SE TEMA FOR 'CUSTOM') */}
+                    {bgSettings.theme === 'custom' && (
+                      <div className="py-1.5 px-3 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center gap-2.5 flex-wrap">
+                        <span className="text-xs font-bold text-slate-300 whitespace-nowrap">Cor de Fundo:</span>
+                        <input
+                          type="color"
+                          value={bgSettings.customColor || '#eace9a'}
+                          onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
+                          className="w-7 h-7 rounded-lg cursor-pointer border border-slate-700 bg-transparent shrink-0"
+                        />
+                        <input
+                          type="text"
+                          value={bgSettings.customColor || '#eace9a'}
+                          onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
+                          className="w-20 px-2 py-0.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white text-center"
+                        />
+                        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+                          {['#eace9a', '#f5f5f4', '#d6d3d1', '#78716c', '#44403c', '#1c1917', '#0f172a', '#1e293b', '#262626', '#172554', '#7c2d12', '#9a3412'].map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => handleUpdateBgSetting('customColor', c)}
+                              className="w-5 h-5 rounded-md border border-white/20 hover:scale-115 transition-transform cursor-pointer shrink-0"
+                              style={{ backgroundColor: c }}
+                              title={c}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. CONTROLES DE EFEITOS (OPACIDADE, PROFUNDIDADE, TAMANHO E CLARIDADE) EM GRID 2X2 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                      {/* EFEITO 1: TEXTURA (OPACIDADE) */}
+                      <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Opacidade da Textura</span>
+                          </label>
+                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            {bgSettings.textureOpacity ?? 100}%
                           </span>
                         </div>
-                        {isSelected && (
-                          <Check className="w-3 h-3 text-amber-400 stroke-[3] shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500">0%</span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={bgSettings.textureOpacity ?? 100}
+                            onChange={(e) => handleUpdateBgSetting('textureOpacity', Number(e.target.value))}
+                            className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                          />
+                          <span className="text-[10px] text-slate-500">100%</span>
+                        </div>
+                      </div>
 
-                {/* COR PERSONALIZADA (SOMENTE SE TEMA FOR 'CUSTOM') */}
-                {bgSettings.theme === 'custom' && (
-                  <div className="py-1.5 px-3 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center gap-2.5 flex-wrap">
-                    <span className="text-xs font-bold text-slate-300 whitespace-nowrap">Cor:</span>
-                    <input
-                      type="color"
-                      value={bgSettings.customColor || '#eace9a'}
-                      onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
-                      className="w-7 h-7 rounded-lg cursor-pointer border border-slate-700 bg-transparent shrink-0"
-                    />
-                    <input
-                      type="text"
-                      value={bgSettings.customColor || '#eace9a'}
-                      onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
-                      className="w-20 px-2 py-0.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white text-center"
-                    />
-                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-                      {['#eace9a', '#f5f5f4', '#d6d3d1', '#78716c', '#44403c', '#1c1917', '#0f172a', '#1e293b', '#262626', '#172554'].map(c => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => handleUpdateBgSetting('customColor', c)}
-                          className="w-5 h-5 rounded-md border border-white/20 hover:scale-115 transition-transform cursor-pointer shrink-0"
-                          style={{ backgroundColor: c }}
-                          title={c}
+                      {/* EFEITO 2: PROFUNDIDADE DA TEXTURA (RELEVO / CONTRASTE) */}
+                      <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Profundidade / Relevo</span>
+                          </label>
+                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                            {bgSettings.textureDepth ?? 100}% {Number(bgSettings.textureDepth || 100) > 130 ? '(Marcado)' : Number(bgSettings.textureDepth || 100) < 70 ? '(Suave)' : '(Padrão)'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500">30%</span>
+                          <input
+                            type="range"
+                            min="30"
+                            max="200"
+                            step="5"
+                            value={bgSettings.textureDepth ?? 100}
+                            onChange={(e) => handleUpdateBgSetting('textureDepth', Number(e.target.value))}
+                            className="flex-1 accent-cyan-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                          />
+                          <span className="text-[10px] text-slate-500">200%</span>
+                        </div>
+                      </div>
+
+                      {/* EFEITO 3: TAMANHO DA TEXTURA (ESCALA / REDUZIR OU AUMENTAR) */}
+                      <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Tamanho da Textura</span>
+                          </label>
+                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            {bgSettings.textureSize ?? 100}% {Number(bgSettings.textureSize || 100) > 130 ? '(Amplo)' : Number(bgSettings.textureSize || 100) < 70 ? '(Micro)' : '(Padrão)'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500">30%</span>
+                          <input
+                            type="range"
+                            min="30"
+                            max="250"
+                            step="5"
+                            value={bgSettings.textureSize ?? 100}
+                            onChange={(e) => handleUpdateBgSetting('textureSize', Number(e.target.value))}
+                            className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                          />
+                          <span className="text-[10px] text-slate-500">250%</span>
+                        </div>
+                      </div>
+
+                      {/* EFEITO 4: CLARIDADE / ESCURECIMENTO */}
+                      <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <Sun className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Claridade / Escuro</span>
+                            <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                          </label>
+                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            {bgSettings.darkness ?? 0}% {Number(bgSettings.darkness || 0) === 0 ? '(Claro)' : '(Escuro)'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500">0%</span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="80"
+                            step="5"
+                            value={bgSettings.darkness ?? 0}
+                            onChange={(e) => handleUpdateBgSetting('darkness', Number(e.target.value))}
+                            className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                          />
+                          <span className="text-[10px] text-slate-500">80%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* COLUNA DIREITA (Lg: col-span-4): PREVIEW DOS CARDS REDUZIDO EM LARGURA E COM ALTURA AUMENTADA */}
+                  <div className="lg:col-span-4 flex flex-col">
+                    <div 
+                      className="relative rounded-2xl overflow-hidden border border-slate-700/80 p-3 flex-1 min-h-[175px] flex flex-col justify-between shadow-2xl transition-all"
+                      style={{ backgroundColor: previewBgStyle.bgColor }}
+                    >
+                      {/* Camada de Textura com Opacidade, Tamanho e Profundidade */}
+                      {previewBgStyle.bgImage && (
+                        <div 
+                          aria-hidden="true"
+                          className="absolute inset-0 pointer-events-none transition-all duration-200"
+                          style={{
+                            backgroundImage: previewBgStyle.bgImage,
+                            backgroundRepeat: 'repeat',
+                            backgroundSize: previewBgStyle.bgSize || '460px auto',
+                            opacity: (bgSettings.textureOpacity ?? 100) / 100,
+                            filter: `contrast(${(bgSettings.textureDepth ?? 100)}%) saturate(${Math.min(140, Math.max(60, (bgSettings.textureDepth ?? 100)))}%)`,
+                            transform: 'translateZ(0)'
+                          }}
                         />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      )}
 
-                {/* CONTROLES: TEXTURA E ESCURECIMENTO LADO A LADO EM 2 COLUNAS COMPACTAS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
-                  {/* TEXTURA */}
-                  <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                        <Sliders className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Textura</span>
-                      </label>
-                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        {bgSettings.textureOpacity ?? 100}%
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-500">0%</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={bgSettings.textureOpacity ?? 100}
-                        onChange={(e) => handleUpdateBgSetting('textureOpacity', Number(e.target.value))}
-                        className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                      />
-                      <span className="text-[10px] text-slate-500">100%</span>
-                    </div>
-                  </div>
+                      {/* Camada de Escurecimento */}
+                      {Number(bgSettings.darkness || 0) > 0 && (
+                        <div 
+                          aria-hidden="true"
+                          className="absolute inset-0 pointer-events-none bg-black transition-opacity duration-200"
+                          style={{ opacity: (Number(bgSettings.darkness || 0)) / 100 }}
+                        />
+                      )}
 
-                  {/* ESCURECIMENTO */}
-                  <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                        <Sun className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Claridade / Escuro</span>
-                        <Moon className="w-3.5 h-3.5 text-indigo-400" />
-                      </label>
-                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                        {bgSettings.darkness ?? 0}% {Number(bgSettings.darkness || 0) === 0 ? '(Claro)' : '(Escuro)'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-500">0%</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="80"
-                        step="5"
-                        value={bgSettings.darkness ?? 0}
-                        onChange={(e) => handleUpdateBgSetting('darkness', Number(e.target.value))}
-                        className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                      />
-                      <span className="text-[10px] text-slate-500">80%</span>
-                    </div>
-                  </div>
-                </div>
+                      {/* Topo do Preview */}
+                      <div className="relative z-10 flex items-center justify-between gap-1.5 border-b border-black/20 pb-2">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-white drop-shadow">
+                          <Eye className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Prévia no Caixa</span>
+                        </div>
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                          Ao Vivo
+                        </span>
+                      </div>
 
-                {/* PRÉ-VISUALIZAÇÃO AO VIVO EM FAIXA COMPACTA (50PX ALTURA) */}
-                <div 
-                  className="relative rounded-xl overflow-hidden border border-slate-700/80 px-3 py-2 min-h-[48px] flex items-center justify-between gap-2 shadow-inner"
-                  style={{ backgroundColor: previewBgStyle.bgColor }}
-                >
-                  {previewBgStyle.bgImage && (
-                    <div 
-                      aria-hidden="true"
-                      className="absolute inset-0 pointer-events-none transition-opacity duration-200"
-                      style={{
-                        backgroundImage: previewBgStyle.bgImage,
-                        backgroundRepeat: 'repeat',
-                        backgroundSize: previewBgStyle.bgSize || '460px auto',
-                        opacity: (bgSettings.textureOpacity ?? 100) / 100
-                      }}
-                    />
-                  )}
-                  {Number(bgSettings.darkness || 0) > 0 && (
-                    <div 
-                      aria-hidden="true"
-                      className="absolute inset-0 pointer-events-none bg-black transition-opacity duration-200"
-                      style={{ opacity: (Number(bgSettings.darkness || 0)) / 100 }}
-                    />
-                  )}
+                      {/* Cards de Exemplo no Preview */}
+                      <div className="relative z-10 py-2.5 space-y-2">
+                        <div className="rounded-xl bg-slate-900/95 border border-emerald-400/80 p-2 shadow-lg flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Pizza className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span className="text-xs font-black text-white truncate">Pizza Calabresa</span>
+                          </div>
+                          <span className="text-xs font-mono font-bold text-emerald-400 shrink-0">R$ 15,00</span>
+                        </div>
 
-                  <div className="relative z-10 flex items-center gap-1.5 text-xs font-bold text-slate-300 drop-shadow">
-                    <Eye className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Prévia dos cards no Caixa:</span>
-                  </div>
+                        <div className="rounded-xl bg-slate-900/90 border border-slate-700/80 p-2 shadow-lg flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <IceCream className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                            <span className="text-xs font-black text-white truncate">Açaí 300ml</span>
+                          </div>
+                          <span className="text-xs font-mono font-bold text-emerald-400 shrink-0">R$ 12,00</span>
+                        </div>
+                      </div>
 
-                  <div className="relative z-10 flex items-center gap-2">
-                    <div className="rounded-xl bg-slate-900/95 border border-emerald-400/80 px-2.5 py-1 shadow-md flex items-center gap-2">
-                      <Pizza className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-[11px] font-black text-white">Pizza Calabresa</span>
-                      <span className="text-[11px] font-mono font-bold text-emerald-400">R$ 15,00</span>
-                    </div>
-                    <div className="rounded-xl bg-slate-900/90 border border-slate-700/80 px-2.5 py-1 shadow-md hidden sm:flex items-center gap-2">
-                      <IceCream className="w-3.5 h-3.5 text-purple-400" />
-                      <span className="text-[11px] font-black text-white">Açaí 300ml</span>
-                      <span className="text-[11px] font-mono font-bold text-emerald-400">R$ 12,00</span>
+                      {/* Rodapé do Preview com Métricas */}
+                      <div className="relative z-10 text-[9px] font-mono text-slate-200 drop-shadow flex items-center justify-between gap-1 pt-1.5 border-t border-black/20">
+                        <span>Tam: {bgSettings.textureSize ?? 100}%</span>
+                        <span>Prof: {bgSettings.textureDepth ?? 100}%</span>
+                        <span>Opac: {bgSettings.textureOpacity ?? 100}%</span>
+                      </div>
                     </div>
                   </div>
                 </div>
