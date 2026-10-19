@@ -1712,6 +1712,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
       {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (COLADA NO CABEÇALHO SUPERIOR, BORDA A BORDA, COM SOMBRA SOBRE OS CARDS DE PRODUTOS) */}
       <nav className="w-full bg-slate-950 px-3 sm:px-4 py-2 border-t border-dashed border-slate-700/80 shrink-0 relative z-20 flex items-center justify-between gap-2 flex-wrap shadow-[0_12px_28px_rgba(0,0,0,0.85),0_4px_10px_rgba(0,0,0,0.6)]">
+        {/* LINHA FININHA BEGE NO RODAPÉ DO CABEÇALHO */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#eace9a] shadow-[0_1px_4px_rgba(0,0,0,0.8)] pointer-events-none" />
+
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
             <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
