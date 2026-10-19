@@ -187,6 +187,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   // Configuração do Fundo da Seção dos Cards
   const [bgSettings, setBgSettings] = useState(() => storageService.getBackgroundSettings());
 
+  // Configurações Gerais do Sistema (Espaçamento de cards, efeitos, sons)
+  const [systemSettings, setSystemSettings] = useState(() => storageService.getSystemSettings());
+
   const kitchenEnvironments = environments.filter(e => e.type === 'kitchen');
 
   useEffect(() => {
@@ -202,15 +205,20 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const handleBgChange = (e) => {
       setBgSettings(e.detail || storageService.getBackgroundSettings());
     };
+    const handleSystemChange = (e) => {
+      setSystemSettings(e.detail || storageService.getSystemSettings());
+    };
     window.addEventListener('cantina_currency_changed', handleCurrencyChanged);
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
     window.addEventListener('cantina_screens_locked_changed', handleScreensLockChange);
     window.addEventListener('cantina_background_settings_changed', handleBgChange);
+    window.addEventListener('cantina_system_settings_changed', handleSystemChange);
     return () => {
       window.removeEventListener('cantina_currency_changed', handleCurrencyChanged);
       window.removeEventListener('cantina_environments_changed', handleEnvsChange);
       window.removeEventListener('cantina_screens_locked_changed', handleScreensLockChange);
       window.removeEventListener('cantina_background_settings_changed', handleBgChange);
+      window.removeEventListener('cantina_system_settings_changed', handleSystemChange);
     };
   }, []);
 
@@ -1385,6 +1393,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   const totalItemsCount = categories.reduce((acc, c) => acc + (c.items?.length || 0), 0);
 
+  const cashierSpacingClass = {
+    compact: 'space-y-0.5',
+    normal: 'space-y-1.5',
+    relaxed: 'space-y-2.5',
+    spacious: 'space-y-4'
+  }[systemSettings?.cashierCardSpacing || 'normal'] || 'space-y-1.5';
+
   return (
     <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden text-xs">
       
@@ -2078,7 +2093,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-1.5 pr-0 min-h-0 custom-scrollbar">
+            <div className={`flex-1 overflow-y-auto ${cashierSpacingClass} pr-0 min-h-0 custom-scrollbar`}>
               {preparingList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium pr-2">
                   Nenhum pedido em preparo
@@ -2103,7 +2118,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-1.5 pr-0 min-h-0 custom-scrollbar">
+            <div className={`flex-1 overflow-y-auto ${cashierSpacingClass} pr-0 min-h-0 custom-scrollbar`}>
               {readyList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium pr-2">
                   Nenhum pedido pronto
@@ -2128,7 +2143,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-1.5 pr-0 min-h-0 custom-scrollbar">
+            <div className={`flex-1 overflow-y-auto ${cashierSpacingClass} pr-0 min-h-0 custom-scrollbar`}>
               {deliveredList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium pr-2">
                   Nenhum pedido entregue

@@ -3927,30 +3927,30 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               - Fontes & Tipografia
              ========================================================= */}
           {activeTab === 'system' && (
-            <div className="space-y-6">
+            <div className="space-y-3">
 
               {/* PAINEL: SÍMBOLO DA MOEDA (R$) NOS VALORES */}
-              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-3.5 sm:p-4 shadow-xl flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30 shrink-0">
-                    <DollarSign className="w-5 h-5" />
+              <div className="bg-slate-900/95 rounded-xl border border-slate-800 p-2.5 sm:p-3 shadow-xl flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 shrink-0">
+                    <DollarSign className="w-4 h-4" />
                   </span>
                   <div>
-                    <h3 className="font-black text-white text-sm tracking-wide flex items-center gap-2">
+                    <h3 className="font-black text-white text-xs sm:text-sm tracking-wide flex items-center gap-2">
                       EXIBIÇÃO DE MOEDA (R$)
                     </h3>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-[11px] text-slate-400">
                       Exibir o prefixo 'R$' antes de todos os valores no sistema (cards de venda, comandas, cozinha, telão e relatórios).
                     </p>
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2.5 cursor-pointer bg-slate-950 hover:bg-slate-850 border border-slate-700 hover:border-emerald-500/60 px-3.5 py-2 rounded-xl transition-all select-none shadow-sm shrink-0">
+                <label className="flex items-center gap-2 cursor-pointer bg-slate-950 hover:bg-slate-850 border border-slate-700 hover:border-emerald-500/60 px-3 py-1.5 rounded-lg transition-all select-none shadow-sm shrink-0">
                   <input
                     type="checkbox"
                     checked={showCurrencySymbol}
                     onChange={(e) => handleToggleCurrencySymbol(e.target.checked)}
-                    className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-800 border-slate-600 cursor-pointer accent-emerald-500"
+                    className="w-3.5 h-3.5 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-800 border-slate-600 cursor-pointer accent-emerald-500"
                   />
                   <span className="text-xs font-black text-white">Exibir R$ nos valores</span>
                 </label>
@@ -4154,115 +4154,99 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
-              {/* PAINEL 2: TEMPOS DO SISTEMA & TELÃO */}
-              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shrink-0">
-                      <Clock className="w-5 h-5" />
+              {/* PAINEL: TEMPOS DO SISTEMA (SENHA E LIMITES ESMAGADOS NA MESMA LINHA) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5">
+                {/* COLUNA 1 (5 cols): TEMPO EXIBIÇÃO DA SENHA */}
+                <div className="lg:col-span-5 bg-slate-900/95 rounded-xl border border-slate-800 p-3 shadow-xl space-y-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between gap-1 border-b border-slate-800 pb-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
+                        <Tv className="w-3.5 h-3.5" />
+                      </span>
+                      <h4 className="text-xs font-black text-white uppercase tracking-wide truncate">
+                        TEMPO EXIBIÇÃO DA SENHA
+                      </h4>
+                    </div>
+                    <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                      {systemSettings.callPasswordDuration || 6}s
                     </span>
-                    <div>
-                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
-                        TEMPOS DO SISTEMA & TELÃO
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Configure a duração da chamada de senha na TV e os limites de tempo dos pedidos na cozinha.
-                      </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <input
+                      type="range"
+                      min="3"
+                      max="20"
+                      step="1"
+                      value={systemSettings.callPasswordDuration || 6}
+                      onChange={(e) => handleUpdateSystemSetting('callPasswordDuration', Number(e.target.value))}
+                      className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                    />
+
+                    <div className="grid grid-cols-5 gap-1 pt-0.5">
+                      {[
+                        { label: '3s', val: 3 },
+                        { label: '6s (Pad)', val: 6 },
+                        { label: '8s', val: 8 },
+                        { label: '10s', val: 10 },
+                        { label: '15s', val: 15 }
+                      ].map(btn => (
+                        <button
+                          key={btn.val}
+                          type="button"
+                          onClick={() => handleUpdateSystemSetting('callPasswordDuration', btn.val)}
+                          className={`py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer text-center ${
+                            (systemSettings.callPasswordDuration || 6) === btn.val
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-sm'
+                              : 'bg-slate-950/80 hover:bg-slate-850 text-slate-300 border-slate-800'
+                          }`}
+                        >
+                          {btn.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                {/* TEMPO DE EXIBIÇÃO DE AVISO CHAMADA DE SENHA */}
-                <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div>
-                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                        <Tv className="w-4 h-4 text-amber-400" />
-                        Tempo de Exibição da Chamada de Senha na TV
+                {/* COLUNA 2 (7 cols): LIMITES DE TEMPO E CORES DOS PEDIDOS NA COZINHA */}
+                <div className="lg:col-span-7 bg-slate-900/95 rounded-xl border border-slate-800 p-3 shadow-xl space-y-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between gap-1 border-b border-slate-800 pb-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 shrink-0">
+                        <Clock className="w-3.5 h-3.5" />
+                      </span>
+                      <h4 className="text-xs font-black text-white uppercase tracking-wide truncate">
+                        LIMITES DE TEMPO (COZINHA)
                       </h4>
-                      <p className="text-xs text-slate-400">
-                        Tempo que o aviso central com 'SENHA', número, nome e pedido permanece na tela antes de voltar aos cards.
-                      </p>
-                    </div>
-                    <span className="text-xs font-mono font-black px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                      {systemSettings.callPasswordDuration || 6} segundos
-                    </span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="3"
-                    max="20"
-                    step="1"
-                    value={systemSettings.callPasswordDuration || 6}
-                    onChange={(e) => handleUpdateSystemSetting('callPasswordDuration', Number(e.target.value))}
-                    className="w-full accent-amber-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
-                  />
-
-                  <div className="flex items-center gap-2 flex-wrap pt-1">
-                    {[
-                      { label: '3s (Rápido)', val: 3 },
-                      { label: '6s (Padrão)', val: 6 },
-                      { label: '8s', val: 8 },
-                      { label: '10s', val: 10 },
-                      { label: '15s (Longo)', val: 15 }
-                    ].map(btn => (
-                      <button
-                        key={btn.val}
-                        type="button"
-                        onClick={() => handleUpdateSystemSetting('callPasswordDuration', btn.val)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                          (systemSettings.callPasswordDuration || 6) === btn.val
-                            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-black'
-                            : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
-                        }`}
-                      >
-                        {btn.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* LIMITES DE TEMPO E CORES DOS PEDIDOS NA COZINHA */}
-                <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
-                    <div>
-                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-emerald-400" />
-                        Limites de Tempo e Cores dos Pedidos na Cozinha
-                      </h4>
-                      <p className="text-xs text-slate-400">
-                        Tempo em minutos para mudança de cor do card conforme o pedido fica esperando.
-                      </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={handleResetOrderTimeLimits}
-                        className="px-2 py-1 bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        className="px-2 py-0.5 bg-slate-950 hover:bg-slate-850 text-slate-300 border border-slate-700 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                         title="Restaurar tempos padrão"
                       >
-                        <RotateCcw className="w-3 h-3 text-amber-400" />
+                        <RotateCcw className="w-2.5 h-2.5 text-amber-400" />
                         <span>Padrão</span>
                       </button>
                       <button
                         type="button"
                         onClick={handleSaveOrderTimeLimits}
-                        className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-lg transition-all shadow flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-0.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] rounded-lg transition-all shadow flex items-center gap-1 cursor-pointer"
                       >
-                        <Save className="w-3 h-3" />
-                        <span>Salvar Tempos</span>
+                        <Save className="w-2.5 h-2.5" />
+                        <span>Salvar</span>
                       </button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 pt-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
                     {/* VERDE */}
-                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-emerald-500 border border-slate-800 space-y-1">
-                      <span className="text-[10px] font-black uppercase text-emerald-400 block">Normal (Verde)</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-slate-400">Até</span>
+                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-emerald-500 border border-slate-800 flex flex-col justify-between">
+                      <span className="text-[9px] font-black uppercase text-emerald-400 block truncate">Normal</span>
+                      <div className="flex items-center gap-1 pt-0.5">
+                        <span className="text-[10px] text-slate-400">Até</span>
                         <input
                           type="number"
                           min="1"
@@ -4270,17 +4254,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           value={orderTimeLimits.greenLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('greenLimit', e.target.value)}
                           onBlur={handleBlurOrderTimeLimits}
-                          className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-emerald-400 text-center outline-none focus:border-emerald-400"
+                          className="w-10 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] font-mono font-bold text-emerald-400 text-center outline-none focus:border-emerald-400"
                         />
-                        <span className="text-xs text-slate-400 font-mono">min</span>
+                        <span className="text-[10px] text-slate-400 font-mono">m</span>
                       </div>
                     </div>
 
                     {/* AZUL */}
-                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-sky-500 border border-slate-800 space-y-1">
-                      <span className="text-[10px] font-black uppercase text-sky-400 block">No Prazo (Azul)</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-slate-400">Até</span>
+                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-sky-500 border border-slate-800 flex flex-col justify-between">
+                      <span className="text-[9px] font-black uppercase text-sky-400 block truncate">No Prazo</span>
+                      <div className="flex items-center gap-1 pt-0.5">
+                        <span className="text-[10px] text-slate-400">Até</span>
                         <input
                           type="number"
                           min={Number(orderTimeLimits.greenLimit) + 1}
@@ -4288,17 +4272,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           value={orderTimeLimits.blueLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
                           onBlur={handleBlurOrderTimeLimits}
-                          className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-sky-400 text-center outline-none focus:border-sky-400"
+                          className="w-10 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] font-mono font-bold text-sky-400 text-center outline-none focus:border-sky-400"
                         />
-                        <span className="text-xs text-slate-400 font-mono">min</span>
+                        <span className="text-[10px] text-slate-400 font-mono">m</span>
                       </div>
                     </div>
 
                     {/* AMARELO */}
-                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-yellow-500 border border-slate-800 space-y-1">
-                      <span className="text-[10px] font-black uppercase text-yellow-400 block">Alerta 1 (Amarelo)</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-slate-400">Até</span>
+                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-yellow-500 border border-slate-800 flex flex-col justify-between">
+                      <span className="text-[9px] font-black uppercase text-yellow-400 block truncate">Alerta</span>
+                      <div className="flex items-center gap-1 pt-0.5">
+                        <span className="text-[10px] text-slate-400">Até</span>
                         <input
                           type="number"
                           min={Number(orderTimeLimits.blueLimit) + 1}
@@ -4306,17 +4290,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           value={orderTimeLimits.yellowLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
                           onBlur={handleBlurOrderTimeLimits}
-                          className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-yellow-400 text-center outline-none focus:border-yellow-400"
+                          className="w-10 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] font-mono font-bold text-yellow-400 text-center outline-none focus:border-yellow-400"
                         />
-                        <span className="text-xs text-slate-400 font-mono">min</span>
+                        <span className="text-[10px] text-slate-400 font-mono">m</span>
                       </div>
                     </div>
 
                     {/* LARANJA */}
-                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-orange-500 border border-slate-800 space-y-1">
-                      <span className="text-[10px] font-black uppercase text-orange-400 block">Atrasado (Laranja)</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-slate-400">Até</span>
+                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-orange-500 border border-slate-800 flex flex-col justify-between">
+                      <span className="text-[9px] font-black uppercase text-orange-400 block truncate">Atrasado</span>
+                      <div className="flex items-center gap-1 pt-0.5">
+                        <span className="text-[10px] text-slate-400">Até</span>
                         <input
                           type="number"
                           min={Number(orderTimeLimits.yellowLimit) + 1}
@@ -4324,192 +4308,269 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           value={orderTimeLimits.orangeLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
                           onBlur={handleBlurOrderTimeLimits}
-                          className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-orange-400 text-center outline-none focus:border-orange-400"
+                          className="w-10 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] font-mono font-bold text-orange-400 text-center outline-none focus:border-orange-400"
                         />
-                        <span className="text-xs text-slate-400 font-mono">min</span>
+                        <span className="text-[10px] text-slate-400 font-mono">m</span>
                       </div>
                     </div>
 
                     {/* VERMELHO */}
-                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-rose-500 border border-slate-800 space-y-1">
-                      <span className="text-[10px] font-black uppercase text-rose-400 block">Muito Atrasado</span>
-                      <div className="text-xs font-mono text-rose-300 pt-1">
-                        Acima de {orderTimeLimits.orangeLimit}m
+                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-rose-500 border border-slate-800 flex flex-col justify-between">
+                      <span className="text-[9px] font-black uppercase text-rose-400 block truncate">Crítico</span>
+                      <div className="text-[10px] font-mono font-bold text-rose-300 pt-1 text-center">
+                        &gt; {orderTimeLimits.orangeLimit}m
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* PAINEL 3: DISTÂNCIA ENTRE CARDS NAS COZINHAS */}
-              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30 shrink-0">
-                      <LayoutGrid className="w-5 h-5" />
+              {/* PAINEL: DISTÂNCIA ENTRE OS CARDS (COZINHA, TELÃO, CAIXA) */}
+              <div className="bg-slate-900/95 rounded-xl border border-slate-800 p-3 shadow-xl space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 shrink-0">
+                      <LayoutGrid className="w-3.5 h-3.5" />
                     </span>
                     <div>
-                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
-                        DISTÂNCIA ENTRE CARDS NAS COZINHAS
+                      <h3 className="font-black text-white text-xs sm:text-sm tracking-wide">
+                        DISTÂNCIA ENTRE OS CARDS
                       </h3>
-                      <p className="text-xs text-slate-400">
-                        Ajuste o espaçamento vertical entre as comandas na tela da Cozinha conforme o tamanho do monitor ou tablet.
+                      <p className="text-[10px] text-slate-400">
+                        Ajuste em tempo real o espaçamento entre comandas de cada ambiente.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {[
-                    { id: 'compact', label: 'Compacto (4px)', desc: 'Mais pedidos visíveis na tela' },
-                    { id: 'normal', label: 'Normal (6px)', desc: 'Padrão equilibrado' },
-                    { id: 'relaxed', label: 'Espaçoso (10px)', desc: 'Maior destaque individual' },
-                    { id: 'spacious', label: 'Amplo (16px)', desc: 'Separação máxima estilo painel' }
-                  ].map(opt => {
-                    const isSelected = (systemSettings.kitchenCardSpacing || 'normal') === opt.id;
-                    return (
+                <div className="space-y-1.5">
+                  {/* 1. COZINHA */}
+                  <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 shrink-0 min-w-[210px]">
+                      <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30">
+                        <ChefHat className="w-3.5 h-3.5" />
+                      </span>
+                      <div>
+                        <span className="text-xs font-black text-white uppercase tracking-wider block">COZINHA</span>
+                        <span className="text-[10px] text-slate-400">Comandas na tela da cozinha</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-1">
+                      {[
+                        { id: 'compact', label: 'Compacto', px: '4px' },
+                        { id: 'normal', label: 'Normal', px: '6px' },
+                        { id: 'relaxed', label: 'Espaçoso', px: '10px' },
+                        { id: 'spacious', label: 'Amplo', px: '16px' }
+                      ].map(opt => {
+                        const isSelected = (systemSettings.kitchenCardSpacing || 'normal') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => handleUpdateSystemSetting('kitchenCardSpacing', opt.id)}
+                            className={`py-1.5 px-2 rounded-lg border text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-sm'
+                                : 'bg-slate-900 hover:bg-slate-850 border-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            <span className="text-xs">{opt.label}</span>
+                            <span className={`text-[10px] ${isSelected ? 'text-slate-950 font-bold opacity-80' : 'text-slate-500 font-mono'}`}>
+                              ({opt.px})
+                            </span>
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2. TELÃO */}
+                  <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 shrink-0 min-w-[210px]">
+                      <span className="p-1 bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+                        <Tv className="w-3.5 h-3.5" />
+                      </span>
+                      <div>
+                        <span className="text-xs font-black text-white uppercase tracking-wider block">TELÃO</span>
+                        <span className="text-[10px] text-slate-400">Cards da TV para o público</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-1">
+                      {[
+                        { id: 'compact', label: 'Compacto', px: '4px' },
+                        { id: 'normal', label: 'Normal', px: '6px' },
+                        { id: 'relaxed', label: 'Espaçoso', px: '10px' },
+                        { id: 'spacious', label: 'Amplo', px: '16px' }
+                      ].map(opt => {
+                        const isSelected = (systemSettings.displayCardSpacing || 'normal') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => handleUpdateSystemSetting('displayCardSpacing', opt.id)}
+                            className={`py-1.5 px-2 rounded-lg border text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-indigo-500 text-white border-indigo-400 font-black shadow-sm'
+                                : 'bg-slate-900 hover:bg-slate-850 border-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            <span className="text-xs">{opt.label}</span>
+                            <span className={`text-[10px] ${isSelected ? 'text-white font-bold opacity-80' : 'text-slate-500 font-mono'}`}>
+                              ({opt.px})
+                            </span>
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 3. CAIXA */}
+                  <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 shrink-0 min-w-[210px]">
+                      <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30">
+                        <Monitor className="w-3.5 h-3.5" />
+                      </span>
+                      <div>
+                        <span className="text-xs font-black text-white uppercase tracking-wider block">CAIXA</span>
+                        <span className="text-[10px] text-slate-400">Rodapé: Preparo, Pronto e Entregue</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-1">
+                      {[
+                        { id: 'compact', label: 'Compacto', px: '2px' },
+                        { id: 'normal', label: 'Normal', px: '6px' },
+                        { id: 'relaxed', label: 'Espaçoso', px: '10px' },
+                        { id: 'spacious', label: 'Amplo', px: '16px' }
+                      ].map(opt => {
+                        const isSelected = (systemSettings.cashierCardSpacing || 'normal') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => handleUpdateSystemSetting('cashierCardSpacing', opt.id)}
+                            className={`py-1.5 px-2 rounded-lg border text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black shadow-sm'
+                                : 'bg-slate-900 hover:bg-slate-850 border-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            <span className="text-xs">{opt.label}</span>
+                            <span className={`text-[10px] ${isSelected ? 'text-slate-950 font-bold opacity-80' : 'text-slate-500 font-mono'}`}>
+                              ({opt.px})
+                            </span>
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* PAINEL: EFEITOS & ÁUDIO + FONTES & TIPOGRAFIA (LADO A LADO EM 2 COLUNAS) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                {/* EFEITOS VISUAIS & ÁUDIO */}
+                <div className="bg-slate-900/95 rounded-xl border border-slate-800 p-3 shadow-xl space-y-2">
+                  <div className="flex items-center gap-1.5 border-b border-slate-800 pb-1.5">
+                    <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </span>
+                    <h3 className="font-black text-white text-xs sm:text-sm tracking-wide">
+                      EFEITOS VISUAIS & ÁUDIO
+                    </h3>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {/* Efeito Pulsante */}
+                    <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800 flex items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-xs font-bold text-white flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-emerald-400" />
+                          Efeito Pulsante nos Cards
+                        </h4>
+                        <p className="text-[10px] text-slate-400">Borda pulsante nos pedidos em preparo</p>
+                      </div>
                       <button
-                        key={opt.id}
                         type="button"
-                        onClick={() => handleUpdateSystemSetting('kitchenCardSpacing', opt.id)}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                          isSelected
-                            ? 'bg-slate-800 border-emerald-400 ring-2 ring-emerald-400/40 shadow-lg'
-                            : 'bg-slate-950/70 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                        onClick={() => handleUpdateSystemSetting('cardPulsing', systemSettings.cardPulsing === false)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all border shrink-0 cursor-pointer ${
+                          systemSettings.cardPulsing !== false
+                            ? 'bg-emerald-600 text-white border-emerald-400 shadow-sm'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className={`text-xs font-black ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                            {opt.label}
-                          </span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                        </div>
-                        <span className="text-[10px] text-slate-400 leading-tight">
-                          {opt.desc}
-                        </span>
+                        {systemSettings.cardPulsing !== false ? '✓ Ativado' : '✕ Desativado'}
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* PAINEL 4: EFEITOS VISUAIS & ÁUDIO */}
-              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
-                      <Sparkles className="w-5 h-5" />
-                    </span>
-                    <div>
-                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
-                        EFEITOS VISUAIS & ÁUDIO
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Controle os efeitos visuais de destaque e os avisos sonoros da cantina.
-                      </p>
                     </div>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Efeito Pulsante nos Cards */}
-                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
-                    <div>
-                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-emerald-400" />
-                        Efeito Pulsante nos Cards em Preparo
-                      </h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Borda verde pulsante suave e ícone giratório nos pedidos ativos.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateSystemSetting('cardPulsing', systemSettings.cardPulsing === false)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all border shrink-0 cursor-pointer ${
-                        systemSettings.cardPulsing !== false
-                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      {systemSettings.cardPulsing !== false ? '✓ Ativado' : '✕ Desativado'}
-                    </button>
-                  </div>
-
-                  {/* Som e Alertas */}
-                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
-                    <div>
-                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Volume2 className="w-4 h-4 text-amber-400" />
-                        Sons e Alertas Sonoros
-                      </h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Tocar sino ao chamar senha e sinal sonoro de novo pedido.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateSystemSetting('cardSoundEnabled', systemSettings.cardSoundEnabled === false)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all border shrink-0 cursor-pointer ${
-                        systemSettings.cardSoundEnabled !== false
-                          ? 'bg-amber-600 text-white border-amber-400 shadow-md'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      {systemSettings.cardSoundEnabled !== false ? '✓ Ativado' : '✕ Desativado'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* PAINEL 5: FONTES & TIPOGRAFIA */}
-              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 bg-purple-500/20 text-purple-400 rounded-xl border border-purple-500/30 shrink-0">
-                      <Tag className="w-5 h-5" />
-                    </span>
-                    <div>
-                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
-                        FONTES & TIPOGRAFIA
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Ajuste o tamanho de exibição dos números de pedidos e nomes de clientes para telas distantes.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {[
-                    { id: 'normal', label: 'Padrão (100%)', desc: 'Tamanho ideal para uso em balcão e mesas' },
-                    { id: 'large', label: 'Grande (+20%)', desc: 'Maior visibilidade para monitores distantes' },
-                    { id: 'xl', label: 'Extra Grande (+40%)', desc: 'Máxima legibilidade para TVs suspensas' }
-                  ].map(f => {
-                    const isSelected = (systemSettings.fontScale || 'normal') === f.id;
-                    return (
+                    {/* Sons e Alertas */}
+                    <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800 flex items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-xs font-bold text-white flex items-center gap-1">
+                          <Volume2 className="w-3 h-3 text-amber-400" />
+                          Sons e Alertas Sonoros
+                        </h4>
+                        <p className="text-[10px] text-slate-400">Sino de senha e aviso de novo pedido</p>
+                      </div>
                       <button
-                        key={f.id}
                         type="button"
-                        onClick={() => handleUpdateSystemSetting('fontScale', f.id)}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                          isSelected
-                            ? 'bg-slate-800 border-purple-400 ring-2 ring-purple-400/40 shadow-lg'
-                            : 'bg-slate-950/70 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                        onClick={() => handleUpdateSystemSetting('cardSoundEnabled', systemSettings.cardSoundEnabled === false)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all border shrink-0 cursor-pointer ${
+                          systemSettings.cardSoundEnabled !== false
+                            ? 'bg-amber-600 text-white border-amber-400 shadow-sm'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-1 mb-1">
+                        {systemSettings.cardSoundEnabled !== false ? '✓ Ativado' : '✕ Desativado'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* FONTES & TIPOGRAFIA */}
+                <div className="bg-slate-900/95 rounded-xl border border-slate-800 p-3 shadow-xl space-y-2">
+                  <div className="flex items-center gap-1.5 border-b border-slate-800 pb-1.5">
+                    <span className="p-1 bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/30 shrink-0">
+                      <Tag className="w-3.5 h-3.5" />
+                    </span>
+                    <h3 className="font-black text-white text-xs sm:text-sm tracking-wide">
+                      FONTES & TIPOGRAFIA
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'normal', label: 'Padrão', desc: '100% (Balcão)' },
+                      { id: 'large', label: 'Grande', desc: '+20% (Monitores)' },
+                      { id: 'xl', label: 'Extra G.', desc: '+40% (TVs)' }
+                    ].map(f => {
+                      const isSelected = (systemSettings.fontScale || 'normal') === f.id;
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => handleUpdateSystemSetting('fontScale', f.id)}
+                          className={`p-2 rounded-lg border text-center transition-all cursor-pointer flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-slate-800 border-purple-400 ring-1 ring-purple-400/50 shadow-sm'
+                              : 'bg-slate-950/70 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
                           <span className={`text-xs font-black ${isSelected ? 'text-white' : 'text-slate-300'}`}>
                             {f.label}
                           </span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-purple-400" />}
-                        </div>
-                        <span className="text-[10px] text-slate-400 leading-tight">
-                          {f.desc}
-                        </span>
-                      </button>
-                    );
-                  })}
+                          <span className="text-[10px] text-slate-400 mt-0.5">
+                            {f.desc}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

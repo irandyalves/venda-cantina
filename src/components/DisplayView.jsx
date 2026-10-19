@@ -299,6 +299,13 @@ export default function DisplayView({ environment, onNavigate }) {
     );
   };
 
+  const displaySpacingClass = {
+    compact: 'space-y-1',
+    normal: 'space-y-1.5',
+    relaxed: 'space-y-2.5',
+    spacious: 'space-y-4'
+  }[systemSettings?.displayCardSpacing || 'normal'] || 'space-y-1.5';
+
   return (
     <div className="flex flex-col h-screen w-full bg-slate-950 text-white font-sans overflow-hidden select-none relative">
       
@@ -437,7 +444,7 @@ export default function DisplayView({ environment, onNavigate }) {
             </div>
 
             {/* LISTA DE PEDIDOS */}
-            <div className="flex-1 overflow-y-auto space-y-1.5 py-1 min-h-0">
+            <div className={`flex-1 overflow-y-auto ${displaySpacingClass} py-1 min-h-0`}>
               {preparingOrders.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-8 px-4">
                   <Clock className="w-10 h-10 mb-2 opacity-40 animate-pulse text-amber-500" />
@@ -495,7 +502,7 @@ export default function DisplayView({ environment, onNavigate }) {
             </div>
 
             {/* LISTA DE PEDIDOS */}
-            <div className="flex-1 overflow-y-auto space-y-1.5 py-1 min-h-0">
+            <div className={`flex-1 overflow-y-auto ${displaySpacingClass} py-1 min-h-0`}>
               {readyOrders.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-8 px-4">
                   <Bell className="w-10 h-10 mb-2 opacity-40 animate-pulse text-emerald-500" />
@@ -554,7 +561,7 @@ export default function DisplayView({ environment, onNavigate }) {
               </div>
 
               {/* LISTA DE PEDIDOS */}
-              <div className="flex-1 overflow-y-auto space-y-1.5 py-1 min-h-0">
+              <div className={`flex-1 overflow-y-auto ${displaySpacingClass} py-1 min-h-0`}>
                 {deliveredOrders.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-6 px-4">
                     <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-30 text-blue-500" />

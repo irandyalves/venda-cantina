@@ -851,8 +851,10 @@ class StorageService {
       cardSoundEnabled: true,        // Sons e alertas sonoros do sistema
       // TEMPOS
       callPasswordDuration: 6,       // Duração da chamada de senha na TV (em segundos: 4, 6, 8, 10, 15)
-      // DISTÂNCIA ENTRE CARDS NA COZINHA
+      // DISTÂNCIA ENTRE CARDS (COZINHA, TELÃO, CAIXA)
       kitchenCardSpacing: 'normal',  // 'compact' (space-y-1), 'normal' (space-y-1.5), 'relaxed' (space-y-2.5), 'spacious' (space-y-4)
+      displayCardSpacing: 'normal',  // 'compact' (space-y-1), 'normal' (space-y-1.5), 'relaxed' (space-y-2.5), 'spacious' (space-y-4)
+      cashierCardSpacing: 'normal',  // 'compact' (space-y-0.5), 'normal' (space-y-1.5), 'relaxed' (space-y-2.5), 'spacious' (space-y-4)
       // FONTES
       fontScale: 'normal'            // 'normal', 'large', 'xl'
     };
