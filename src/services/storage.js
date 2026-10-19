@@ -1014,6 +1014,27 @@ class StorageService {
     return 'Todos os Caixas';
   }
 
+  getTargetProductsForKitchen(kitchenId) {
+    try {
+      const routing = this.getProductionRouting();
+      const categories = this.getCategories();
+      const envId = kitchenId || 'COZINHA';
+      const matches = new Set();
+
+      for (const cat of categories) {
+        const dest = routing.destinationEnv?.[cat.id];
+        if (dest === envId || (!dest && cat.id === 'pizza' && envId === 'COZINHA')) {
+          matches.add(cat.name.toUpperCase());
+        }
+      }
+
+      if (matches.size > 0) {
+        return Array.from(matches).join(', ');
+      }
+    } catch (_) {}
+    return 'PIZZA';
+  }
+
   saveProductionRouting(routing) {
     localStorage.setItem('cantina_production_routing', JSON.stringify(routing));
     if (syncChannel) {

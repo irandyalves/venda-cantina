@@ -951,10 +951,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         if (itemExplicitEnv !== null) {
           targetEnvironment = itemExplicitEnv;
           sendToKitchen = itemExplicitEnv !== 'none' && itemExplicitSend !== false;
-        } else if (destinationKitchen && destinationKitchen !== 'auto') {
-          // Se o caixa tiver uma cozinha forçada no cabeçalho
-          sendToKitchen = true;
-          targetEnvironment = destinationKitchen;
         } else {
           // Padrão do sistema: Pizza vai para 'COZINHA', outros direto no balcão
           sendToKitchen = (catId === 'pizza');
@@ -981,9 +977,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       });
 
       const kitchenItems = orderItems.filter(it => it.sendToKitchen && it.targetEnvironment && it.targetEnvironment !== 'none');
-      const primaryTargetEnv = (destinationKitchen && destinationKitchen !== 'auto')
-        ? destinationKitchen
-        : (kitchenItems.length > 0 ? kitchenItems[0].targetEnvironment : 'COZINHA');
+      const primaryTargetEnv = kitchenItems.length > 0 ? kitchenItems[0].targetEnvironment : 'none';
 
       const destKitchenObj = environments.find(e => e.id === primaryTargetEnv);
 
@@ -1002,7 +996,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         unitPrice: cart[0].unitPrice,
         totalPrice: cartTotal,
         paymentMethod,
-        sendToKitchen: (destinationKitchen && destinationKitchen !== 'auto') ? true : orderItems.some(it => it.sendToKitchen),
+        sendToKitchen: orderItems.some(it => it.sendToKitchen),
         targetEnvironment: primaryTargetEnv,
         targetKitchenName: destKitchenObj?.name || primaryTargetEnv,
         cashierTerminal: cashierTerminal || 'Caixa 1',
@@ -1418,7 +1412,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             </select>
           </div>
 
-          {/* 2. ADMIN (MENOR) ENTRE O CAIXA XX E O ENVIANDO PEDIDOS PARA */}
+          {/* 2. ADMIN (MENOR) */}
           <ProfileSelector 
             compact={true}
             align="left"
@@ -1427,31 +1421,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             }}
             onOpenConfig={onOpenConfig}
           />
-
-          {/* 3. ENVIA PEDIDOS PARA (EM VERDE COM SETINHA VERDE ANTES DE PEDIDOS) */}
-          <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap ml-0.5 flex items-center gap-1">
-            Envia <ArrowRight className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5] shrink-0" /> pedidos para
-          </span>
-
-          {/* 4. COZINHA DE DESTINO COM FUNDO PRETO, LETRA BRANCA (FONTE REDUZIDA EM 15%) */}
-          <div className="flex items-center gap-1.5 bg-black text-white text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded-lg border border-slate-700 shadow-sm shrink-0">
-            <UtensilsCrossed className="w-3 h-3 text-amber-400 shrink-0" />
-            <select
-              value={destinationKitchen}
-              onChange={(e) => handleDestinationKitchenChange(e.target.value)}
-              className="bg-transparent text-white font-bold text-[11px] sm:text-xs outline-none cursor-pointer"
-              title="Para qual cozinha os pedidos deste caixa serão despachados"
-            >
-              <option value="auto" className="bg-slate-900 text-slate-300 font-bold">
-                🔀 Por Categoria / Produto (Padrão)
-              </option>
-              {kitchenEnvironments.map((env) => (
-                <option key={env.id} value={env.id} className="bg-slate-900 text-amber-300 font-bold">
-                  🍳 {env.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
         {/* CONTROLES SUPERIORES À DIREITA */}
