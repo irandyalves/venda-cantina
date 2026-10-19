@@ -50,7 +50,8 @@ import {
   Filter,
   Sliders,
   Sun,
-  Moon
+  Moon,
+  LayoutGrid
 } from 'lucide-react';
 import { storageService, formatPrice, BACKGROUND_PRESETS, getSectionBackgroundStyle } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -2235,312 +2236,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             <div className="space-y-6">
 
               {/* ========================================================
-                  PAINEL: FUNDO DA SEÇÃO DOS CARDS (CAIXA)
-                  - Escolha do fundo (presets e cor personalizada)
-                  - Intensidade da textura (opacidade 0% a 100%)
-                  - Nível de claridade / escurecimento (0% a 80%)
-                  - Pré-visualização ao vivo com cards de amostra
-                  - 100% responsivo para mobile e desktop
-                 ======================================================== */}
-              <div className="bg-slate-900/95 rounded-2xl border border-amber-500/30 p-4 sm:p-5 shadow-xl space-y-4 relative overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
-                      <Palette className="w-5 h-5" />
-                    </span>
-                    <div>
-                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2 flex-wrap">
-                        FUNDO DA SEÇÃO DOS CARDS (CAIXA)
-                        <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                          {BACKGROUND_PRESETS.find(p => p.id === bgSettings.theme)?.name || 'Personalizado'}
-                        </span>
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Escolha o estilo de fundo, ajuste a opacidade da textura e torne mais claro ou escuro conforme sua preferência.
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const def = { theme: 'cream', textureOpacity: 100, darkness: 0, customColor: '#eace9a' };
-                      setBgSettings(def);
-                      storageService.saveBackgroundSettings(def);
-                    }}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-auto"
-                    title="Restaurar padrão clássico original (Creme Texturado)"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Restaurar Padrão</span>
-                  </button>
-                </div>
-
-                {/* SELETOR DE PRESETS / TEMAS */}
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    Estilos de Fundo Pré-definidos:
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
-                    {BACKGROUND_PRESETS.map((preset) => {
-                      const isSelected = bgSettings.theme === preset.id;
-                      return (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => handleUpdateBgSetting('theme', preset.id)}
-                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between min-h-[76px] ${
-                            isSelected
-                              ? 'bg-slate-800 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/10'
-                              : 'bg-slate-950/60 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                            <div 
-                              className="w-5 h-5 rounded-full border border-white/20 shadow-sm shrink-0" 
-                              style={{ backgroundColor: preset.previewColor }}
-                            />
-                            {isSelected && (
-                              <span className="p-0.5 bg-amber-400 text-slate-950 rounded-full">
-                                <Check className="w-3 h-3 stroke-[3]" />
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <div className={`text-xs font-black truncate ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                              {preset.name}
-                            </div>
-                            <div className="text-[10px] text-slate-400 truncate leading-tight">
-                              {preset.desc}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* COR PERSONALIZADA (SE TEMA FOR 'CUSTOM') */}
-                {bgSettings.theme === 'custom' && (
-                  <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-wrap items-center gap-3">
-                    <span className="text-xs font-bold text-slate-300">Cor Personalizada de Fundo:</span>
-                    <input
-                      type="color"
-                      value={bgSettings.customColor || '#eace9a'}
-                      onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
-                      className="w-9 h-9 rounded-lg cursor-pointer border border-slate-700 bg-transparent"
-                    />
-                    <input
-                      type="text"
-                      value={bgSettings.customColor || '#eace9a'}
-                      onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
-                      className="w-24 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white text-center"
-                    />
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {['#eace9a', '#f5f5f4', '#d6d3d1', '#78716c', '#44403c', '#1c1917', '#0f172a', '#1e293b', '#262626', '#172554'].map(c => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => handleUpdateBgSetting('customColor', c)}
-                          className="w-6 h-6 rounded-md border border-white/20 hover:scale-110 transition-transform cursor-pointer"
-                          style={{ backgroundColor: c }}
-                          title={c}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* SLIDERS DE OPACIDADE E ESCURECIMENTO (RESPONSIVO: 1 COL EM MOBILE, 2 COLS EM DESKTOP) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                  {/* SLIDER 1: INTENSIDADE DA TEXTURA (OPACIDADE 0% a 100%) */}
-                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                        <Sliders className="w-4 h-4 text-amber-400" />
-                        Intensidade da Textura
-                      </label>
-                      <span className="text-xs font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        {bgSettings.textureOpacity ?? 100}%
-                      </span>
-                    </div>
-
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={bgSettings.textureOpacity ?? 100}
-                      onChange={(e) => handleUpdateBgSetting('textureOpacity', Number(e.target.value))}
-                      className="w-full accent-amber-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
-                    />
-
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>0% (Sem textura / Liso)</span>
-                      <span>50%</span>
-                      <span>100% (Textura máxima)</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 pt-1">
-                      {[
-                        { label: 'Liso (0%)', val: 0 },
-                        { label: 'Suave (50%)', val: 50 },
-                        { label: 'Cheia (100%)', val: 100 }
-                      ].map(btn => (
-                        <button
-                          key={btn.val}
-                          type="button"
-                          onClick={() => handleUpdateBgSetting('textureOpacity', btn.val)}
-                          className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                            (bgSettings.textureOpacity ?? 100) === btn.val
-                              ? 'bg-amber-500 text-slate-950 border-amber-400'
-                              : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
-                          }`}
-                        >
-                          {btn.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* SLIDER 2: NÍVEL DE CLARIDADE / ESCURECIMENTO (0% A 80%) */}
-                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                        <Sun className="w-4 h-4 text-amber-400" />
-                        <span>Claridade / Escurecimento</span>
-                        <Moon className="w-4 h-4 text-indigo-400 ml-1" />
-                      </label>
-                      <span className="text-xs font-mono font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                        {bgSettings.darkness ?? 0}% {Number(bgSettings.darkness || 0) === 0 ? '(Mais Claro)' : '(Mais Escuro)'}
-                      </span>
-                    </div>
-
-                    <input
-                      type="range"
-                      min="0"
-                      max="80"
-                      step="5"
-                      value={bgSettings.darkness ?? 0}
-                      onChange={(e) => handleUpdateBgSetting('darkness', Number(e.target.value))}
-                      className="w-full accent-indigo-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
-                    />
-
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <Sun className="w-3 h-3 text-amber-400" />
-                        0% (Mais Claro)
-                      </span>
-                      <span>40%</span>
-                      <span className="flex items-center gap-1">
-                        <Moon className="w-3 h-3 text-indigo-400" />
-                        80% (Mais Escuro)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 pt-1">
-                      {[
-                        { label: 'Claro (0%)', val: 0 },
-                        { label: 'Médio (35%)', val: 35 },
-                        { label: 'Escuro (65%)', val: 65 }
-                      ].map(btn => (
-                        <button
-                          key={btn.val}
-                          type="button"
-                          onClick={() => handleUpdateBgSetting('darkness', btn.val)}
-                          className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                            (bgSettings.darkness ?? 0) === btn.val
-                              ? 'bg-indigo-500 text-white border-indigo-400'
-                              : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
-                          }`}
-                        >
-                          {btn.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* PRÉ-VISUALIZAÇÃO AO VIVO COM CARDS REAIS DE AMOSTRA */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-400">
-                    <span className="flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-amber-400" />
-                      Pré-visualização Ao Vivo (Como os cards aparecem na tela do Caixa):
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
-                      Atualização em tempo real conforme você ajusta os controles
-                    </span>
-                  </div>
-
-                  <div 
-                    className="relative rounded-2xl overflow-hidden border border-slate-700/80 p-3 sm:p-4 min-h-[140px] shadow-inner"
-                    style={{
-                      backgroundColor: previewBgStyle.bgColor
-                    }}
-                  >
-                    {/* Camada Textura do Preview */}
-                    {previewBgStyle.bgImage && (
-                      <div 
-                        aria-hidden="true"
-                        className="absolute inset-0 pointer-events-none transition-opacity duration-200"
-                        style={{
-                          backgroundImage: previewBgStyle.bgImage,
-                          backgroundRepeat: 'repeat',
-                          backgroundSize: previewBgStyle.bgSize || '460px auto',
-                          opacity: (bgSettings.textureOpacity ?? 100) / 100
-                        }}
-                      />
-                    )}
-
-                    {/* Camada Escurecimento do Preview */}
-                    {Number(bgSettings.darkness || 0) > 0 && (
-                      <div 
-                        aria-hidden="true"
-                        className="absolute inset-0 pointer-events-none bg-black transition-opacity duration-200"
-                        style={{
-                          opacity: (Number(bgSettings.darkness || 0)) / 100
-                        }}
-                      />
-                    )}
-
-                    {/* Cards de Amostra no Preview */}
-                    <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
-                      {/* Amostra 1: Pizza com Borda Verde Suave */}
-                      <div className="rounded-2xl bg-slate-900/95 border-2 border-emerald-400 ring-2 ring-emerald-400/40 p-3 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.25)] flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
-                          <Pizza className="w-6 h-6 text-amber-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-black uppercase text-amber-400 font-mono">PIZZA</span>
-                          <h4 className="text-xs font-black text-white truncate">Pizza Calabresa</h4>
-                          <span className="text-xs font-mono font-black text-emerald-400">R$ 15,00</span>
-                        </div>
-                        <span className="text-[10px] bg-emerald-500 text-slate-950 font-black px-2 py-0.5 rounded-full shrink-0">
-                          ✓ Exemplo
-                        </span>
-                      </div>
-
-                      {/* Amostra 2: Açaí com Sombra Suave */}
-                      <div className="rounded-2xl bg-slate-900/95 border border-slate-800 p-3 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.25)] flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
-                          <IceCream className="w-6 h-6 text-purple-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-black uppercase text-purple-400 font-mono">AÇAÍ</span>
-                          <h4 className="text-xs font-black text-white truncate">Açaí Copo 300ml</h4>
-                          <span className="text-xs font-mono font-black text-emerald-400">R$ 12,00</span>
-                        </div>
-                        <span className="text-[10px] bg-slate-800 text-slate-400 font-bold px-2 py-0.5 rounded-full border border-slate-700 shrink-0">
-                          Card Normal
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* ========================================================
                   PAINEL DE ITENS CADASTRADOS PARA VENDA (LINHAS ATÉ A BORDA ESQ E DIR)
                  ======================================================== */}
               <div className="-mx-6 px-6 py-4 border-y border-amber-500/40 bg-slate-950/70 space-y-4 shadow-xl">
@@ -4064,23 +3759,21 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           {activeTab === 'system' && (
             <div className="space-y-6">
 
-              {/* PAINEL 1: FUNDO DA SEÇÃO DOS CARDS (CAIXA) */}
-              <div className="bg-slate-900/95 rounded-2xl border border-amber-500/30 p-4 sm:p-5 shadow-xl space-y-4 relative overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
-                      <Palette className="w-5 h-5" />
+              {/* PAINEL 1: FUNDO DA SEÇÃO DOS CARDS (CAIXA) - COMPACTO (50% MENOR NA ALTURA) */}
+              <div className="bg-slate-900/95 rounded-2xl border border-amber-500/30 p-3.5 sm:p-4 shadow-xl space-y-3 relative overflow-hidden">
+                {/* CABEÇALHO COMPACTO: TÍTULO, BADGE E RESTAURAR */}
+                <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
+                      <Palette className="w-4 h-4" />
                     </span>
-                    <div>
-                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <h3 className="font-black text-white text-sm tracking-wide truncate">
                         FUNDO DA SEÇÃO DOS CARDS (CAIXA)
-                        <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                          {BACKGROUND_PRESETS.find(p => p.id === bgSettings.theme)?.name || 'Personalizado'}
-                        </span>
                       </h3>
-                      <p className="text-xs text-slate-400">
-                        Escolha o estilo de fundo, ajuste a opacidade da textura e torne mais claro ou escuro conforme sua preferência.
-                      </p>
+                      <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                        {BACKGROUND_PRESETS.find(p => p.id === bgSettings.theme)?.name || 'Personalizado'}
+                      </span>
                     </div>
                   </div>
 
@@ -4091,81 +3784,70 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       setBgSettings(def);
                       storageService.saveBackgroundSettings(def);
                     }}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-auto"
-                    title="Restaurar padrão clássico original (Creme Texturado)"
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-lg text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                    title="Restaurar padrão clássico (Creme Texturado)"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Restaurar Padrão</span>
+                    <RotateCcw className="w-3 h-3 text-amber-400" />
+                    <span><span className="hidden sm:inline">Restaurar</span> Padrão</span>
                   </button>
                 </div>
 
-                {/* SELETOR DE PRESETS / TEMAS */}
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    Estilos de Fundo Pré-definidos:
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
-                    {BACKGROUND_PRESETS.map((preset) => {
-                      const isSelected = bgSettings.theme === preset.id;
-                      return (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => handleUpdateBgSetting('theme', preset.id)}
-                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between min-h-[76px] ${
-                            isSelected
-                              ? 'bg-slate-800 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/10'
-                              : 'bg-slate-950/60 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                            <div 
-                              className="w-5 h-5 rounded-full border border-white/20 shadow-sm shrink-0" 
-                              style={{ backgroundColor: preset.previewColor }}
-                            />
-                            {isSelected && (
-                              <span className="p-0.5 bg-amber-400 text-slate-950 rounded-full">
-                                <Check className="w-3 h-3 stroke-[3]" />
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <div className={`text-xs font-black truncate ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                              {preset.name}
-                            </div>
-                            <div className="text-[10px] text-slate-400 truncate leading-tight">
-                              {preset.desc}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* SELETOR DE PRESETS: BOTÕES HORIZONTAIS COMPACTOS */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5">
+                  {BACKGROUND_PRESETS.map((preset) => {
+                    const isSelected = bgSettings.theme === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handleUpdateBgSetting('theme', preset.id)}
+                        className={`py-1.5 px-2.5 rounded-xl border text-left transition-all cursor-pointer relative flex items-center justify-between gap-1.5 ${
+                          isSelected
+                            ? 'bg-slate-800 border-amber-400 ring-2 ring-amber-400/50 shadow-md'
+                            : 'bg-slate-950/70 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                        title={preset.desc}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div 
+                            className="w-3.5 h-3.5 rounded-full border border-white/30 shadow-xs shrink-0" 
+                            style={{ backgroundColor: preset.previewColor }}
+                          />
+                          <span className={`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                            {preset.name}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <Check className="w-3 h-3 text-amber-400 stroke-[3] shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* COR PERSONALIZADA (SE TEMA FOR 'CUSTOM') */}
+                {/* COR PERSONALIZADA (SOMENTE SE TEMA FOR 'CUSTOM') */}
                 {bgSettings.theme === 'custom' && (
-                  <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-wrap items-center gap-3">
-                    <span className="text-xs font-bold text-slate-300">Cor Personalizada de Fundo:</span>
+                  <div className="py-1.5 px-3 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center gap-2.5 flex-wrap">
+                    <span className="text-xs font-bold text-slate-300 whitespace-nowrap">Cor:</span>
                     <input
                       type="color"
                       value={bgSettings.customColor || '#eace9a'}
                       onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
-                      className="w-9 h-9 rounded-lg cursor-pointer border border-slate-700 bg-transparent"
+                      className="w-7 h-7 rounded-lg cursor-pointer border border-slate-700 bg-transparent shrink-0"
                     />
                     <input
                       type="text"
                       value={bgSettings.customColor || '#eace9a'}
                       onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
-                      className="w-24 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white text-center"
+                      className="w-20 px-2 py-0.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white text-center"
                     />
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
                       {['#eace9a', '#f5f5f4', '#d6d3d1', '#78716c', '#44403c', '#1c1917', '#0f172a', '#1e293b', '#262626', '#172554'].map(c => (
                         <button
                           key={c}
                           type="button"
                           onClick={() => handleUpdateBgSetting('customColor', c)}
-                          className="w-6 h-6 rounded-md border border-white/20 hover:scale-110 transition-transform cursor-pointer"
+                          className="w-5 h-5 rounded-md border border-white/20 hover:scale-115 transition-transform cursor-pointer shrink-0"
                           style={{ backgroundColor: c }}
                           title={c}
                         />
@@ -4174,190 +3856,102 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 )}
 
-                {/* SLIDERS DE OPACIDADE E ESCURECIMENTO (RESPONSIVO: 1 COL EM MOBILE, 2 COLS EM DESKTOP) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                  {/* SLIDER 1: INTENSIDADE DA TEXTURA (OPACIDADE 0% a 100%) */}
-                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
+                {/* CONTROLES: TEXTURA E ESCURECIMENTO LADO A LADO EM 2 COLUNAS COMPACTAS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
+                  {/* TEXTURA */}
+                  <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                    <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                        <Sliders className="w-4 h-4 text-amber-400" />
-                        Intensidade da Textura
+                        <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Textura</span>
                       </label>
-                      <span className="text-xs font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                         {bgSettings.textureOpacity ?? 100}%
                       </span>
                     </div>
-
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={bgSettings.textureOpacity ?? 100}
-                      onChange={(e) => handleUpdateBgSetting('textureOpacity', Number(e.target.value))}
-                      className="w-full accent-amber-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
-                    />
-
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>0% (Sem textura / Liso)</span>
-                      <span>50%</span>
-                      <span>100% (Textura máxima)</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 pt-1">
-                      {[
-                        { label: 'Liso (0%)', val: 0 },
-                        { label: 'Suave (50%)', val: 50 },
-                        { label: 'Cheia (100%)', val: 100 }
-                      ].map(btn => (
-                        <button
-                          key={btn.val}
-                          type="button"
-                          onClick={() => handleUpdateBgSetting('textureOpacity', btn.val)}
-                          className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                            (bgSettings.textureOpacity ?? 100) === btn.val
-                              ? 'bg-amber-500 text-slate-950 border-amber-400'
-                              : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
-                          }`}
-                        >
-                          {btn.label}
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-500">0%</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={bgSettings.textureOpacity ?? 100}
+                        onChange={(e) => handleUpdateBgSetting('textureOpacity', Number(e.target.value))}
+                        className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                      <span className="text-[10px] text-slate-500">100%</span>
                     </div>
                   </div>
 
-                  {/* SLIDER 2: NÍVEL DE CLARIDADE / ESCURECIMENTO (0% A 80%) */}
-                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
+                  {/* ESCURECIMENTO */}
+                  <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                    <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                        <Sun className="w-4 h-4 text-amber-400" />
-                        <span>Claridade / Escurecimento</span>
-                        <Moon className="w-4 h-4 text-indigo-400 ml-1" />
+                        <Sun className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Claridade / Escuro</span>
+                        <Moon className="w-3.5 h-3.5 text-indigo-400" />
                       </label>
-                      <span className="text-xs font-mono font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                        {bgSettings.darkness ?? 0}% {Number(bgSettings.darkness || 0) === 0 ? '(Mais Claro)' : '(Mais Escuro)'}
+                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        {bgSettings.darkness ?? 0}% {Number(bgSettings.darkness || 0) === 0 ? '(Claro)' : '(Escuro)'}
                       </span>
                     </div>
-
-                    <input
-                      type="range"
-                      min="0"
-                      max="80"
-                      step="5"
-                      value={bgSettings.darkness ?? 0}
-                      onChange={(e) => handleUpdateBgSetting('darkness', Number(e.target.value))}
-                      className="w-full accent-indigo-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
-                    />
-
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <Sun className="w-3 h-3 text-amber-400" />
-                        0% (Mais Claro)
-                      </span>
-                      <span>40%</span>
-                      <span className="flex items-center gap-1">
-                        <Moon className="w-3 h-3 text-indigo-400" />
-                        80% (Mais Escuro)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 pt-1">
-                      {[
-                        { label: 'Claro (0%)', val: 0 },
-                        { label: 'Médio (35%)', val: 35 },
-                        { label: 'Escuro (65%)', val: 65 }
-                      ].map(btn => (
-                        <button
-                          key={btn.val}
-                          type="button"
-                          onClick={() => handleUpdateBgSetting('darkness', btn.val)}
-                          className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                            (bgSettings.darkness ?? 0) === btn.val
-                              ? 'bg-indigo-500 text-white border-indigo-400'
-                              : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
-                          }`}
-                        >
-                          {btn.label}
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-500">0%</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="80"
+                        step="5"
+                        value={bgSettings.darkness ?? 0}
+                        onChange={(e) => handleUpdateBgSetting('darkness', Number(e.target.value))}
+                        className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                      <span className="text-[10px] text-slate-500">80%</span>
                     </div>
                   </div>
                 </div>
 
-                {/* PRÉ-VISUALIZAÇÃO AO VIVO COM CARDS REAIS DE AMOSTRA */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-400">
-                    <span className="flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-amber-400" />
-                      Pré-visualização Ao Vivo (Como os cards aparecem na tela do Caixa):
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
-                      Atualização em tempo real conforme você ajusta os controles
-                    </span>
+                {/* PRÉ-VISUALIZAÇÃO AO VIVO EM FAIXA COMPACTA (50PX ALTURA) */}
+                <div 
+                  className="relative rounded-xl overflow-hidden border border-slate-700/80 px-3 py-2 min-h-[48px] flex items-center justify-between gap-2 shadow-inner"
+                  style={{ backgroundColor: previewBgStyle.bgColor }}
+                >
+                  {previewBgStyle.bgImage && (
+                    <div 
+                      aria-hidden="true"
+                      className="absolute inset-0 pointer-events-none transition-opacity duration-200"
+                      style={{
+                        backgroundImage: previewBgStyle.bgImage,
+                        backgroundRepeat: 'repeat',
+                        backgroundSize: previewBgStyle.bgSize || '460px auto',
+                        opacity: (bgSettings.textureOpacity ?? 100) / 100
+                      }}
+                    />
+                  )}
+                  {Number(bgSettings.darkness || 0) > 0 && (
+                    <div 
+                      aria-hidden="true"
+                      className="absolute inset-0 pointer-events-none bg-black transition-opacity duration-200"
+                      style={{ opacity: (Number(bgSettings.darkness || 0)) / 100 }}
+                    />
+                  )}
+
+                  <div className="relative z-10 flex items-center gap-1.5 text-xs font-bold text-slate-300 drop-shadow">
+                    <Eye className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Prévia dos cards no Caixa:</span>
                   </div>
 
-                  <div 
-                    className="relative rounded-2xl overflow-hidden border border-slate-700/80 p-3 sm:p-4 min-h-[140px] shadow-inner"
-                    style={{
-                      backgroundColor: previewBgStyle.bgColor
-                    }}
-                  >
-                    {/* Camada Textura do Preview */}
-                    {previewBgStyle.bgImage && (
-                      <div 
-                        aria-hidden="true"
-                        className="absolute inset-0 pointer-events-none transition-opacity duration-200"
-                        style={{
-                          backgroundImage: previewBgStyle.bgImage,
-                          backgroundRepeat: 'repeat',
-                          backgroundSize: previewBgStyle.bgSize || '460px auto',
-                          opacity: (bgSettings.textureOpacity ?? 100) / 100
-                        }}
-                      />
-                    )}
-
-                    {/* Camada Escurecimento do Preview */}
-                    {Number(bgSettings.darkness || 0) > 0 && (
-                      <div 
-                        aria-hidden="true"
-                        className="absolute inset-0 pointer-events-none bg-black transition-opacity duration-200"
-                        style={{
-                          opacity: (Number(bgSettings.darkness || 0)) / 100
-                        }}
-                      />
-                    )}
-
-                    {/* Cards de Amostra no Preview */}
-                    <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
-                      {/* Amostra 1: Pizza com Borda Verde Suave */}
-                      <div className="rounded-2xl bg-slate-900/95 border-2 border-emerald-400 ring-2 ring-emerald-400/40 p-3 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.25)] flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
-                          <Pizza className="w-6 h-6 text-amber-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-black uppercase text-amber-400 font-mono">PIZZA</span>
-                          <h4 className="text-xs font-black text-white truncate">Pizza Calabresa</h4>
-                          <span className="text-xs font-mono font-black text-emerald-400">R$ 15,00</span>
-                        </div>
-                        <span className="text-[10px] bg-emerald-500 text-slate-950 font-black px-2 py-0.5 rounded-full shrink-0">
-                          ✓ Exemplo
-                        </span>
-                      </div>
-
-                      {/* Amostra 2: Açaí com Sombra Suave */}
-                      <div className="rounded-2xl bg-slate-900/95 border border-slate-800 p-3 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.25)] flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
-                          <IceCream className="w-6 h-6 text-purple-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-black uppercase text-purple-400 font-mono">AÇAÍ</span>
-                          <h4 className="text-xs font-black text-white truncate">Açaí Copo 300ml</h4>
-                          <span className="text-xs font-mono font-black text-emerald-400">R$ 12,00</span>
-                        </div>
-                        <span className="text-[10px] bg-slate-800 text-slate-400 font-bold px-2 py-0.5 rounded-full border border-slate-700 shrink-0">
-                          Card Normal
-                        </span>
-                      </div>
+                  <div className="relative z-10 flex items-center gap-2">
+                    <div className="rounded-xl bg-slate-900/95 border border-emerald-400/80 px-2.5 py-1 shadow-md flex items-center gap-2">
+                      <Pizza className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="text-[11px] font-black text-white">Pizza Calabresa</span>
+                      <span className="text-[11px] font-mono font-bold text-emerald-400">R$ 15,00</span>
+                    </div>
+                    <div className="rounded-xl bg-slate-900/90 border border-slate-700/80 px-2.5 py-1 shadow-md hidden sm:flex items-center gap-2">
+                      <IceCream className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-[11px] font-black text-white">Açaí 300ml</span>
+                      <span className="text-[11px] font-mono font-bold text-emerald-400">R$ 12,00</span>
                     </div>
                   </div>
                 </div>
