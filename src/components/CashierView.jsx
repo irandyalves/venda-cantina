@@ -1328,6 +1328,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     // Borda esquerda: cor do item ou cinza atenuado se for branco
     const leftBorderColor = isWhite ? 'rgba(148, 163, 184, 0.45)' : itemColor;
 
+    const cashCardH = resolveHeightPx(systemSettings?.cashierCardHeight, 42);
+    const cashCardPadY = cashCardH <= 34 ? 'py-0.5' : 'py-1';
+
     return (
       <div 
         key={order.id || order.orderIds?.[0] || order.orderNumber}
@@ -1335,9 +1338,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           borderLeftColor: leftBorderColor,
           borderTopColor: topBottomBorderColor,
           borderBottomColor: topBottomBorderColor,
-          minHeight: `${resolveHeightPx(systemSettings?.cashierCardHeight, 42)}px`
+          minHeight: `${cashCardH}px`
         }}
-        className={`px-2 py-1 rounded-l-lg rounded-r-none border-y border-l-[4px] border-r-0 transition-all shadow-md text-xs flex items-center justify-between gap-1.5 relative bg-slate-900/90 hover:bg-slate-850 ${
+        className={`px-2 ${cashCardPadY} rounded-l-lg rounded-r-none border-y border-l-[4px] border-r-0 transition-all shadow-md text-xs flex items-center justify-between gap-1.5 relative bg-slate-900/90 hover:bg-slate-850 ${
           isDelivered ? 'opacity-70 hover:opacity-100' : ''
         }`}
       >

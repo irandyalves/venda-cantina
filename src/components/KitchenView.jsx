@@ -502,12 +502,14 @@ export default function KitchenView({ environment, onNavigate }) {
               const isNewestHighlight = newestOrderId === order.id && !isDelivered;
               const itemsList = getOrderItems(order);
               const timeStatus = getOrderTimeStatus(order);
+              const kitchHeight = resolveHeightPx(systemSettings?.kitchenCardHeight, 52);
+              const kitchPadY = kitchHeight <= 42 ? 'py-0.5' : 'py-1';
 
               return (
                 <div
                   key={order.id}
-                  style={{ minHeight: `${resolveHeightPx(systemSettings?.kitchenCardHeight, 52)}px` }}
-                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-1 pl-2 pr-2.5 sm:pr-3 rounded-l-lg rounded-r-none border-y border-l-[5px] border-r-0 transition-all shadow-md gap-1 relative ${
+                  style={{ minHeight: `${kitchHeight}px` }}
+                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between ${kitchPadY} pl-2 pr-2.5 sm:pr-3 rounded-l-lg rounded-r-none border-y border-l-[5px] border-r-0 transition-all shadow-md gap-1 relative ${
                     isDelivered
                       ? 'bg-slate-900/40 border-slate-800 border-l-slate-600 opacity-60'
                       : isNewestHighlight

@@ -306,6 +306,9 @@ export default function DisplayView({ environment, onNavigate }) {
     spacious: 'space-y-4'
   }[systemSettings?.displayCardSpacing || 'normal'] || 'space-y-1.5';
 
+  const displayCardH = resolveHeightPx(systemSettings?.displayCardHeight, 64);
+  const displayCardPadY = displayCardH <= 50 ? 'py-1' : displayCardH <= 68 ? 'py-1.5' : 'py-2 sm:py-2.5';
+
   return (
     <div className="flex flex-col h-screen w-full bg-slate-950 text-white font-sans overflow-hidden select-none relative">
       
@@ -458,8 +461,8 @@ export default function DisplayView({ environment, onNavigate }) {
                 preparingOrders.map((order) => (
                   <div
                     key={order.id}
-                    style={{ minHeight: `${resolveHeightPx(systemSettings?.displayCardHeight, 64)}px` }}
-                    className="w-full bg-slate-950/90 px-3 sm:px-4 py-2 sm:py-2.5 border-y border-amber-500/50 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all flex items-center justify-between gap-2"
+                    style={{ minHeight: `${displayCardH}px` }}
+                    className={`w-full bg-slate-950/90 px-3 sm:px-4 ${displayCardPadY} border-y border-amber-500/50 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all flex items-center justify-between gap-2`}
                   >
                     <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden flex-1">
                       <span className="text-2xl sm:text-3xl md:text-4xl font-black text-amber-400 font-mono tracking-tight shrink-0">
@@ -520,8 +523,8 @@ export default function DisplayView({ environment, onNavigate }) {
                 readyOrders.map((order) => (
                   <div
                     key={order.id}
-                    style={{ minHeight: `${resolveHeightPx(systemSettings?.displayCardHeight, 64)}px` }}
-                    className="w-full bg-emerald-950/30 px-3 sm:px-4 py-2 sm:py-2.5 border-y border-emerald-500/60 border-x-0 rounded-none shadow-md hover:bg-emerald-950/50 transition-all flex items-center justify-between gap-2"
+                    style={{ minHeight: `${displayCardH}px` }}
+                    className={`w-full bg-emerald-950/30 px-3 sm:px-4 ${displayCardPadY} border-y border-emerald-500/60 border-x-0 rounded-none shadow-md hover:bg-emerald-950/50 transition-all flex items-center justify-between gap-2`}
                   >
                     <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden flex-1">
                       <span className="text-2xl sm:text-3xl md:text-4xl font-black text-emerald-400 font-mono tracking-tight shrink-0">
@@ -583,8 +586,8 @@ export default function DisplayView({ environment, onNavigate }) {
                   deliveredOrders.map((order) => (
                     <div
                       key={order.id}
-                      style={{ minHeight: `${resolveHeightPx(systemSettings?.displayCardHeight, 64)}px` }}
-                      className="w-full bg-blue-950/20 px-3 sm:px-4 py-2 sm:py-2.5 border-y border-blue-500/30 border-x-0 rounded-none shadow-sm hover:bg-blue-950/35 transition-all flex items-center justify-between gap-2 opacity-80 hover:opacity-100"
+                      style={{ minHeight: `${displayCardH}px` }}
+                      className={`w-full bg-blue-950/20 px-3 sm:px-4 ${displayCardPadY} border-y border-blue-500/30 border-x-0 rounded-none shadow-sm hover:bg-blue-950/35 transition-all flex items-center justify-between gap-2 opacity-80 hover:opacity-100`}
                     >
                       <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden flex-1">
                         <span className="text-2xl sm:text-3xl md:text-4xl font-black text-blue-400/85 font-mono tracking-tight shrink-0">

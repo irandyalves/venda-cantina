@@ -30,6 +30,8 @@ const COLLECTION_SETTINGS = 'cantina_configuracoes';
 const DOC_ENVIRONMENTS = 'ambientes';
 const DOC_ROUTING = 'roteamento';
 const DOC_SECURITY = 'seguranca';
+const DOC_SYSTEM = 'sistema';
+const DOC_TIME_LIMITS = 'tempos_pedidos';
 const LOCAL_SCREENS_LOCKED_KEY = 'cantina_screens_locked';
 
 // Configuração padrão lida a partir das variáveis de ambiente (.env)
@@ -63,6 +65,10 @@ class StorageService {
     this.unsubscribeProducts = null;
     this.unsubscribeEvents = null;
     this.unsubscribeSecurity = null;
+    this.unsubscribeSystem = null;
+    this.unsubscribeTimeLimits = null;
+    this.cloudSystemSettingsDebounce = null;
+    this.cloudTimeLimitsDebounce = null;
     this.pollTimer = null;
     this.lastOrdersJson = '';
     this.isReconnecting = false;
@@ -187,6 +193,14 @@ class StorageService {
       try { this.unsubscribeSecurity(); } catch (_) {}
       this.unsubscribeSecurity = null;
     }
+    if (this.unsubscribeSystem) {
+      try { this.unsubscribeSystem(); } catch (_) {}
+      this.unsubscribeSystem = null;
+    }
+    if (this.unsubscribeTimeLimits) {
+      try { this.unsubscribeTimeLimits(); } catch (_) {}
+      this.unsubscribeTimeLimits = null;
+    }
 
     try {
       // 1. Listener de pedidos e configurações em tempo real
@@ -302,6 +316,34 @@ class StorageService {
       }, (err) => {
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar segurança:', err);
       });
+
+      // 8. Listener de Configurações Gerais do Sistema (Altura/Espaço dos Cards, Efeitos, Sons, Tempos) em tempo real na nuvem
+      const systemDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_SYSTEM);
+      this.unsubscribeSystem = onSnapshot(systemDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data?.settings) {
+            console.log('📡 [Firestore Realtime] Configurações do sistema sincronizadas da nuvem');
+            this.handleCloudSystemSettings(data.settings);
+          }
+        }
+      }, (err) => {
+        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar configurações do sistema:', err);
+      });
+
+      // 9. Listener de Limites de Tempo de Pedidos (Cozinha) em tempo real na nuvem
+      const timeLimitsDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_TIME_LIMITS);
+      this.unsubscribeTimeLimits = onSnapshot(timeLimitsDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data?.limits) {
+            console.log('📡 [Firestore Realtime] Limites de tempo de pedidos sincronizados da nuvem');
+            this.handleCloudOrderTimeLimits(data.limits);
+          }
+        }
+      }, (err) => {
+        console.warn('⚠️ [Firestore Realtime] Aviso ao escutar limites de tempo de pedidos:', err);
+      });
     } catch (err) {
       console.error('❌ Erro ao configurar onSnapshot:', err);
     }
@@ -344,6 +386,28 @@ class StorageService {
           updatedAt: serverTimestamp()
         });
         console.log('🌱 Eventos locais sincronizados com a nuvem Firestore');
+      }
+
+      const sysDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_SYSTEM);
+      const sysSnap = await getDoc(sysDocRef);
+      if (!sysSnap.exists()) {
+        const localSys = this.getSystemSettings();
+        await setDoc(sysDocRef, {
+          settings: localSys,
+          updatedAt: serverTimestamp()
+        });
+        console.log('🌱 Configurações do sistema sincronizadas com a nuvem Firestore');
+      }
+
+      const timeLimitsDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_TIME_LIMITS);
+      const timeLimitsSnap = await getDoc(timeLimitsDocRef);
+      if (!timeLimitsSnap.exists()) {
+        const localLimits = this.getOrderTimeLimits();
+        await setDoc(timeLimitsDocRef, {
+          limits: localLimits,
+          updatedAt: serverTimestamp()
+        });
+        console.log('🌱 Limites de tempo de pedidos sincronizados com a nuvem Firestore');
       }
     } catch (e) {
       console.warn('Aviso ao sincronizar configurações locais na nuvem:', e);
@@ -531,15 +595,24 @@ class StorageService {
           window.dispatchEvent(new CustomEvent('cantina_currency_changed', { detail: event.data.payload }));
         }
         if (event.data?.type === 'ORDER_TIME_LIMITS_UPDATED') {
+          if (event.data.payload) {
+            try { localStorage.setItem('cantina_order_time_limits', JSON.stringify(event.data.payload)); } catch (_) {}
+          }
           window.dispatchEvent(new CustomEvent('cantina_order_time_limits_changed', { detail: event.data.payload }));
         }
         if (event.data?.type === 'SCREENS_LOCKED_UPDATED') {
           window.dispatchEvent(new CustomEvent('cantina_screens_locked_changed', { detail: !!event.data.payload }));
         }
         if (event.data?.type === 'BACKGROUND_SETTINGS_UPDATED') {
+          if (event.data.payload) {
+            try { localStorage.setItem('cantina_card_section_background', JSON.stringify(event.data.payload)); } catch (_) {}
+          }
           window.dispatchEvent(new CustomEvent('cantina_background_settings_changed', { detail: event.data.payload }));
         }
         if (event.data?.type === 'SYSTEM_SETTINGS_UPDATED') {
+          if (event.data.payload) {
+            try { localStorage.setItem('cantina_system_settings', JSON.stringify(event.data.payload)); } catch (_) {}
+          }
           window.dispatchEvent(new CustomEvent('cantina_system_settings_changed', { detail: event.data.payload }));
         }
       };
@@ -877,7 +950,26 @@ class StorageService {
     return defaultSettings;
   }
 
-  saveSystemSettings(settings) {
+  // Processa configurações do sistema recebidas da nuvem Firestore
+  handleCloudSystemSettings(cloudSettings) {
+    try {
+      const current = this.getSystemSettings();
+      const merged = { ...current, ...cloudSettings };
+      const currentJson = JSON.stringify(current);
+      const mergedJson = JSON.stringify(merged);
+      if (currentJson !== mergedJson) {
+        localStorage.setItem('cantina_system_settings', mergedJson);
+        if (syncChannel) {
+          syncChannel.postMessage({ type: 'SYSTEM_SETTINGS_UPDATED', payload: merged });
+        }
+        window.dispatchEvent(new CustomEvent('cantina_system_settings_changed', { detail: merged }));
+      }
+    } catch (e) {
+      console.error('Erro ao processar configurações do sistema da nuvem:', e);
+    }
+  }
+
+  saveSystemSettings(settings, syncCloud = true) {
     const safeSettings = {
       ...this.getSystemSettings(),
       ...settings
@@ -887,6 +979,46 @@ class StorageService {
       syncChannel.postMessage({ type: 'SYSTEM_SETTINGS_UPDATED', payload: safeSettings });
     }
     window.dispatchEvent(new CustomEvent('cantina_system_settings_changed', { detail: safeSettings }));
+
+    if (syncCloud) {
+      if (this.cloudSystemSettingsDebounce) clearTimeout(this.cloudSystemSettingsDebounce);
+      this.cloudSystemSettingsDebounce = setTimeout(() => {
+        this.saveSystemSettingsCloud(safeSettings);
+      }, 150);
+    }
+  }
+
+  async saveSystemSettingsCloud(settings) {
+    if (!this.isFirebaseReady || !this.db) return;
+    try {
+      const sysDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_SYSTEM);
+      await setDoc(sysDocRef, {
+        settings,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      console.log('☁️ Configurações do sistema salvas no Firestore na nuvem com sucesso');
+    } catch (err) {
+      console.error('⚠️ Erro ao salvar configurações do sistema no Firestore:', err);
+    }
+  }
+
+  // Processa limites de tempo recebidos da nuvem Firestore
+  handleCloudOrderTimeLimits(cloudLimits) {
+    try {
+      const current = this.getOrderTimeLimits();
+      const merged = { ...current, ...cloudLimits };
+      const currentJson = JSON.stringify(current);
+      const mergedJson = JSON.stringify(merged);
+      if (currentJson !== mergedJson) {
+        localStorage.setItem('cantina_order_time_limits', mergedJson);
+        if (syncChannel) {
+          syncChannel.postMessage({ type: 'ORDER_TIME_LIMITS_UPDATED', payload: merged });
+        }
+        window.dispatchEvent(new CustomEvent('cantina_order_time_limits_changed', { detail: merged }));
+      }
+    } catch (e) {
+      console.error('Erro ao processar limites de tempo da nuvem:', e);
+    }
   }
 
   // --- LIMITES DE TEMPO E CORES DOS PEDIDOS (COZINHA) ---
@@ -912,7 +1044,7 @@ class StorageService {
     return defaultLimits;
   }
 
-  saveOrderTimeLimits(limits) {
+  saveOrderTimeLimits(limits, syncCloud = true) {
     const green = Math.max(1, Number(limits.greenLimit) || 3);
     const blue = Math.max(green + 1, Number(limits.blueLimit) || (green + 3));
     const yellow = Math.max(blue + 1, Number(limits.yellowLimit) || (blue + 4));
@@ -929,6 +1061,27 @@ class StorageService {
       syncChannel.postMessage({ type: 'ORDER_TIME_LIMITS_UPDATED', payload: safeLimits });
     }
     window.dispatchEvent(new CustomEvent('cantina_order_time_limits_changed', { detail: safeLimits }));
+
+    if (syncCloud) {
+      if (this.cloudTimeLimitsDebounce) clearTimeout(this.cloudTimeLimitsDebounce);
+      this.cloudTimeLimitsDebounce = setTimeout(() => {
+        this.saveOrderTimeLimitsCloud(safeLimits);
+      }, 150);
+    }
+  }
+
+  async saveOrderTimeLimitsCloud(limits) {
+    if (!this.isFirebaseReady || !this.db) return;
+    try {
+      const timeLimitsDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_TIME_LIMITS);
+      await setDoc(timeLimitsDocRef, {
+        limits,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      console.log('☁️ Limites de tempo salvos no Firestore na nuvem com sucesso');
+    } catch (err) {
+      console.error('⚠️ Erro ao salvar limites de tempo no Firestore:', err);
+    }
   }
 
   // --- CONFIGURAÇÃO DE EXIBIÇÃO DE MOEDA (R$) ---

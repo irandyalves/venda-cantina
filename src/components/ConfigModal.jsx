@@ -580,6 +580,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setTurnoHistory(storageService.getTurnoHistory());
     setOrders(storageService.getLocalOrders());
     setOrderTimeLimits(storageService.getOrderTimeLimits());
+    setSystemSettings(storageService.getSystemSettings());
+    setBgSettings(storageService.getBackgroundSettings());
   };
 
   if (!isOpen) return null;
@@ -4566,6 +4568,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         max="110"
                         step="2"
                         value={resolveHeightPx(systemSettings.kitchenCardHeight, 52)}
+                        onInput={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
                         className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
@@ -4585,6 +4588,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         max="32"
                         step="1"
                         value={resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}
+                        onInput={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
                         className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
@@ -4616,6 +4620,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         max="130"
                         step="2"
                         value={resolveHeightPx(systemSettings.displayCardHeight, 64)}
+                        onInput={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
                         className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
@@ -4635,6 +4640,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         max="32"
                         step="1"
                         value={resolveSpacingPx(systemSettings.displayCardSpacing, 6)}
+                        onInput={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
                         className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
@@ -4666,6 +4672,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         max="90"
                         step="2"
                         value={resolveHeightPx(systemSettings.cashierCardHeight, 42)}
+                        onInput={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
                         className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
@@ -4685,6 +4692,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         max="32"
                         step="1"
                         value={resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}
+                        onInput={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
                         className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
@@ -4692,6 +4700,101 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[46px] text-center">
                         {resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}px
                       </span>
+                    </div>
+                  </div>
+
+                  {/* PRÉ-VISUALIZAÇÃO DINÂMICA EM TEMPO REAL DOS CARDS */}
+                  <div className="mt-2.5 p-2.5 bg-slate-950/80 rounded-xl border border-slate-800/90">
+                    <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-800/80">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-200">
+                          Pré-Visualização em Tempo Real (Atualização Imediata)
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                        Sincronizando Nuvem e Telas
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                      {/* Prévia Cozinha */}
+                      <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800">
+                        <div className="text-[10px] font-bold text-amber-400 mb-1.5 flex items-center justify-between">
+                          <span>Cozinha</span>
+                          <span className="font-mono text-[9px] text-slate-400">{resolveHeightPx(systemSettings.kitchenCardHeight, 52)}px | gap {resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}px</span>
+                        </div>
+                        <div className="flex flex-col" style={{ gap: `${resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}px` }}>
+                          <div 
+                            style={{ minHeight: `${resolveHeightPx(systemSettings.kitchenCardHeight, 52)}px` }}
+                            className="bg-slate-950/90 border-y border-l-[4px] border-r-0 border-slate-700 border-l-amber-400 rounded-l-md px-2 py-1 flex items-center justify-between text-[11px]"
+                          >
+                            <span className="font-mono font-black text-amber-400">#0042</span>
+                            <span className="font-bold text-slate-200 truncate mx-1">1x Pastel de Carne</span>
+                            <span className="text-[9px] font-mono text-emerald-400">03:12</span>
+                          </div>
+                          <div 
+                            style={{ minHeight: `${resolveHeightPx(systemSettings.kitchenCardHeight, 52)}px` }}
+                            className="bg-slate-950/90 border-y border-l-[4px] border-r-0 border-slate-700 border-l-blue-400 rounded-l-md px-2 py-1 flex items-center justify-between text-[11px]"
+                          >
+                            <span className="font-mono font-black text-amber-400">#0043</span>
+                            <span className="font-bold text-slate-200 truncate mx-1">2x Açaí 300ml</span>
+                            <span className="text-[9px] font-mono text-blue-400">01:45</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Prévia Telão */}
+                      <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800">
+                        <div className="text-[10px] font-bold text-indigo-400 mb-1.5 flex items-center justify-between">
+                          <span>Telão / TV</span>
+                          <span className="font-mono text-[9px] text-slate-400">{resolveHeightPx(systemSettings.displayCardHeight, 64)}px | gap {resolveSpacingPx(systemSettings.displayCardSpacing, 6)}px</span>
+                        </div>
+                        <div className="flex flex-col" style={{ gap: `${resolveSpacingPx(systemSettings.displayCardSpacing, 6)}px` }}>
+                          <div 
+                            style={{ minHeight: `${resolveHeightPx(systemSettings.displayCardHeight, 64)}px` }}
+                            className="bg-slate-950 border-y border-amber-500/50 px-2 py-1 flex items-center justify-between text-xs"
+                          >
+                            <span className="font-mono font-black text-amber-400 text-sm">#0042</span>
+                            <span className="font-bold text-white uppercase text-[11px] truncate">MARIA</span>
+                            <span className="text-[10px] text-amber-300 font-bold">PREPARO</span>
+                          </div>
+                          <div 
+                            style={{ minHeight: `${resolveHeightPx(systemSettings.displayCardHeight, 64)}px` }}
+                            className="bg-emerald-950/40 border-y border-emerald-500/60 px-2 py-1 flex items-center justify-between text-xs"
+                          >
+                            <span className="font-mono font-black text-emerald-400 text-sm">#0041</span>
+                            <span className="font-bold text-white uppercase text-[11px] truncate">JOÃO</span>
+                            <span className="text-[10px] text-emerald-300 font-bold">PRONTO</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Prévia Caixa */}
+                      <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800">
+                        <div className="text-[10px] font-bold text-emerald-400 mb-1.5 flex items-center justify-between">
+                          <span>Caixa (Rodapé)</span>
+                          <span className="font-mono text-[9px] text-slate-400">{resolveHeightPx(systemSettings.cashierCardHeight, 42)}px | gap {resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}px</span>
+                        </div>
+                        <div className="flex flex-col" style={{ gap: `${resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}px` }}>
+                          <div 
+                            style={{ minHeight: `${resolveHeightPx(systemSettings.cashierCardHeight, 42)}px` }}
+                            className="bg-slate-950/90 border-y border-l-[3px] border-amber-400 rounded-l-md px-2 py-1 flex items-center justify-between text-[11px]"
+                          >
+                            <span className="font-mono font-black text-amber-300">#0042</span>
+                            <span className="font-bold text-slate-200 uppercase text-[10px] truncate">MARIA</span>
+                            <span className="text-[8px] bg-slate-800 text-amber-300 px-1 py-0.2 rounded font-mono">EM PREPARO</span>
+                          </div>
+                          <div 
+                            style={{ minHeight: `${resolveHeightPx(systemSettings.cashierCardHeight, 42)}px` }}
+                            className="bg-slate-950/90 border-y border-l-[3px] border-emerald-400 rounded-l-md px-2 py-1 flex items-center justify-between text-[11px]"
+                          >
+                            <span className="font-mono font-black text-emerald-400">#0041</span>
+                            <span className="font-bold text-slate-200 uppercase text-[10px] truncate">JOÃO</span>
+                            <span className="text-[8px] bg-slate-800 text-emerald-300 px-1 py-0.2 rounded font-mono">PRONTO</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
