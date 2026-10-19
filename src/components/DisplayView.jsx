@@ -377,17 +377,17 @@ export default function DisplayView({ environment, onNavigate }) {
       <main className="flex-1 p-2 sm:p-3 md:p-4 overflow-hidden min-h-0">
         <div className={`grid gap-2.5 sm:gap-3 md:gap-4 h-full min-h-0 ${
           tvSettings.showDelivered 
-            ? 'grid-cols-1 md:grid-cols-3' 
-            : 'grid-cols-1 md:grid-cols-2'
+            ? 'grid-cols-1 md:grid-cols-[1.3fr_0.85fr_0.85fr]' 
+            : 'grid-cols-1 md:grid-cols-[1.3fr_0.7fr]'
         }`}>
           
-          {/* COLUNA 1: EM PREPARAÇÃO */}
+          {/* COLUNA 1: EM PREPARAÇÃO (AUMENTADA EM 30%) */}
           <section className="flex flex-col bg-slate-900/85 rounded-2xl border-2 border-amber-500/60 shadow-[0_0_24px_rgba(245,158,11,0.2)] overflow-hidden h-full min-h-0">
             {/* CABEÇALHO */}
             <div className="flex items-center justify-between border-b-2 border-amber-500/40 px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 bg-slate-900/95">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-xl">
-                  <Flame className="w-5 h-5 animate-pulse" />
+                <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-emerald-400 animate-spin-pulse-green-glow" />
                 </span>
                 <div>
                   <h2 className="text-base sm:text-lg font-black text-amber-300 uppercase tracking-widest leading-tight">

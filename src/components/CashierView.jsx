@@ -36,7 +36,8 @@ import {
   Upload,
   ImageIcon,
   Eraser,
-  Palette
+  Palette,
+  Flame
 } from 'lucide-react';
 import { storageService, formatPrice } from '../services/storage';
 import { authService } from '../services/auth';
@@ -52,7 +53,7 @@ const PixIcon = ({ className = "w-4 h-4", isSelected }) => (
     role="img" 
     viewBox="0 0 24 24" 
     className={className} 
-    fill={isSelected ? "currentColor" : "#32bcad"}
+    fill={isSelected ? "#34d399" : "#32bcad"}
   >
     <path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156" />
   </svg>
@@ -63,30 +64,30 @@ const DebitCardIcon = ({ className = "w-4 h-4", isSelected }) => (
   <svg viewBox="0 0 24 24" className={className} fill="none">
     <rect 
       x="2" y="4" width="20" height="16" rx="2.5" 
-      fill={isSelected ? "currentColor" : "#022c22"} 
-      fillOpacity={isSelected ? "0.2" : "0.9"}
-      stroke={isSelected ? "currentColor" : "#10b981"} 
+      fill="#022c22" 
+      fillOpacity="0.9"
+      stroke={isSelected ? "#34d399" : "#10b981"} 
       strokeWidth="1.6" 
     />
     {/* Chip dourado */}
     <rect 
       x="4.5" y="7" width="4.5" height="3.5" rx="0.8" 
-      fill={isSelected ? "#78350f" : "#fbbf24"} 
-      stroke={isSelected ? "currentColor" : "#d97706"}
+      fill="#fbbf24" 
+      stroke="#d97706"
       strokeWidth="0.5"
     />
     {/* Símbolo de aproximação / Contactless waves ))) */}
     <path 
       d="M15.5 7.5a2.5 2.5 0 0 1 0 3.5M17.5 6.2a4.5 4.5 0 0 1 0 6.1" 
-      stroke={isSelected ? "currentColor" : "#34d399"} 
+      stroke={isSelected ? "#6ee7b7" : "#34d399"} 
       strokeWidth="1.3" 
       strokeLinecap="round" 
     />
     {/* Linhas do cartão */}
-    <line x1="4.5" y1="13.5" x2="11.5" y2="13.5" stroke={isSelected ? "currentColor" : "#6ee7b7"} strokeWidth="1.2" strokeLinecap="round" strokeDasharray="1.5 1" />
+    <line x1="4.5" y1="13.5" x2="11.5" y2="13.5" stroke="#6ee7b7" strokeWidth="1.2" strokeLinecap="round" strokeDasharray="1.5 1" />
     {/* Círculos de bandeira no rodapé */}
-    <circle cx="16" cy="15.5" r="2" fill={isSelected ? "currentColor" : "#ef4444"} fillOpacity="0.85" />
-    <circle cx="18" cy="15.5" r="2" fill={isSelected ? "currentColor" : "#f59e0b"} fillOpacity="0.85" />
+    <circle cx="16" cy="15.5" r="2" fill="#ef4444" fillOpacity="0.85" />
+    <circle cx="18" cy="15.5" r="2" fill="#f59e0b" fillOpacity="0.85" />
   </svg>
 );
 
@@ -95,27 +96,27 @@ const CreditCardIcon = ({ className = "w-4 h-4", isSelected }) => (
   <svg viewBox="0 0 24 24" className={className} fill="none">
     <rect 
       x="2" y="4" width="20" height="16" rx="2.5" 
-      fill={isSelected ? "currentColor" : "#0f172a"} 
-      fillOpacity={isSelected ? "0.2" : "0.9"}
-      stroke={isSelected ? "currentColor" : "#3b82f6"} 
+      fill="#0f172a" 
+      fillOpacity="0.9"
+      stroke={isSelected ? "#60a5fa" : "#3b82f6"} 
       strokeWidth="1.6" 
     />
     {/* Tarja magnética superior escura */}
     <rect 
       x="2" y="7.5" width="20" height="3.2" 
-      fill={isSelected ? "currentColor" : "#020617"} 
-      fillOpacity={isSelected ? "0.5" : "1"}
+      fill="#020617" 
+      fillOpacity="1"
     />
     {/* Chip dourado */}
     <rect 
       x="4.5" y="13" width="4.5" height="3.5" rx="0.8" 
-      fill={isSelected ? "#78350f" : "#fbbf24"} 
-      stroke={isSelected ? "currentColor" : "#d97706"}
+      fill="#fbbf24" 
+      stroke="#d97706"
       strokeWidth="0.5"
     />
     {/* Linhas de numeração do cartão */}
-    <line x1="11.5" y1="14" x2="18.5" y2="14" stroke={isSelected ? "currentColor" : "#93c5fd"} strokeWidth="1.2" strokeLinecap="round" />
-    <line x1="11.5" y1="16" x2="15.5" y2="16" stroke={isSelected ? "currentColor" : "#60a5fa"} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="11.5" y1="14" x2="18.5" y2="14" stroke={isSelected ? "#bfdbfe" : "#93c5fd"} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="11.5" y1="16" x2="15.5" y2="16" stroke={isSelected ? "#93c5fd" : "#60a5fa"} strokeWidth="1.2" strokeLinecap="round" />
   </svg>
 );
 
@@ -125,36 +126,36 @@ const CashIcon = ({ className = "w-4 h-4", isSelected }) => (
     {/* Cédula traseira inclinada/deslocada */}
     <rect 
       x="2" y="3.5" width="16" height="10" rx="2" 
-      stroke={isSelected ? "currentColor" : "#059669"} 
+      stroke="#059669" 
       strokeWidth="1.2"
-      fill={isSelected ? "currentColor" : "#065f46"} 
-      fillOpacity={isSelected ? "0.2" : "0.6"} 
+      fill="#065f46" 
+      fillOpacity="0.6" 
     />
     {/* Cédula frontal */}
     <rect 
       x="5" y="7" width="17" height="12.5" rx="2" 
-      stroke={isSelected ? "currentColor" : "#10b981"} 
+      stroke={isSelected ? "#34d399" : "#10b981"} 
       strokeWidth="1.5"
-      fill={isSelected ? "currentColor" : "#047857"} 
-      fillOpacity={isSelected ? "0.3" : "0.95"} 
+      fill="#047857" 
+      fillOpacity="0.95" 
     />
     {/* Círculo central */}
     <circle 
       cx="13.5" cy="13.2" r="3" 
-      stroke={isSelected ? "currentColor" : "#6ee7b7"} 
+      stroke="#6ee7b7" 
       strokeWidth="1.2"
-      fill={isSelected ? "currentColor" : "#064e3b"}
-      fillOpacity={isSelected ? "0.4" : "0.9"}
+      fill="#064e3b"
+      fillOpacity="0.9"
     />
     {/* Cifrão central */}
     <path 
       d="M13.5 11.4v3.6M12.4 12.2c0-.6.5-1 1.1-1s1.1.3 1.1.9c0 .7-1.1.7-1.1 1.2 0 .5.5.8 1.1.8s1.1-.4 1.1-.9" 
-      stroke={isSelected ? "#0f172a" : "#ecfdf5"} 
+      stroke="#ecfdf5" 
       strokeWidth="1.1" 
     />
     {/* Pontinhos nas bordas */}
-    <circle cx="7.5" cy="13.2" r="0.75" fill={isSelected ? "currentColor" : "#a7f3d0"} />
-    <circle cx="19.5" cy="13.2" r="0.75" fill={isSelected ? "currentColor" : "#a7f3d0"} />
+    <circle cx="7.5" cy="13.2" r="0.75" fill="#a7f3d0" />
+    <circle cx="19.5" cy="13.2" r="0.75" fill="#a7f3d0" />
   </svg>
 );
 
@@ -1551,8 +1552,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     onClick={() => setPaymentMethod(pm.id)}
                     className={`h-11 px-2.5 sm:px-3 rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 border-2 ${
                       isSelected
-                        ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-[0_0_14px_rgba(251,191,36,0.4)] ring-2 ring-amber-400/40'
-                        : 'bg-slate-900/90 hover:bg-slate-850 text-slate-300 hover:text-white border-slate-700/80 hover:border-slate-500'
+                        ? 'bg-[#06090e] text-emerald-300 border-emerald-400 animate-soft-green-pulse shadow-[0_0_12px_rgba(16,185,129,0.35)]'
+                        : 'bg-slate-950/80 hover:bg-slate-900 text-slate-400 hover:text-white border-slate-800 hover:border-slate-700'
                     }`}
                     title={`Forma de pagamento: ${pm.label}`}
                   >
@@ -1562,19 +1563,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 );
               })}
             </div>
-
-            {/* BOTÃO LIMPAR PEDIDO SE HOUVER ITENS */}
-            {cart.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setCart([])}
-                className="h-11 px-2.5 bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white rounded-xl border border-rose-800 transition-all flex items-center justify-center gap-1 text-xs font-bold cursor-pointer shrink-0 animate-cart-item-birth"
-                title="Limpar todos os itens da comanda atual"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Limpar</span>
-              </button>
-            )}
           </div>
 
           {/* BOTÃO FINALIZAR VENDA COM VALOR NO LIMITE DIREITO (FUNDO PRETO, LETRA BRANCA) */}
@@ -1606,8 +1594,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         <div className="h-11 border-t border-slate-800/80 pt-1 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0">
           {cart.length === 0 ? (
             <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold px-1">
-              <span className="p-1 bg-slate-900/80 text-slate-500 rounded-lg border border-slate-800 flex items-center justify-center">
-                <ShoppingCart className="w-3.5 h-3.5" />
+              <span className="p-0.5 text-slate-500 flex items-center justify-center">
+                <ShoppingCart className="w-5 h-5" />
               </span>
               <span className="text-[11px] sm:text-xs">
                 Comanda vazia — selecione os produtos abaixo para incluir na comanda
@@ -1615,9 +1603,21 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             </div>
           ) : (
             <>
-              <div className="shrink-0 p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/40 shadow-sm flex items-center justify-center" title="Carrinho de Compras">
-                <ShoppingCart className="w-3.5 h-3.5 stroke-[2.5]" />
+              {/* ÍCONE DO CARRINHO (SEM BORDA E 20% MAIOR) */}
+              <div className="shrink-0 p-0.5 text-amber-400 flex items-center justify-center" title="Carrinho de Compras">
+                <ShoppingCart className="w-5 h-5 stroke-[2.5]" />
               </div>
+
+              {/* BOTÃO LIMPAR FICA ENTRE O ÍCONE DO CARRINHO E O PRIMEIRO CARD */}
+              <button
+                type="button"
+                onClick={() => setCart([])}
+                className="h-8 px-2.5 bg-rose-950/70 hover:bg-rose-900 text-rose-300 hover:text-white rounded-lg border border-rose-800/80 transition-all flex items-center justify-center gap-1.5 text-xs font-black cursor-pointer shrink-0 animate-cart-item-birth active:scale-95 shadow-sm"
+                title="Limpar todos os itens da comanda atual"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Limpar</span>
+              </button>
 
               {cart.map((cItem) => {
                 const itemStyle = getCartItemStyle(cItem);
@@ -2004,14 +2004,16 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </div>
         </div>
 
-        {/* 3 COLUNAS: EM PREPARAÇÃO, PRONTAS, RETIRADAS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5 flex-1 min-h-0 pt-1">
+        {/* 3 COLUNAS: EM PREPARAÇÃO (AUMENTADA EM 30%), PRONTAS, RETIRADAS */}
+        <div className="grid grid-cols-1 md:grid-cols-[1.3fr_0.85fr_0.85fr] gap-2 sm:gap-2.5 flex-1 min-h-0 pt-1">
           
           {/* COLUNA 1: EM PREPARAÇÃO */}
           <div className="bg-slate-900/80 rounded-xl border border-amber-500/40 py-2 pl-2 pr-0 flex flex-col shadow-inner min-h-0 overflow-hidden">
             <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-amber-500/25 shrink-0 pr-2">
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.35)] flex items-center justify-center">
+                  <Flame className="w-3.5 h-3.5 text-emerald-400 animate-spin-pulse-green-glow" />
+                </span>
                 <span className="text-[11px] font-black uppercase tracking-wider text-amber-300">
                   EM PREPARAÇÃO
                 </span>
