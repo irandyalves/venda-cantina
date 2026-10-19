@@ -1637,20 +1637,25 @@ export const getSectionBackgroundStyle = (settings) => {
 
   let bgImage = preset.bgImage;
   let baseSize = preset.baseSize || 460;
+  const isUpload = theme === 'upload';
 
-  if (theme === 'upload') {
+  if (isUpload) {
     bgImage = customImage ? `url('${customImage}')` : '';
-    baseSize = 480;
   }
 
   // Escala dinâmica do tamanho da textura (reduzir / aumentar)
   const textureScale = (Number(settings?.textureSize ?? 100)) / 100;
-  const calculatedBgSize = bgImage ? `${Math.round(baseSize * textureScale)}px auto` : 'auto';
+  const calculatedBgSize = isUpload
+    ? 'cover'
+    : (bgImage ? `${Math.round(baseSize * textureScale)}px auto` : 'auto');
 
   return {
     bgColor: theme === 'custom' ? customColor : (theme === 'upload' ? (customColor || '#1e293b') : preset.bgColor),
     bgImage,
     bgSize: calculatedBgSize,
+    bgRepeat: isUpload ? 'no-repeat' : 'repeat',
+    bgPosition: isUpload ? 'center center' : '0 0',
+    isUpload,
     textureDepth: Number(settings?.textureDepth ?? 100),
     textureSize: Number(settings?.textureSize ?? 100),
     textureOpacity: Number(settings?.textureOpacity ?? 100),

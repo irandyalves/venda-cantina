@@ -4211,16 +4211,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             <span>Tamanho da Textura</span>
                           </label>
                           <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            {bgSettings.textureSize ?? 100}% {Number(bgSettings.textureSize || 100) > 130 ? '(Amplo)' : Number(bgSettings.textureSize || 100) < 50 ? '(Micro)' : '(Padrão)'}
+                            {bgSettings.textureSize ?? 100}% {Number(bgSettings.textureSize || 100) > 130 ? '(Amplo)' : Number(bgSettings.textureSize || 100) < 30 ? '(Micro)' : '(Padrão)'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500">15%</span>
+                          <span className="text-[10px] text-slate-500">2%</span>
                           <input
                             type="range"
-                            min="15"
+                            min="2"
                             max="250"
-                            step="5"
+                            step="1"
                             value={bgSettings.textureSize ?? 100}
                             onChange={(e) => handleUpdateBgSetting('textureSize', Number(e.target.value))}
                             className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
@@ -4271,7 +4271,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           className="absolute inset-0 pointer-events-none transition-all duration-200"
                           style={{
                             backgroundImage: previewBgStyle.bgImage,
-                            backgroundRepeat: 'repeat',
+                            backgroundRepeat: previewBgStyle.bgRepeat || 'repeat',
+                            backgroundPosition: previewBgStyle.bgPosition || '0 0',
                             backgroundSize: previewBgStyle.bgSize || '460px auto',
                             opacity: (bgSettings.textureOpacity ?? 100) / 100,
                             filter: `contrast(${(bgSettings.textureDepth ?? 100)}%) saturate(${Math.min(140, Math.max(60, (bgSettings.textureDepth ?? 100)))}%)`,

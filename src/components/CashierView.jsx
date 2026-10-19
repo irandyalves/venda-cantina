@@ -1802,7 +1802,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               className="absolute inset-0 pointer-events-none transition-all duration-200"
               style={{
                 backgroundImage: bgStyle.bgImage,
-                backgroundRepeat: 'repeat',
+                backgroundRepeat: bgStyle.bgRepeat || 'repeat',
+                backgroundPosition: bgStyle.bgPosition || '0 0',
                 backgroundSize: bgStyle.bgSize || '460px auto',
                 opacity: (bgSettings.textureOpacity ?? 100) / 100,
                 filter: `contrast(${(bgSettings.textureDepth ?? 100)}%) saturate(${Math.min(140, Math.max(60, (bgSettings.textureDepth ?? 100)))}%)`,
