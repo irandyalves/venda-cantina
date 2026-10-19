@@ -1710,8 +1710,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
       </section>
 
-      {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (COLADA NO CABEÇALHO SUPERIOR, BORDA A BORDA, SEM CANTOS ARREDONDADOS) */}
-      <nav className="w-full bg-slate-950 px-3 sm:px-4 py-2 border-t border-dashed border-slate-700/80 shrink-0 z-20 flex items-center justify-between gap-2 flex-wrap shadow-md">
+      {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (COLADA NO CABEÇALHO SUPERIOR, BORDA A BORDA, COM SOMBRA SOBRE OS CARDS DE PRODUTOS) */}
+      <nav className="w-full bg-slate-950 px-3 sm:px-4 py-2 border-t border-dashed border-slate-700/80 shrink-0 relative z-20 flex items-center justify-between gap-2 flex-wrap shadow-[0_12px_28px_rgba(0,0,0,0.85),0_4px_10px_rgba(0,0,0,0.6)]">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
             <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
