@@ -203,6 +203,29 @@ export default function DisplayView({ environment, onNavigate }) {
   const readyOrders = tvOrders.filter(o => o.status === 'pronto');
   const deliveredOrders = tvOrders.filter(o => o.status === 'entregue').slice(0, 20);
 
+  // Helper para formatar o resumo limpo do pedido em fonte branca com pontinhos:
+  // Ex: "PIZZA INTEIRA....."
+  const formatOrderSummary = (order) => {
+    const items = order.items && Array.isArray(order.items) && order.items.length > 0
+      ? order.items
+      : [order];
+      
+    const first = items[0] || {};
+    const cat = (first.categoryName || first.category || '').toUpperCase();
+    const varName = (first.variationName || '').toUpperCase();
+    const name = (first.itemName || first.name || '').toUpperCase();
+    
+    let desc = '';
+    if (cat.includes('PIZZA')) {
+      desc = `PIZZA ${varName ? `${varName}` : name}`;
+    } else {
+      const qtyStr = first.quantity && first.quantity > 1 ? `${first.quantity}X ` : '';
+      desc = `${qtyStr}${name || cat}${varName ? ` ${varName}` : ''}`;
+    }
+    
+    return `${desc.trim()}.....`;
+  };
+
   // Helper para formatar o texto do item conforme o padrão solicitado:
   // Ex: PIZZA [PEDAÇO (verde bold)] : MARGUERITTA (lilás brilho bold)
   const renderItemDetails = (order) => {
@@ -414,26 +437,24 @@ export default function DisplayView({ environment, onNavigate }) {
                 preparingOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="w-full bg-slate-950/90 px-3 sm:px-4 py-2 border-y border-amber-500/50 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all"
+                    className="w-full bg-slate-950/90 px-3 sm:px-4 py-2 sm:py-2.5 border-y border-amber-500/50 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all flex items-center justify-between gap-2"
                   >
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-                      
-                      <span className="text-base sm:text-lg md:text-xl font-black text-amber-400 font-mono tracking-tight shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden flex-1">
+                      <span className="text-2xl sm:text-3xl md:text-4xl font-black text-amber-400 font-mono tracking-tight shrink-0">
                         {order.orderNumber}
                       </span>
 
-                      <span className="text-xs font-black text-slate-600 shrink-0">—</span>
+                      <span className="text-amber-400 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                      <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wide shrink-0">
+                      <span className="text-lg sm:text-xl md:text-2xl font-black text-white uppercase tracking-wide truncate shrink-0 max-w-[38%]">
                         {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
                       </span>
 
-                      <span className="text-xs font-black text-slate-600 hidden sm:inline shrink-0">—</span>
+                      <span className="text-amber-400 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                      <div className="inline-flex items-center">
-                        {renderItemDetails(order)}
-                      </div>
+                      <span className="text-sm sm:text-base md:text-lg font-bold text-white uppercase tracking-wider truncate">
+                        {formatOrderSummary(order)}
+                      </span>
                     </div>
                   </div>
                 ))
@@ -474,29 +495,27 @@ export default function DisplayView({ environment, onNavigate }) {
                 readyOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="w-full bg-emerald-950/30 px-3 sm:px-4 py-2 border-y border-emerald-500/60 border-x-0 rounded-none shadow-md hover:bg-emerald-950/50 transition-all flex flex-wrap items-center justify-between gap-2"
+                    className="w-full bg-emerald-950/30 px-3 sm:px-4 py-2 sm:py-2.5 border-y border-emerald-500/60 border-x-0 rounded-none shadow-md hover:bg-emerald-950/50 transition-all flex items-center justify-between gap-2"
                   >
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                      
-                      <span className="text-base sm:text-lg md:text-xl font-black text-emerald-400 font-mono tracking-tight shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden flex-1">
+                      <span className="text-2xl sm:text-3xl md:text-4xl font-black text-emerald-400 font-mono tracking-tight shrink-0">
                         {order.orderNumber}
                       </span>
 
-                      <span className="text-xs font-black text-slate-600 shrink-0">—</span>
+                      <span className="text-emerald-400 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                      <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wide shrink-0">
+                      <span className="text-lg sm:text-xl md:text-2xl font-black text-white uppercase tracking-wide truncate shrink-0 max-w-[38%]">
                         {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
                       </span>
 
-                      <span className="text-xs font-black text-slate-600 hidden sm:inline shrink-0">—</span>
+                      <span className="text-emerald-400 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                      <div className="inline-flex items-center">
-                        {renderItemDetails(order)}
-                      </div>
+                      <span className="text-sm sm:text-base md:text-lg font-bold text-white uppercase tracking-wider truncate">
+                        {formatOrderSummary(order)}
+                      </span>
                     </div>
 
-                    <span className="text-[10px] sm:text-xs font-black text-emerald-300 bg-emerald-900/80 border border-emerald-400/80 px-2 py-0.5 rounded uppercase tracking-wider shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.3)] animate-pulse">
+                    <span className="text-xs sm:text-sm font-black text-emerald-300 bg-emerald-900/80 border border-emerald-400/80 px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.4)] animate-pulse ml-2">
                       ✓ RETIRAR
                     </span>
                   </div>
@@ -528,7 +547,7 @@ export default function DisplayView({ environment, onNavigate }) {
               </div>
 
               {/* LISTA DE PEDIDOS */}
-              <div className="flex-1 overflow-y-auto space-y-1 py-1 min-h-0">
+              <div className="flex-1 overflow-y-auto space-y-1.5 py-1 min-h-0">
                 {deliveredOrders.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-6 px-4">
                     <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-30 text-blue-500" />
@@ -539,18 +558,28 @@ export default function DisplayView({ environment, onNavigate }) {
                   deliveredOrders.map((order) => (
                     <div
                       key={order.id}
-                      className="w-full bg-slate-950/70 px-3 sm:px-4 py-2 border-y border-blue-500/40 border-x-0 rounded-none flex items-center justify-between shadow-sm hover:bg-slate-900/60 transition-all"
+                      className="w-full bg-blue-950/20 px-3 sm:px-4 py-2 sm:py-2.5 border-y border-blue-500/30 border-x-0 rounded-none shadow-sm hover:bg-blue-950/35 transition-all flex items-center justify-between gap-2 opacity-80 hover:opacity-100"
                     >
-                      <div>
-                        <div className="text-xs sm:text-sm md:text-base font-black text-blue-400 font-mono">
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden flex-1">
+                        <span className="text-2xl sm:text-3xl md:text-4xl font-black text-blue-400/85 font-mono tracking-tight shrink-0">
                           {order.orderNumber}
-                        </div>
-                        <div className="text-[10px] sm:text-xs font-bold text-slate-200 uppercase truncate">
-                          {order.customerName || 'CLIENTE'}
-                        </div>
+                        </span>
+
+                        <span className="text-blue-400/50 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
+
+                        <span className="text-lg sm:text-xl md:text-2xl font-black text-slate-300 uppercase tracking-wide truncate shrink-0 max-w-[38%]">
+                          {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                        </span>
+
+                        <span className="text-blue-400/50 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
+
+                        <span className="text-sm sm:text-base md:text-lg font-bold text-slate-300 uppercase tracking-wider truncate">
+                          {formatOrderSummary(order)}
+                        </span>
                       </div>
-                      <span className="text-[9px] sm:text-[10px] font-bold text-blue-300 bg-blue-950/60 px-2 py-0.5 rounded border border-blue-500/30 shrink-0">
-                        ✓ Entregue
+
+                      <span className="text-xs sm:text-sm font-bold text-blue-300/80 bg-blue-950/60 border border-blue-500/40 px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 ml-2">
+                        ✓ ENTREGUE
                       </span>
                     </div>
                   ))
