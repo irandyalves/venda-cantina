@@ -116,6 +116,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   // Sabor de pizza ativo para escolha de Pedaço ou Inteira
   const [selectedPizzaFlavor, setSelectedPizzaFlavor] = useState(null);
+  const [activeOptionCardId, setActiveOptionCardId] = useState(null);
   const closeFlavorTimerRef = useRef(null);
 
   const handleFlavorMouseEnter = () => {
@@ -291,6 +292,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           setQuickAddModal({ isOpen: false, category: null });
           return;
         }
+        if (activeOptionCardId) {
+          setActiveOptionCardId(null);
+          return;
+        }
         if (selectedPizzaFlavor) {
           setSelectedPizzaFlavor(null);
           return;
@@ -303,7 +308,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [quickEditModal.isOpen, quickDeleteModal.isOpen, quickAddModal.isOpen, selectedPizzaFlavor, cart.length]);
+  }, [quickEditModal.isOpen, quickDeleteModal.isOpen, quickAddModal.isOpen, activeOptionCardId, selectedPizzaFlavor, cart.length]);
 
   // Totais e listas do rodapé (mais novos em cima)
   const todayOrders = orders.filter(o => {
@@ -568,15 +573,30 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   // LÓGICA DA COMANDA DO CLIENTE (CARRINHO MULTI-ITENS)
   // ========================================================
 
-  // Adicionar pizza com variação (Pedaço ou Inteira) à comanda
-  const handleAddPizzaToCart = (flavor, variation) => {
-    const pizzaCat = categories.find(c => c.id === 'pizza');
+  // Identifica se um item ou categoria possui múltiplas opções (ex: Fatia e Inteira na Pizza, ou variações)
+  const getItemOptions = (category, item) => {
+    if (!category || !item) return null;
+    if (item.variations && Array.isArray(item.variations) && item.variations.length > 1) {
+      return item.variations;
+    }
+    if (category.variations && Array.isArray(category.variations) && category.variations.length > 1) {
+      return category.variations;
+    }
+    return null;
+  };
+
+  // Adicionar opção/variação (ex: Fatia ou Inteira) à comanda
+  const handleAddOptionToCart = (category, item, variation) => {
+    const isPizza = category.id === 'pizza';
     const isPedaco = variation.id === 'pedaco';
-    const prefix = variation.prefix || (isPedaco ? 'Pp-' : 'Pi-');
-    const unitPrice = variation.price;
-    const description = `${variation.name.toUpperCase()}: ${flavor.name}`;
-    const cartItemId = `pizza_${flavor.id}_${variation.id}`;
-    const color = flavor.color || variation.color || '#eab308';
+    const prefix = variation.prefix || (isPizza ? (isPedaco ? 'Pp-' : 'Pi-') : (category.prefixDefault || 'Ped-'));
+    const unitPrice = variation.price !== undefined ? variation.price : (item.price || 0);
+    const description = `${variation.name.toUpperCase()}: ${item.name}`;
+    const cartItemId = `${category.id}_${item.id}_${variation.id}`;
+    const color = (isValidColorHex(variation.color) ? variation.color : null) ||
+      (isValidColorHex(item.color) ? item.color : null) ||
+      (isValidColorHex(category.color) ? category.color : null) ||
+      getCategoryColor(category);
 
     setCart(prev => {
       const existingIndex = prev.findIndex(i => i.cartItemId === cartItemId);
@@ -587,8 +607,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       }
       return [...prev, {
         cartItemId,
-        category: pizzaCat,
-        item: flavor,
+        category,
+        item,
         variation,
         description,
         prefix,
@@ -601,6 +621,23 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     if (!customerName.trim()) {
       setTimeout(() => nameInputRef.current?.focus(), 80);
     }
+  };
+
+  // Clique no card ou botão: se tiver mais de uma opção, as opções aparecem forçando a escolha
+  const handleCardClick = (category, item) => {
+    const options = getItemOptions(category, item);
+    if (options && options.length > 1) {
+      const cardKey = `${category.id}_${item.id}`;
+      setActiveOptionCardId(prev => prev === cardKey ? null : cardKey);
+    } else {
+      handleAddItemToCart(category, item);
+    }
+  };
+
+  // Adicionar pizza com variação (compatibilidade legada)
+  const handleAddPizzaToCart = (flavor, variation) => {
+    const pizzaCat = categories.find(c => c.id === 'pizza');
+    handleAddOptionToCart(pizzaCat || { id: 'pizza', name: 'PIZZA' }, flavor, variation);
   };
 
   // Adicionar item direto (Batata, Açaí, Salgados, Bebidas, etc.) à comanda
@@ -1453,21 +1490,26 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
           {displayedItems.map(({ item, category }) => {
             const inCartQty = getItemCartQuantity(item.id);
-            const isPizza = category.id === 'pizza';
             const itemColor = item.color || getCategoryColor(category);
+            const cardKey = `${category.id}_${item.id}`;
+            const options = getItemOptions(category, item);
+            const hasMultipleOptions = options && options.length > 1;
+            const isCardActive = activeOptionCardId === cardKey;
 
-            // Variações para pizza (Fatia e Inteira)
-            const pedacoVar = isPizza
-              ? (category.variations?.find(v => v.id === 'pedaco') || category.variations?.[0] || { id: 'pedaco', price: 9 })
-              : null;
-            const inteiraVar = isPizza
-              ? (category.variations?.find(v => v.id === 'inteira') || category.variations?.[1] || { id: 'inteira', price: 48 })
-              : null;
+            // Preço exibido na base do card antes de clicar
+            const displayPrice = hasMultipleOptions 
+              ? options[0].price 
+              : item.price;
 
             return (
               <div
-                key={`${category.id}_${item.id}`}
-                className="rounded-2xl bg-slate-900/95 hover:bg-slate-900 border border-slate-700/80 hover:border-slate-600 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[168px] overflow-hidden"
+                key={cardKey}
+                onClick={() => handleCardClick(category, item)}
+                className={`rounded-2xl bg-slate-900/95 hover:bg-slate-900 border transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[168px] overflow-hidden cursor-pointer ${
+                  isCardActive 
+                    ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.3)]' 
+                    : 'border-slate-700/80 hover:border-slate-600'
+                }`}
               >
                 {/* CONTEÚDO SUPERIOR E CORPO DO CARD COM PADDING */}
                 <div className="p-3.5 pb-2.5 flex-1 flex flex-col justify-between">
@@ -1535,54 +1577,88 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   </div>
                 </div>
 
-                {/* BASE DO CARD: BOTÕES QUE SE ESTENDEM ATÉ AS BORDAS DO CARD */}
-                {isPizza && pedacoVar && inteiraVar ? (
-                  /* DOIS BOTÕES (PIZZA): ESQUERDO ATÉ O LIMITE ESQUERDO, DIREITO ATÉ O LIMITE DIREITO */
-                  <div className="grid grid-cols-2 divide-x divide-slate-800 border-t border-b border-slate-800/80 bg-slate-950/90">
-                    <button
-                      type="button"
-                      onClick={() => handleAddPizzaToCart(item, pedacoVar)}
-                      className="h-10 sm:h-11 px-2.5 bg-slate-950/90 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border-t border-b border-l-0 border-r-0 border-amber-500/30 hover:border-amber-400 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-pizza-fatia group/btn"
-                      title={`Adicionar Fatia de ${item.name} à comanda`}
-                    >
-                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 shrink-0">
-                        FATIA
-                      </span>
-                      <span className="font-mono font-black text-xs sm:text-sm group-hover/btn:text-slate-950">
-                        {formatPrice(pedacoVar.price, showCurrencySymbol)}
-                      </span>
-                    </button>
+                {/* BASE DO CARD: BOTÃO SOLO DE ADICIONAR COM ANIMAÇÃO PULSANTE */}
+                <div className="border-t border-b border-slate-800/80 bg-slate-950/90">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCardClick(category, item);
+                    }}
+                    className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-950/90 text-emerald-400 border-t border-b border-l-0 border-r-0 border-emerald-500/30 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-btn-pulse"
+                    title={hasMultipleOptions ? `Clique para escolher as opções de ${item.name}` : `Clique para adicionar ${item.name} à comanda`}
+                  >
+                    <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-300 shrink-0">
+                      CLIQUE PARA ADICIONAR!
+                    </span>
+                    <span className="font-mono font-black text-xs sm:text-sm text-emerald-400 shrink-0">
+                      {formatPrice(displayPrice, showCurrencySymbol)}
+                    </span>
+                  </button>
+                </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleAddPizzaToCart(item, inteiraVar)}
-                      className="h-10 sm:h-11 px-2.5 bg-slate-950/90 hover:bg-yellow-400 hover:text-slate-950 text-yellow-300 border-t border-b border-l-0 border-r-0 border-yellow-500/30 hover:border-yellow-300 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-pizza-inteira group/btn"
-                      title={`Adicionar Pizza Inteira de ${item.name} à comanda`}
-                    >
-                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 shrink-0">
-                        INTEIRA
-                      </span>
-                      <span className="font-mono font-black text-xs sm:text-sm group-hover/btn:text-slate-950">
-                        {formatPrice(inteiraVar.price, showCurrencySymbol)}
-                      </span>
-                    </button>
-                  </div>
-                ) : (
-                  /* BOTÃO SOLO: RETIRA BORDAS LATERAIS, LEVA LINHA SUP E INF ATÉ AS BORDAS DO CARD */
-                  <div className="border-t border-b border-slate-800/80 bg-slate-950/90">
-                    <button
-                      type="button"
-                      onClick={() => handleAddItemToCart(category, item)}
-                      className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-950/90 text-emerald-400 border-t border-b border-l-0 border-r-0 border-emerald-500/30 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-btn-pulse"
-                      title={`Clique para adicionar ${item.name} à comanda`}
-                    >
-                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-300 shrink-0">
-                        CLIQUE PARA ADICIONAR!
-                      </span>
-                      <span className="font-mono font-black text-xs sm:text-sm text-emerald-400 shrink-0">
-                        {formatPrice(item.price, showCurrencySymbol)}
-                      </span>
-                    </button>
+                {/* ========================================================
+                    MODALZINHO INTERATIVO: QUANDO O ITEM TIVER MAIS DE UMA OPÇÃO
+                    "se clicar em algo que tem mais de uma opção as duas aparecem clicáveis, forçando a pessoa escolher uma"
+                   ======================================================== */}
+                {isCardActive && hasMultipleOptions && (
+                  <div 
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute inset-0 bg-slate-950/96 backdrop-blur-md z-30 p-3 flex flex-col justify-between animate-fadeIn rounded-2xl border-2 border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.5)]"
+                  >
+                    {/* TOPO DO MODALZINHO */}
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                        <span className="text-[10px] sm:text-[11px] font-black text-amber-300 uppercase tracking-wider truncate">
+                          ESCOLHA UMA OPÇÃO:
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveOptionCardId(null)}
+                        className="w-5 h-5 rounded-md bg-slate-900 hover:bg-rose-500 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-xs shrink-0"
+                        title="Cancelar"
+                      >
+                        <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+                    </div>
+
+                    {/* AS DUAS (OU MAIS) OPÇÕES CLICÁVEIS FORÇANDO A ESCOLHA */}
+                    <div className="grid grid-cols-2 gap-2 my-auto">
+                      {options.map((opt, idx) => {
+                        const isFirst = idx === 0;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddOptionToCart(category, item, opt);
+                              setActiveOptionCardId(null);
+                            }}
+                            className={`py-3 px-2 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-lg border ${
+                              isFirst
+                                ? 'bg-amber-950/90 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border-amber-500/70 hover:border-amber-400 card-pizza-fatia'
+                                : 'bg-yellow-950/90 hover:bg-yellow-400 text-yellow-300 hover:text-slate-950 border-yellow-500/70 hover:border-yellow-300 card-pizza-inteira'
+                            }`}
+                            title={`Escolher ${opt.name} por ${formatPrice(opt.price, showCurrencySymbol)}`}
+                          >
+                            <span className="text-[9px] uppercase font-black tracking-wider opacity-90">
+                              {opt.name}
+                            </span>
+                            <span className="font-mono font-black text-sm">
+                              {formatPrice(opt.price, showCurrencySymbol)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* RODAPÉ DO MODALZINHO COM O NOME DO ITEM */}
+                    <div className="text-[9px] text-slate-400 text-center uppercase tracking-wider font-bold truncate">
+                      {item.name}
+                    </div>
                   </div>
                 )}
               </div>
