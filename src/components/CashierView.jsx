@@ -1722,17 +1722,17 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <button
             type="button"
             onClick={() => setSelectedTypeFilter('all')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
               selectedTypeFilter === 'all'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 ring-2 ring-amber-400'
-                : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800'
+                ? 'bg-slate-800 text-white border-amber-500 shadow-md ring-2 ring-amber-400/40 font-black'
+                : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border-slate-800'
             }`}
           >
             <span>TODOS</span>
-            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
               selectedTypeFilter === 'all'
-                ? 'bg-slate-950/30 text-slate-950 font-bold'
-                : 'bg-slate-950 text-amber-400 border border-slate-800'
+                ? 'bg-amber-400 text-slate-950 font-black'
+                : 'bg-slate-950 text-slate-400 border border-slate-800'
             }`}>
               {totalItemsCount}
             </span>
