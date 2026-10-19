@@ -1542,7 +1542,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     <button
                       type="button"
                       onClick={() => handleAddPizzaToCart(item, pedacoVar)}
-                      className="h-10 sm:h-11 px-2.5 bg-slate-950/90 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border-t border-b border-l-0 border-r-0 border-amber-500/30 hover:border-amber-400 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] group/btn"
+                      className="h-10 sm:h-11 px-2.5 bg-slate-950/90 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border-t border-b border-l-0 border-r-0 border-amber-500/30 hover:border-amber-400 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-pizza-fatia group/btn"
                       title={`Adicionar Fatia de ${item.name} à comanda`}
                     >
                       <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 shrink-0">
@@ -1556,7 +1556,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     <button
                       type="button"
                       onClick={() => handleAddPizzaToCart(item, inteiraVar)}
-                      className="h-10 sm:h-11 px-2.5 bg-slate-950/90 hover:bg-yellow-400 hover:text-slate-950 text-yellow-300 border-t border-b border-l-0 border-r-0 border-yellow-500/30 hover:border-yellow-300 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] group/btn"
+                      className="h-10 sm:h-11 px-2.5 bg-slate-950/90 hover:bg-yellow-400 hover:text-slate-950 text-yellow-300 border-t border-b border-l-0 border-r-0 border-yellow-500/30 hover:border-yellow-300 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-pizza-inteira group/btn"
                       title={`Adicionar Pizza Inteira de ${item.name} à comanda`}
                     >
                       <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 group-hover/btn:text-slate-950 shrink-0">
@@ -1573,10 +1573,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     <button
                       type="button"
                       onClick={() => handleAddItemToCart(category, item)}
-                      className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-950/90 text-emerald-400 border-t border-b border-l-0 border-r-0 border-emerald-500/30 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-btn-blink"
+                      className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-950/90 text-emerald-400 border-t border-b border-l-0 border-r-0 border-emerald-500/30 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-btn-pulse"
                       title={`Clique para adicionar ${item.name} à comanda`}
                     >
-                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-400 shrink-0">
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-300 shrink-0">
                         CLIQUE PARA ADICIONAR!
                       </span>
                       <span className="font-mono font-black text-xs sm:text-sm text-emerald-400 shrink-0">

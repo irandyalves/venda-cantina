@@ -265,28 +265,79 @@ input[type="number"] {
   animation: cart-item-birth 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Animação vibrante que pisca o botão verde ao passar o mouse sobre o card */
-@keyframes card-green-blink {
+/* Pulsar suave do modalzinho/botão verde (sem piscar a fonte) */
+@keyframes card-green-soft-pulse {
   0%, 100% {
-    background-color: #10b981;
-    color: #020617;
-    border-color: #34d399;
-    box-shadow: 0 0 16px rgba(16, 185, 129, 0.7);
+    background-color: rgba(6, 78, 59, 0.75);
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
   }
   50% {
-    background-color: #047857;
-    color: #ffffff;
-    border-color: #a7f3d0;
-    box-shadow: 0 0 28px rgba(16, 185, 129, 0.95), inset 0 0 8px rgba(52, 211, 153, 0.35);
+    background-color: #059669;
+    border-color: #34d399;
+    box-shadow: 0 0 24px rgba(16, 185, 129, 0.8), inset 0 0 10px rgba(52, 211, 153, 0.35);
   }
 }
 
-.group:hover .card-btn-blink {
-  animation: card-green-blink 0.52s infinite ease-in-out !important;
+.group:hover .card-btn-pulse {
+  animation: card-green-soft-pulse 1.3s infinite ease-in-out !important;
 }
 
-.group:hover .card-btn-blink * {
-  color: inherit !important;
+.group:hover .card-btn-pulse span {
+  color: #ffffff !important;
+}
+
+/* Pulso alternado suave na Pizza: 1º FATIA (amber), depois INTEIRA (yellow) */
+@keyframes pizza-fatia-wave {
+  0%, 100% {
+    background-color: rgba(2, 6, 23, 0.9);
+    border-color: rgba(245, 158, 11, 0.25);
+    box-shadow: none;
+  }
+  15%, 40% {
+    background-color: rgba(180, 83, 9, 0.85);
+    border-color: #fcd34d;
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.75), inset 0 0 8px rgba(251, 191, 36, 0.35);
+  }
+  55% {
+    background-color: rgba(2, 6, 23, 0.9);
+    border-color: rgba(245, 158, 11, 0.25);
+    box-shadow: none;
+  }
+}
+
+@keyframes pizza-inteira-wave {
+  0%, 50% {
+    background-color: rgba(2, 6, 23, 0.9);
+    border-color: rgba(234, 179, 8, 0.25);
+    box-shadow: none;
+  }
+  65%, 90% {
+    background-color: rgba(161, 98, 7, 0.85);
+    border-color: #fef08a;
+    box-shadow: 0 0 18px rgba(234, 179, 8, 0.75), inset 0 0 8px rgba(253, 224, 71, 0.35);
+  }
+  100% {
+    background-color: rgba(2, 6, 23, 0.9);
+    border-color: rgba(234, 179, 8, 0.25);
+    box-shadow: none;
+  }
+}
+
+.group:hover .card-pizza-fatia {
+  animation: pizza-fatia-wave 1.8s infinite ease-in-out;
+}
+
+.group:hover .card-pizza-fatia span {
+  color: #ffffff !important;
+}
+
+.group:hover .card-pizza-inteira {
+  animation: pizza-inteira-wave 1.8s infinite ease-in-out;
+}
+
+.group:hover .card-pizza-inteira span {
+  color: #ffffff !important;
 }
 
 
