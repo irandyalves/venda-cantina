@@ -2177,7 +2177,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         </div>
 
         {/* CONTEÚDO SCROLLÁVEL */}
-        <div className={`flex-1 overflow-y-auto p-4 sm:p-6 ${activeTab === 'history' ? 'flex flex-col' : 'space-y-6'}`}>
+        <div className={`flex-1 overflow-y-auto p-4 sm:p-6 ${activeTab === 'history' || activeTab === 'reports' ? 'flex flex-col' : 'space-y-6'}`}>
 
           {/* =========================================================
               ABA: AMBIENTES DE TRABALHO & ACESSOS
@@ -3217,21 +3217,35 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </div>
 
-                {/* TABELA DE PEDIDOS COMPACTA E MAXIMIZADA PARA ~40 REGISTROS */}
-                <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-3 flex-1 flex flex-col min-h-0 bg-slate-950/40">
-                  <div className="overflow-y-auto flex-1 min-h-[460px] max-h-[calc(95vh-230px)]">
-                    <table className="w-full text-left text-xs text-slate-300">
-                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider z-10 shadow-sm">
+                {/* TABELA DE PEDIDOS COMPACTA E EXPANDIDA ATÉ A BASE DO MODAL */}
+                <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-2 flex-1 flex flex-col min-h-0 bg-slate-950/40">
+                  <div className="overflow-y-auto flex-1 min-h-[350px]">
+                    <table className="w-full text-left text-[11px] text-slate-300">
+                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[9px] tracking-wider z-10 shadow-sm border-b border-slate-800">
                         <tr>
+                          {/* COLUNA DATA/HORA */}
+                          <th 
+                            onClick={() => handleSort('createdAt')}
+                            className="py-1 px-2 cursor-pointer hover:text-white transition-colors group select-none whitespace-nowrap"
+                            title="Clique para ordenar por data/hora"
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Data / Hora</span>
+                              <span className={`text-[10px] ${sortField === 'createdAt' ? 'text-amber-400 font-black' : 'text-slate-600 group-hover:text-amber-400'}`}>
+                                {sortField === 'createdAt' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
+                              </span>
+                            </div>
+                          </th>
+
                           {/* COLUNA COMANDA */}
                           <th 
                             onClick={() => handleSort('orderNumber')}
-                            className="py-1.5 px-2.5 cursor-pointer hover:text-white transition-colors group select-none"
+                            className="py-1 px-2 cursor-pointer hover:text-white transition-colors group select-none whitespace-nowrap"
                             title="Clique para ordenar por comanda"
                           >
                             <div className="flex items-center gap-1">
                               <span>Comanda</span>
-                              <span className={`text-xs ${sortField === 'orderNumber' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                              <span className={`text-[10px] ${sortField === 'orderNumber' ? 'text-amber-400 font-black' : 'text-slate-600 group-hover:text-amber-400'}`}>
                                 {sortField === 'orderNumber' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
                               </span>
                             </div>
@@ -3240,12 +3254,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           {/* COLUNA CLIENTE */}
                           <th 
                             onClick={() => handleSort('customerName')}
-                            className="py-1.5 px-2.5 cursor-pointer hover:text-white transition-colors group select-none"
+                            className="py-1 px-2 cursor-pointer hover:text-white transition-colors group select-none"
                             title="Clique para ordenar por cliente"
                           >
                             <div className="flex items-center gap-1">
                               <span>Cliente</span>
-                              <span className={`text-xs ${sortField === 'customerName' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                              <span className={`text-[10px] ${sortField === 'customerName' ? 'text-amber-400 font-black' : 'text-slate-600 group-hover:text-amber-400'}`}>
                                 {sortField === 'customerName' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
                               </span>
                             </div>
@@ -3254,12 +3268,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           {/* COLUNA ITEM */}
                           <th 
                             onClick={() => handleSort('itemName')}
-                            className="py-1.5 px-2.5 cursor-pointer hover:text-white transition-colors group select-none"
+                            className="py-1 px-2 cursor-pointer hover:text-white transition-colors group select-none"
                             title="Clique para ordenar por item"
                           >
                             <div className="flex items-center gap-1">
                               <span>Item</span>
-                              <span className={`text-xs ${sortField === 'itemName' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                              <span className={`text-[10px] ${sortField === 'itemName' ? 'text-amber-400 font-black' : 'text-slate-600 group-hover:text-amber-400'}`}>
                                 {sortField === 'itemName' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
                               </span>
                             </div>
@@ -3268,12 +3282,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           {/* COLUNA QTDE */}
                           <th 
                             onClick={() => handleSort('quantity')}
-                            className="py-1.5 px-2.5 text-center cursor-pointer hover:text-white transition-colors group select-none"
+                            className="py-1 px-2 text-center cursor-pointer hover:text-white transition-colors group select-none whitespace-nowrap"
                             title="Clique para ordenar por quantidade"
                           >
                             <div className="flex items-center justify-center gap-1">
                               <span>Qtde</span>
-                              <span className={`text-xs ${sortField === 'quantity' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                              <span className={`text-[10px] ${sortField === 'quantity' ? 'text-amber-400 font-black' : 'text-slate-600 group-hover:text-amber-400'}`}>
                                 {sortField === 'quantity' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
                               </span>
                             </div>
@@ -3282,12 +3296,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           {/* COLUNA PAGAMENTO */}
                           <th 
                             onClick={() => handleSort('paymentMethod')}
-                            className="py-1.5 px-2.5 cursor-pointer hover:text-white transition-colors group select-none"
+                            className="py-1 px-2 cursor-pointer hover:text-white transition-colors group select-none whitespace-nowrap"
                             title="Clique para ordenar por forma de pagamento"
                           >
                             <div className="flex items-center gap-1">
                               <span>Pagamento</span>
-                              <span className={`text-xs ${sortField === 'paymentMethod' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                              <span className={`text-[10px] ${sortField === 'paymentMethod' ? 'text-amber-400 font-black' : 'text-slate-600 group-hover:text-amber-400'}`}>
                                 {sortField === 'paymentMethod' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
                               </span>
                             </div>
@@ -3296,24 +3310,29 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           {/* COLUNA VALOR */}
                           <th 
                             onClick={() => handleSort('totalPrice')}
-                            className="py-1.5 px-2.5 text-right cursor-pointer hover:text-white transition-colors group select-none"
+                            className="py-1 px-2 text-right cursor-pointer hover:text-white transition-colors group select-none whitespace-nowrap"
                             title="Clique para ordenar por valor"
                           >
                             <div className="flex items-center justify-end gap-1">
                               <span>Valor</span>
-                              <span className={`text-xs ${sortField === 'totalPrice' ? 'text-red-500 font-black' : 'text-red-500/35 group-hover:text-red-500'}`}>
+                              <span className={`text-[10px] ${sortField === 'totalPrice' ? 'text-amber-400 font-black' : 'text-slate-600 group-hover:text-amber-400'}`}>
                                 {sortField === 'totalPrice' ? (sortDirection === 'asc' ? '▲' : '▼') : '▲'}
                               </span>
                             </div>
                           </th>
 
                           {/* COLUNA AÇÕES */}
-                          <th className="py-1.5 px-2.5 text-center">Ações</th>
+                          <th className="py-1 px-2 text-center whitespace-nowrap">Ações</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/70 text-[11px] sm:text-xs">
+                      <tbody className="divide-y divide-slate-800/70 text-[11px]">
                         {sortedDisplayedOrders.map((ord) => {
                           const isCancelled = ord.status === 'cancelado';
+                          const d = ord.createdAt ? new Date(ord.createdAt) : null;
+                          const dayStr = d ? String(d.getDate()).padStart(2, '0') : '--';
+                          const monthStr = d ? d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase() : '---';
+                          const timeStr = d ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--';
+
                           return (
                             <tr 
                               key={ord.id} 
@@ -3323,8 +3342,15 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   : 'hover:bg-slate-800/50'
                               }`}
                             >
-                              <td className="py-1 px-2.5 font-mono font-bold text-orange-400">{ord.orderNumber}</td>
-                              <td className="py-1 px-2.5 font-bold text-white">
+                              {/* DATA / HORA */}
+                              <td className="py-0.5 px-2 font-mono text-[10px] text-slate-400 whitespace-nowrap">
+                                <span className="text-slate-300 font-semibold">{dayStr}-{monthStr}</span>
+                                <span className="mx-1 text-slate-600">•</span>
+                                <span className="text-amber-300/90">{timeStr}</span>
+                              </td>
+
+                              <td className="py-0.5 px-2 font-mono font-bold text-orange-400 whitespace-nowrap">{ord.orderNumber}</td>
+                              <td className="py-0.5 px-2 font-bold text-white">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className={isCancelled ? 'line-through text-slate-400' : ''}>
                                     {ord.customerName}
@@ -3336,17 +3362,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   )}
                                 </div>
                               </td>
-                              <td className="py-1 px-2.5">
+                              <td className="py-0.5 px-2">
                                 {ord.items && ord.items.length > 1 ? (
-                                  <div className="space-y-1 py-0.5">
+                                  <div className="space-y-0.5 py-0.5">
                                     {ord.items.map((it, idx) => (
                                       <div key={idx} className="flex items-center gap-1.5 text-slate-200">
-                                        <span className="font-mono font-black text-orange-400 bg-orange-950/60 border border-orange-500/30 px-1 py-0.2 rounded text-[10px]">
+                                        <span className="font-mono font-black text-orange-400 bg-orange-950/60 border border-orange-500/30 px-1 py-0.2 rounded text-[9px]">
                                           {String(it.quantity || 1).padStart(2, '0')}x
                                         </span>
                                         <span className="font-medium">{it.description}</span>
                                         {it.unitPrice > 0 && (
-                                          <span className="text-[10px] text-slate-400 font-mono">
+                                          <span className="text-[9px] text-slate-400 font-mono">
                                             ({formatPrice(it.unitPrice, showCurrencySymbol)})
                                           </span>
                                         )}
@@ -3357,21 +3383,21 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   <span>{ord.fullDescription || ord.itemName}</span>
                                 )}
                               </td>
-                              <td className="py-1 px-2.5 text-center font-bold text-amber-300">
+                              <td className="py-0.5 px-2 text-center font-bold text-amber-300 whitespace-nowrap">
                                 {ord.items && ord.items.length > 1 
                                   ? `${ord.items.reduce((s, it) => s + (Number(it.quantity) || 1), 0)} itens`
                                   : `${ord.quantity}x`
                                 }
                               </td>
-                              <td className="py-1 px-2.5">{ord.paymentMethod}</td>
-                              <td className={`py-1 px-2.5 text-right font-bold ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
+                              <td className="py-0.5 px-2 whitespace-nowrap text-slate-400">{ord.paymentMethod}</td>
+                              <td className={`py-0.5 px-2 text-right font-bold whitespace-nowrap ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
                                 {formatPrice(ord.totalPrice, showCurrencySymbol)}
                               </td>
-                              <td className="py-1 px-2.5 text-center no-underline">
+                              <td className="py-0.5 px-2 text-center no-underline whitespace-nowrap">
                                 {isCancelled ? (
                                   <button
                                     onClick={() => handleRestoreOrder(ord.id)}
-                                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[10px] rounded-md border border-slate-700 inline-flex items-center gap-1 shadow-sm no-underline cursor-pointer"
+                                    className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[10px] rounded-md border border-slate-700 inline-flex items-center gap-0.5 shadow-sm no-underline cursor-pointer"
                                     title="Restaurar venda de volta ao faturamento do caixa"
                                   >
                                     <RotateCcw className="w-2.5 h-2.5" /> Restaurar
@@ -3391,7 +3417,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         })}
                         {sortedDisplayedOrders.length === 0 && (
                           <tr>
-                            <td colSpan="7" className="p-6 text-center text-slate-500 text-xs italic">
+                            <td colSpan="8" className="p-6 text-center text-slate-500 text-xs italic">
                               Nenhuma venda encontrada para o período selecionado.
                             </td>
                           </tr>
