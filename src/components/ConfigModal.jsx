@@ -2750,95 +2750,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
              ========================================================= */}
           {activeTab === 'history' && (
             <div className="space-y-6">
-              
-              {/* HISTÓRICO DE TURNOS ARQUIVADOS (SEÇÃO COMPACTA EM MÁXIMO 2 LINHAS) */}
-              <div className="bg-slate-800/60 p-3.5 sm:p-4 rounded-2xl border border-slate-700 space-y-2.5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/80 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30">
-                      <Archive className="w-4 h-4" />
-                    </span>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-black text-white text-sm sm:text-base tracking-wide">
-                        Cópias Salvas de Turnos Arquivados
-                      </h4>
-                      <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-500/40">
-                        {turnoHistory.length} turno(s) arquivado(s)
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleOpenResetModal}
-                    className="px-3.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-xs rounded-xl border border-rose-500/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shrink-0"
-                    title="Zerar comandas e guardar cópia completa no histórico"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Zerar / Fechar Turno</span>
-                  </button>
-                </div>
-
-                {turnoHistory.length === 0 ? (
-                  <div className="py-6 text-center text-slate-500 text-xs italic">
-                    Nenhum turno anterior arquivado ainda. Ao clicar em "Zerar / Fechar Turno", uma cópia será guardada aqui automaticamente.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pr-1">
-                    {turnoHistory.map((hist) => (
-                      <div key={hist.id} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors flex flex-col justify-between gap-2 shadow-sm">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-xs font-black text-amber-300 truncate">
-                              {hist.event?.name || 'Cantina Geral'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 shrink-0">
-                              📅 {hist.archivedAtFormatted || (hist.archivedAt ? (typeof hist.archivedAt?.toDate === 'function' ? hist.archivedAt.toDate().toLocaleString('pt-BR') : new Date(hist.archivedAt).toLocaleString('pt-BR')) : 'Turno Arquivado')}
-                            </span>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight">
-                              {formatPrice(hist.totalRevenue, showCurrencySymbol)}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1 leading-none font-mono">
-                          <span><strong className="text-slate-300">{hist.totalOrders}</strong> ped.</span>
-                          <span>PIX: {formatPrice(hist.paymentBreakdown?.pix, showCurrencySymbol)}</span>
-                          <span>Din: {formatPrice(hist.paymentBreakdown?.dinheiro, showCurrencySymbol)}</span>
-                          <span>Cart: {formatPrice((hist.paymentBreakdown?.debito || 0) + (hist.paymentBreakdown?.credito || 0), showCurrencySymbol)}</span>
-                        </div>
-
-                        {/* AÇÕES: CONFERÊNCIA APROFUNDADA & REABRIR CAIXA */}
-                        <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-slate-800/60">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenConference(hist)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 text-[10px] font-bold rounded-lg border border-slate-700 hover:border-amber-400/50 transition-all flex items-center gap-1 cursor-pointer"
-                            title="Conferência aprofundada: todos os itens vendidos, faturamento por produto e comandas"
-                          >
-                            <Search className="w-3 h-3 text-amber-400" />
-                            <span>Conferir</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleRequestReopenTurno(hist)}
-                            className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 active:scale-95 text-emerald-300 hover:text-white text-[10px] font-black rounded-lg border border-emerald-500/50 hover:border-emerald-400 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
-                            title="Reabrir este caixa: restaura todas as comandas deste turno de volta para o Caixa e Cozinha"
-                          >
-                            <RotateCcw className="w-3 h-3 text-emerald-400" />
-                            <span>Reabrir Caixa</span>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* SEÇÃO 2: HISTÓRICO E AUDITORIA DE TODAS AS VENDAS DE HOJE */}
+              {/* SEÇÃO 1: HISTÓRICO E AUDITORIA DE TODAS AS VENDAS DE HOJE */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-700/80 pb-3">
                   <h4 className="font-extrabold text-white text-base tracking-wide shrink-0">
@@ -2951,6 +2863,85 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     </table>
                   </div>
                 </div>
+              </div>
+
+              {/* SEÇÃO: BACKUPS (CÓPIAS SALVAS DE TURNOS ARQUIVADOS) */}
+              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Archive className="w-4 h-4 text-emerald-400" />
+                    <div>
+                      <h4 className="font-extrabold text-white text-sm">Backups</h4>
+                      <p className="text-[11px] text-slate-400">
+                        Cópias salvas e turnos arquivados com faturamento, auditoria e vendas anteriores
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400 font-mono bg-slate-900/60 px-2 py-1 rounded-lg border border-slate-700">
+                      {turnoHistory.length} backup(s) arquivado(s)
+                    </span>
+                    <button
+                      onClick={handleOpenResetModal}
+                      className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm hover:scale-[1.02] cursor-pointer"
+                      title="Salvar cópia de backup e iniciar novo turno limpo"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Zerar / Fechar Turno
+                    </button>
+                  </div>
+                </div>
+
+                {turnoHistory.length === 0 ? (
+                  <div className="text-center py-6 text-slate-500 text-xs italic bg-slate-900/30 rounded-xl border border-slate-800">
+                    Nenhum backup arquivado ainda. Ao clicar em &quot;Zerar / Fechar Turno&quot;, uma cópia completa de segurança será preservada aqui.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {turnoHistory.map((bkp, idx) => (
+                      <div
+                        key={bkp.id || idx}
+                        className="p-3 bg-slate-900/70 hover:bg-slate-900 border border-slate-700/80 rounded-xl flex items-center justify-between gap-3 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 font-bold text-xs">
+                            #{turnoHistory.length - idx}
+                          </div>
+                          <div className="truncate">
+                            <p className="text-white text-xs font-bold truncate">
+                              {bkp.label || bkp.name || `Backup do Turno (${new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleDateString()})`}
+                            </p>
+                            <p className="text-[11px] text-slate-400 flex items-center gap-2">
+                              <span>📅 {new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleString()}</span>
+                              <span>•</span>
+                              <span className="text-emerald-400 font-semibold font-mono">
+                                Total: {formatPrice(bkp.totalRevenue || bkp.stats?.totalRevenue || 0, showCurrencySymbol)}
+                              </span>
+                              <span>•</span>
+                              <span>{bkp.orders?.length || bkp.ordersCount || 0} pedidos</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleOpenConference(bkp)}
+                            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border border-slate-600 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            title="Conferir vendas e faturamento deste backup"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Conferir
+                          </button>
+                          <button
+                            onClick={() => handleRequestReopenTurno(bkp)}
+                            className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/40 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            title="Reabrir este turno no caixa atual"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" /> Reabrir Caixa
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* SEÇÃO 3: HISTÓRICO DE EVENTOS REALIZADOS */}
