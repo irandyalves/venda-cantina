@@ -1674,10 +1674,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       </section>
 
       {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA COM ORGANIZAÇÃO POR TIPO) */}
-      <main className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-3.5">
+      <main 
+        className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-3.5 relative shadow-inner"
+        style={{
+          backgroundColor: '#eace9a',
+          backgroundImage: "url('/cream-texture.png')",
+          backgroundRepeat: 'repeat',
+          backgroundSize: '460px auto'
+        }}
+      >
 
         {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (ORGANIZAÇÃO INTELIGENTE POR TIPO) */}
-        <div className="flex items-center justify-between gap-2 flex-wrap bg-slate-950/80 p-2 sm:p-2.5 rounded-2xl border border-slate-800 shadow-md">
+        <div className="flex items-center justify-between gap-2 flex-wrap bg-slate-950/85 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.18)]">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
               <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
@@ -1776,14 +1784,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 onClick={() => handleCardClick(category, item)}
                 onMouseEnter={() => handleOptionCardMouseEnter(cardKey)}
                 onMouseLeave={() => handleOptionCardMouseLeave(cardKey)}
-                className={`rounded-2xl bg-slate-900/95 hover:bg-slate-900 border transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[168px] overflow-hidden cursor-pointer ${
+                className={`rounded-2xl bg-slate-900/95 hover:bg-slate-900 border transition-all duration-200 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.22),0_4px_12px_-2px_rgba(0,0,0,0.12)] hover:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.3),0_6px_16px_-3px_rgba(0,0,0,0.18)] hover:-translate-y-0.5 flex flex-col justify-between relative group min-h-[168px] overflow-hidden cursor-pointer ${
                   clickedCardId === cardKey
                     ? 'animate-card-click-glow'
                     : isCardActive && !isCardClosing
-                      ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.3)]' 
+                      ? 'border-emerald-400 ring-2 ring-emerald-400/50 shadow-[0_0_25px_rgba(16,185,129,0.4)]' 
                       : isCardClosing
-                        ? 'border-amber-400/40 ring-1 ring-amber-400/20'
-                        : 'border-slate-700/80 hover:border-slate-600'
+                        ? 'border-emerald-400/40 ring-1 ring-emerald-400/20'
+                        : 'border-slate-800 hover:border-slate-700'
                 }`}
               >
                 {/* CONTEÚDO SUPERIOR E CORPO DO CARD COM PADDING */}
@@ -1879,15 +1887,15 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 {isModalOpen && (
                   <div 
                     onClick={(e) => e.stopPropagation()}
-                    className={`absolute inset-0 bg-slate-950/96 backdrop-blur-md z-30 p-3 flex flex-col justify-between rounded-2xl border-2 border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.5)] ${
+                    className={`absolute inset-0 bg-slate-950/96 backdrop-blur-md z-30 p-3 flex flex-col justify-between rounded-2xl border-2 border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.55)] ${
                       isCardClosing ? 'animate-modal-fade-out' : 'animate-fadeIn'
                     }`}
                   >
                     {/* TOPO DO MODALZINHO */}
                     <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                        <span className="text-[10px] sm:text-[11px] font-black text-amber-300 uppercase tracking-wider truncate">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-ping" />
+                        <span className="text-[10px] sm:text-[11px] font-black text-emerald-300 uppercase tracking-wider truncate">
                           ESCOLHA UMA OPÇÃO:
                         </span>
                       </div>
@@ -1916,8 +1924,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                             }}
                             className={`py-3 px-2 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-md border-2 ${
                               isFirst
-                                ? 'bg-amber-950/80 hover:bg-amber-500 text-amber-200 hover:text-slate-950 border-amber-500/70 hover:border-amber-400'
-                                : 'bg-yellow-950/80 hover:bg-yellow-400 text-yellow-200 hover:text-slate-950 border-yellow-500/70 hover:border-yellow-300'
+                                ? 'bg-emerald-950/80 hover:bg-emerald-500 text-emerald-200 hover:text-slate-950 border-emerald-500/70 hover:border-emerald-400'
+                                : 'bg-teal-950/80 hover:bg-teal-400 text-teal-200 hover:text-slate-950 border-teal-500/70 hover:border-teal-300'
                             }`}
                             title={`Escolher ${opt.name} por ${formatPrice(opt.price, showCurrencySymbol)}`}
                           >

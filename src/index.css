@@ -302,13 +302,13 @@ input[type="number"] {
   z-index: 20;
 }
 
-/* Efeito de sumir aos poucos do modalzinho ao tirar o mouse (2.25s, mesmo tempo do card) */
+/* Efeito de sumir aos poucos do modalzinho ao tirar o mouse (2.25s, mesmo tempo do card, verde) */
 @keyframes modal-fade-out-glow {
   0% {
     opacity: 1;
     transform: scale(1);
-    box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
-    border-color: #f59e0b;
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+    border-color: #10b981;
   }
   100% {
     opacity: 0;
