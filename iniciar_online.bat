@@ -1,14 +1,14 @@
 @echo off
-title Cantina Express - Acesso Online
+title Cantina Express - Acesso Online Firebase
 echo ======================================================
-echo    CANTINA EXPRESS ONLINE (GitHub Pages + Firebase)
+echo    CANTINA EXPRESS ONLINE (Google Firebase Hosting)
 echo ======================================================
 echo.
-echo Links Oficiais Online:
-echo - Caixa:   https://irandyalves.github.io/venda-cantina/#caixa
-echo - Cozinha: https://irandyalves.github.io/venda-cantina/#cozinha
-echo - TV:      https://irandyalves.github.io/venda-cantina/#tv
+echo Links Oficiais do Sistema (Firebase Hosting):
+echo - Caixa:   https://cantina-express-32161.web.app/#caixa
+echo - Cozinha: https://cantina-express-32161.web.app/#cozinha
+echo - TV:      https://cantina-express-32161.web.app/#tv
 echo.
-echo Abrindo Caixa no navegador...
-start https://irandyalves.github.io/venda-cantina/#caixa
+echo Abrindo o Caixa no navegador...
+start https://cantina-express-32161.web.app/#caixa
 pause
