@@ -302,4 +302,25 @@ input[type="number"] {
   z-index: 20;
 }
 
+/* Efeito de sumir aos poucos do modalzinho ao tirar o mouse (2.25s, mesmo tempo do card) */
+@keyframes modal-fade-out-glow {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+    border-color: #f59e0b;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.98);
+    box-shadow: 0 0 0px transparent;
+    border-color: rgba(51, 65, 85, 0.4);
+  }
+}
+
+.animate-modal-fade-out {
+  animation: modal-fade-out-glow 2.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+  pointer-events: none;
+}
+
 

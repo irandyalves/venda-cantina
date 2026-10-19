@@ -120,6 +120,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   // Sabor de pizza ativo para escolha de Pedaço ou Inteira
   const [selectedPizzaFlavor, setSelectedPizzaFlavor] = useState(null);
   const [activeOptionCardId, setActiveOptionCardId] = useState(null);
+  const [closingOptionCardId, setClosingOptionCardId] = useState(null);
+  const closeOptionTimerRef = useRef(null);
   const [clickedCardId, setClickedCardId] = useState(null);
   const clickFeedbackTimerRef = useRef(null);
 
@@ -132,6 +134,37 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     clickFeedbackTimerRef.current = setTimeout(() => {
       setClickedCardId(null);
     }, 2250);
+  };
+
+  const handleOptionCardMouseEnter = (cardKey) => {
+    if (closingOptionCardId === cardKey) {
+      if (closeOptionTimerRef.current) {
+        clearTimeout(closeOptionTimerRef.current);
+        closeOptionTimerRef.current = null;
+      }
+      setClosingOptionCardId(null);
+      setActiveOptionCardId(cardKey);
+    }
+  };
+
+  const handleOptionCardMouseLeave = (cardKey) => {
+    if (activeOptionCardId === cardKey) {
+      setClosingOptionCardId(cardKey);
+      if (closeOptionTimerRef.current) clearTimeout(closeOptionTimerRef.current);
+      closeOptionTimerRef.current = setTimeout(() => {
+        setActiveOptionCardId((curr) => (curr === cardKey ? null : curr));
+        setClosingOptionCardId((curr) => (curr === cardKey ? null : curr));
+      }, 2250);
+    }
+  };
+
+  const handleCloseOptionModal = () => {
+    if (closeOptionTimerRef.current) {
+      clearTimeout(closeOptionTimerRef.current);
+      closeOptionTimerRef.current = null;
+    }
+    setClosingOptionCardId(null);
+    setActiveOptionCardId(null);
   };
 
   const closeFlavorTimerRef = useRef(null);
@@ -309,8 +342,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           setQuickAddModal({ isOpen: false, category: null });
           return;
         }
-        if (activeOptionCardId) {
-          setActiveOptionCardId(null);
+        if (activeOptionCardId || closingOptionCardId) {
+          handleCloseOptionModal();
           return;
         }
         if (selectedPizzaFlavor) {
@@ -325,7 +358,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [quickEditModal.isOpen, quickDeleteModal.isOpen, quickAddModal.isOpen, activeOptionCardId, selectedPizzaFlavor, cart.length]);
+  }, [quickEditModal.isOpen, quickDeleteModal.isOpen, quickAddModal.isOpen, activeOptionCardId, closingOptionCardId, selectedPizzaFlavor, cart.length]);
 
   // Totais e listas do rodapé (mais novos em cima)
   const todayOrders = orders.filter(o => {
@@ -647,8 +680,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const cardKey = `${category.id}_${item.id}`;
     const options = getItemOptions(category, item);
     if (options && options.length > 1) {
+      if (closeOptionTimerRef.current) {
+        clearTimeout(closeOptionTimerRef.current);
+        closeOptionTimerRef.current = null;
+      }
+      setClosingOptionCardId(null);
       setActiveOptionCardId(prev => prev === cardKey ? null : cardKey);
     } else {
+      handleCloseOptionModal();
       triggerCardClickFeedback(cardKey);
       handleAddItemToCart(category, item);
     }
@@ -1530,6 +1569,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             const options = getItemOptions(category, item);
             const hasMultipleOptions = options && options.length > 1;
             const isCardActive = activeOptionCardId === cardKey;
+            const isCardClosing = closingOptionCardId === cardKey;
+            const isModalOpen = (isCardActive || isCardClosing) && hasMultipleOptions;
 
             // Preço exibido na base do card antes de clicar
             const displayPrice = hasMultipleOptions 
@@ -1540,17 +1581,16 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               <div
                 key={cardKey}
                 onClick={() => handleCardClick(category, item)}
-                onMouseLeave={() => {
-                  if (activeOptionCardId === cardKey) {
-                    setActiveOptionCardId(null);
-                  }
-                }}
+                onMouseEnter={() => handleOptionCardMouseEnter(cardKey)}
+                onMouseLeave={() => handleOptionCardMouseLeave(cardKey)}
                 className={`rounded-2xl bg-slate-900/95 hover:bg-slate-900 border transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[168px] overflow-hidden cursor-pointer ${
                   clickedCardId === cardKey
                     ? 'animate-card-click-glow'
-                    : isCardActive 
+                    : isCardActive && !isCardClosing
                       ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.3)]' 
-                      : 'border-slate-700/80 hover:border-slate-600'
+                      : isCardClosing
+                        ? 'border-amber-400/40 ring-1 ring-amber-400/20'
+                        : 'border-slate-700/80 hover:border-slate-600'
                 }`}
               >
                 {/* CONTEÚDO SUPERIOR E CORPO DO CARD COM PADDING */}
@@ -1643,10 +1683,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     MODALZINHO INTERATIVO: QUANDO O ITEM TIVER MAIS DE UMA OPÇÃO
                     "se clicar em algo que tem mais de uma opção as duas aparecem clicáveis, forçando a pessoa escolher uma"
                    ======================================================== */}
-                {isCardActive && hasMultipleOptions && (
+                {isModalOpen && (
                   <div 
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute inset-0 bg-slate-950/96 backdrop-blur-md z-30 p-3 flex flex-col justify-between animate-fadeIn rounded-2xl border-2 border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.5)]"
+                    className={`absolute inset-0 bg-slate-950/96 backdrop-blur-md z-30 p-3 flex flex-col justify-between rounded-2xl border-2 border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.5)] ${
+                      isCardClosing ? 'animate-modal-fade-out' : 'animate-fadeIn'
+                    }`}
                   >
                     {/* TOPO DO MODALZINHO */}
                     <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
@@ -1658,7 +1700,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setActiveOptionCardId(null)}
+                        onClick={handleCloseOptionModal}
                         className="w-5 h-5 rounded-md bg-slate-900 hover:bg-rose-500 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-xs shrink-0"
                         title="Cancelar"
                       >
@@ -1677,7 +1719,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                             onClick={(e) => {
                               e.stopPropagation();
                               handleAddOptionToCart(category, item, opt);
-                              setActiveOptionCardId(null);
+                              handleCloseOptionModal();
                             }}
                             className={`py-3 px-2 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-md border-2 ${
                               isFirst
