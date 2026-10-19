@@ -131,7 +131,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     if (clickFeedbackTimerRef.current) clearTimeout(clickFeedbackTimerRef.current);
     clickFeedbackTimerRef.current = setTimeout(() => {
       setClickedCardId(null);
-    }, 750);
+    }, 2250);
   };
 
   const closeFlavorTimerRef = useRef(null);
