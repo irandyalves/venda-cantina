@@ -1505,6 +1505,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               <div
                 key={cardKey}
                 onClick={() => handleCardClick(category, item)}
+                onMouseLeave={() => {
+                  if (activeOptionCardId === cardKey) {
+                    setActiveOptionCardId(null);
+                  }
+                }}
                 className={`rounded-2xl bg-slate-900/95 hover:bg-slate-900 border transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group min-h-[168px] overflow-hidden cursor-pointer ${
                   isCardActive 
                     ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.3)]' 
@@ -1637,10 +1642,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                               handleAddOptionToCart(category, item, opt);
                               setActiveOptionCardId(null);
                             }}
-                            className={`py-3 px-2 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-md border ${
+                            className={`py-3 px-2 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-md border-2 ${
                               isFirst
-                                ? 'bg-amber-950/70 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border-amber-500/60 hover:border-amber-400'
-                                : 'bg-yellow-950/70 hover:bg-yellow-400 text-yellow-300 hover:text-slate-950 border-yellow-500/60 hover:border-yellow-300'
+                                ? 'bg-amber-950/80 hover:bg-amber-500 text-amber-200 hover:text-slate-950 border-amber-500/70 hover:border-amber-400'
+                                : 'bg-yellow-950/80 hover:bg-yellow-400 text-yellow-200 hover:text-slate-950 border-yellow-500/70 hover:border-yellow-300'
                             }`}
                             title={`Escolher ${opt.name} por ${formatPrice(opt.price, showCurrencySymbol)}`}
                           >
