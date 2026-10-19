@@ -901,11 +901,16 @@ class StorageService {
   }
 
   saveOrderTimeLimits(limits) {
+    const green = Math.max(1, Number(limits.greenLimit) || 3);
+    const blue = Math.max(green + 1, Number(limits.blueLimit) || (green + 3));
+    const yellow = Math.max(blue + 1, Number(limits.yellowLimit) || (blue + 4));
+    const orange = Math.max(yellow + 1, Number(limits.orangeLimit) || (yellow + 5));
+
     const safeLimits = {
-      greenLimit: Math.max(1, Number(limits.greenLimit) || 3),
-      blueLimit: Math.max(1, Number(limits.blueLimit) || 6),
-      yellowLimit: Math.max(1, Number(limits.yellowLimit) || 10),
-      orangeLimit: Math.max(1, Number(limits.orangeLimit) || 15)
+      greenLimit: green,
+      blueLimit: blue,
+      yellowLimit: yellow,
+      orangeLimit: orange
     };
     localStorage.setItem('cantina_order_time_limits', JSON.stringify(safeLimits));
     if (syncChannel) {

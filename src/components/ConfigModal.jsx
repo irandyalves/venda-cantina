@@ -103,6 +103,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   const handleToggleCurrencySymbol = (checked) => {
     setShowCurrencySymbol(checked);
     storageService.setShowCurrencySymbol(checked);
+    setHasUnsavedChanges(true);
     showToast(
       checked ? 'Exibição de "R$" ativada nos valores.' : 'Exibição de "R$" desativada (apenas números).',
       'Configuração salva'
@@ -325,6 +326,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   // Estado e lógica de ordenação da tabela de fechamento de caixa
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' | 'desc'
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Estado Limites de Tempo e Cores dos Pedidos (Cozinha)
   const [orderTimeLimits, setOrderTimeLimits] = useState(() => storageService.getOrderTimeLimits());
@@ -340,6 +342,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     };
     setBgSettings(nextSettings);
     storageService.saveBackgroundSettings(nextSettings);
+    setHasUnsavedChanges(true);
   };
 
   // Estado Geral do Sistema (Fundo, Efeitos, Tempos, Fontes, Distância de Cards)
@@ -352,6 +355,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     };
     setSystemSettings(nextSettings);
     storageService.saveSystemSettings(nextSettings);
+    setHasUnsavedChanges(true);
   };
 
   useEffect(() => {
@@ -469,13 +473,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           handleCancelEditItem();
           return;
         }
-        onClose();
+        handleSafeClose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, cancelConfirmModal.isOpen, deleteItemConfirmModal.isOpen, deleteEnvConfirmModal.isOpen, showAddEnvModal, showEditEnvModal, showAddCategoryModal, showAddItemModal, showGearModal, showResetModal, showClearQueueModal, editingItemId, onClose]);
+  }, [isOpen, cancelConfirmModal.isOpen, deleteItemConfirmModal.isOpen, deleteEnvConfirmModal.isOpen, showAddEnvModal, showEditEnvModal, showAddCategoryModal, showAddItemModal, showGearModal, showResetModal, showClearQueueModal, editingItemId, onClose, hasUnsavedChanges, categories, productionRouting, orderTimeLimits, kitchenSettings, tvSettings, bgSettings, systemSettings]);
 
   function loadData() {
     const cats = storageService.getProducts();
@@ -541,14 +545,59 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
   if (!isOpen) return null;
 
-  // --- AÇÕES DE TEMPO E CORES DOS PEDIDOS NA COZINHA ---
+  // --- AÇÕES DE TEMPO E CORES DOS PEDIDOS NA COZINHA (REGRA INTELIGENTE PROGRESSIVA) ---
   const handleUpdateOrderTimeLimits = (field, val) => {
+    if (val === '') {
+      setOrderTimeLimits(prev => ({ ...prev, [field]: '' }));
+      setHasUnsavedChanges(true);
+      return;
+    }
     const num = Math.max(1, parseInt(val, 10) || 1);
-    setOrderTimeLimits(prev => ({ ...prev, [field]: num }));
+    setOrderTimeLimits(prev => {
+      let green = field === 'greenLimit' ? num : (parseInt(prev.greenLimit, 10) || 1);
+      let blue = field === 'blueLimit' ? Math.max(green + 1, num) : (parseInt(prev.blueLimit, 10) || (green + 3));
+      let yellow = field === 'yellowLimit' ? Math.max(blue + 1, num) : (parseInt(prev.yellowLimit, 10) || (blue + 4));
+      let orange = field === 'orangeLimit' ? Math.max(yellow + 1, num) : (parseInt(prev.orangeLimit, 10) || (yellow + 5));
+
+      // Regra inteligente progressiva: cada limite posterior é estritamente maior
+      if (field === 'greenLimit') {
+        if (blue <= green) blue = green + 5;
+        if (yellow <= blue) yellow = blue + 5;
+        if (orange <= yellow) orange = yellow + 10;
+      } else if (field === 'blueLimit') {
+        if (yellow <= blue) yellow = blue + 5;
+        if (orange <= yellow) orange = yellow + 10;
+      } else if (field === 'yellowLimit') {
+        if (orange <= yellow) orange = yellow + 5;
+      }
+
+      const next = {
+        greenLimit: green,
+        blueLimit: blue,
+        yellowLimit: yellow,
+        orangeLimit: orange
+      };
+      storageService.saveOrderTimeLimits(next);
+      return next;
+    });
+    setHasUnsavedChanges(true);
+  };
+
+  const handleBlurOrderTimeLimits = () => {
+    setOrderTimeLimits(prev => {
+      const green = Math.max(1, parseInt(prev.greenLimit, 10) || 3);
+      const blue = Math.max(green + 1, parseInt(prev.blueLimit, 10) || (green + 3));
+      const yellow = Math.max(blue + 1, parseInt(prev.yellowLimit, 10) || (blue + 4));
+      const orange = Math.max(yellow + 1, parseInt(prev.orangeLimit, 10) || (yellow + 5));
+      const safe = { greenLimit: green, blueLimit: blue, yellowLimit: yellow, orangeLimit: orange };
+      storageService.saveOrderTimeLimits(safe);
+      return safe;
+    });
   };
 
   const handleSaveOrderTimeLimits = () => {
     storageService.saveOrderTimeLimits(orderTimeLimits);
+    setHasUnsavedChanges(false);
     showToast('Tempos e cores dos pedidos salvos com sucesso!', 'Configuração Salva');
   };
 
@@ -556,7 +605,36 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const defaults = { greenLimit: 3, blueLimit: 6, yellowLimit: 10, orangeLimit: 15 };
     setOrderTimeLimits(defaults);
     storageService.saveOrderTimeLimits(defaults);
+    setHasUnsavedChanges(true);
     showToast('Tempos restaurados para o padrão!', 'Padrão Restaurado');
+  };
+
+  // Salvar tudo de forma centralizada (Garante que tudo seja persistido)
+  const handleSaveAll = () => {
+    storageService.saveProducts(categories);
+    storageService.saveProductionRouting(productionRouting);
+    storageService.saveOrderTimeLimits(orderTimeLimits);
+    storageService.saveKitchenSettings(kitchenSettings);
+    storageService.saveTVSettings(tvSettings);
+    storageService.saveBackgroundSettings(bgSettings);
+    storageService.saveSystemSettings(systemSettings);
+    setHasUnsavedChanges(false);
+    showToast('Todas as alterações foram salvas com sucesso!', 'Salvo com Sucesso', 'success');
+  };
+
+  // Fechamento seguro: se houver alterações, salva automaticamente antes de fechar
+  const handleSafeClose = () => {
+    if (hasUnsavedChanges) {
+      storageService.saveProducts(categories);
+      storageService.saveProductionRouting(productionRouting);
+      storageService.saveOrderTimeLimits(orderTimeLimits);
+      storageService.saveKitchenSettings(kitchenSettings);
+      storageService.saveTVSettings(tvSettings);
+      storageService.saveBackgroundSettings(bgSettings);
+      storageService.saveSystemSettings(systemSettings);
+      setHasUnsavedChanges(false);
+    }
+    if (onClose) onClose();
   };
 
   // --- AÇÕES DE CONFIGURAÇÃO DA TV E COZINHA ---
@@ -1241,21 +1319,26 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       if (item.variationId === 'inteira') setInteiraPrefix(newPrefix);
     }
 
-    setCategories(prev => prev.map(cat => {
-      if (item.isVariation && cat.id === 'pizza') {
-        return {
-          ...cat,
-          variations: (cat.variations || []).map(v => v.id === item.variationId ? { ...v, prefix: newPrefix } : v)
-        };
-      }
-      if (cat.id === item.categoryId) {
-        return {
-          ...cat,
-          items: (cat.items || []).map(it => it.id === item.id ? { ...it, prefix: newPrefix } : it)
-        };
-      }
-      return cat;
-    }));
+    setCategories(prev => {
+      const updated = prev.map(cat => {
+        if (item.isVariation && cat.id === 'pizza') {
+          return {
+            ...cat,
+            variations: (cat.variations || []).map(v => v.id === item.variationId ? { ...v, prefix: newPrefix } : v)
+          };
+        }
+        if (cat.id === item.categoryId) {
+          return {
+            ...cat,
+            items: (cat.items || []).map(it => it.id === item.id ? { ...it, prefix: newPrefix } : it)
+          };
+        }
+        return cat;
+      });
+      storageService.saveProducts(updated);
+      return updated;
+    });
+    setHasUnsavedChanges(true);
   };
 
   // Atualização direta do valor (preço) no card
@@ -1268,21 +1351,26 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       if (item.variationId === 'inteira') setInteiraPrice(formatted);
     }
 
-    setCategories(prev => prev.map(cat => {
-      if (item.isVariation && cat.id === 'pizza') {
-        return {
-          ...cat,
-          variations: (cat.variations || []).map(v => v.id === item.variationId ? { ...v, price: num } : v)
-        };
-      }
-      if (cat.id === item.categoryId) {
-        return {
-          ...cat,
-          items: (cat.items || []).map(it => it.id === item.id ? { ...it, price: num } : it)
-        };
-      }
-      return cat;
-    }));
+    setCategories(prev => {
+      const updated = prev.map(cat => {
+        if (item.isVariation && cat.id === 'pizza') {
+          return {
+            ...cat,
+            variations: (cat.variations || []).map(v => v.id === item.variationId ? { ...v, price: num } : v)
+          };
+        }
+        if (cat.id === item.categoryId) {
+          return {
+            ...cat,
+            items: (cat.items || []).map(it => it.id === item.id ? { ...it, price: num } : it)
+          };
+        }
+        return cat;
+      });
+      storageService.saveProducts(updated);
+      return updated;
+    });
+    setHasUnsavedChanges(true);
   };
 
   // Salvar todos os itens e prefixos
@@ -1879,7 +1967,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   return (
     <div 
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleSafeClose();
       }}
       className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-3 pt-2 sm:pt-3 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer overflow-y-auto"
     >
@@ -1900,20 +1988,25 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             </h2>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* CHAVINHA: EXIBIR R$ NOS VALORES (PADRÃO DESMARCADO) */}
-            <label 
-              className="flex items-center gap-2 cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-700/80 px-3 py-1.5 rounded-xl transition-all select-none shadow-sm"
-              title="Ative para exibir 'R$' antes dos valores em todo o sistema (padrão desmarcado)"
+          <div className="flex items-center gap-2.5">
+            {/* BOTÃO SALVAR PRINCIPAL SEMPRE VISÍVEL: VERDE BRILHO SE HOUVER ALTERAÇÕES, CASO CONTRÁRIO ESMAECIDO */}
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              disabled={!hasUnsavedChanges}
+              className={`px-3.5 py-1.5 font-black text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-md ${
+                hasUnsavedChanges
+                  ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/50 ring-2 ring-emerald-300 animate-pulse cursor-pointer'
+                  : 'bg-slate-800/60 text-slate-500 border border-slate-700/60 opacity-40 cursor-not-allowed'
+              }`}
+              title={hasUnsavedChanges ? 'Há alterações não salvas! Clique para salvar tudo agora' : 'Todas as alterações já estão salvas'}
             >
-              <input
-                type="checkbox"
-                checked={showCurrencySymbol}
-                onChange={(e) => handleToggleCurrencySymbol(e.target.checked)}
-                className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-600 cursor-pointer accent-amber-500"
-              />
-              <span className="text-xs font-bold text-slate-200">Exibir R$ nos valores</span>
-            </label>
+              <Save className={`w-4 h-4 ${hasUnsavedChanges ? 'stroke-[2.5]' : ''}`} />
+              <span>Salvar</span>
+              {hasUnsavedChanges && (
+                <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping" />
+              )}
+            </button>
 
             <button
               type="button"
@@ -1933,7 +2026,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             </button>
 
             <button
-              onClick={onClose}
+              onClick={handleSafeClose}
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -2301,9 +2394,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         setShowAddItemModal(true);
                       }}
                       className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                      title="Adicionar novo item para venda"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Adicionar Item para Venda</span>
+                      <Plus className="w-4 h-4 stroke-[3]" />
+                      <span>+ Novo Item</span>
                     </button>
 
                     <button
@@ -2313,20 +2407,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         setNewCatPrefixInput('');
                         setShowAddCategoryModal(true);
                       }}
-                      className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0 border border-cyan-400/40"
+                      className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0 border border-cyan-400/40"
                       title="Criar nova categoria de itens (ex: Salada, Pão na Chapa, Bebidas, Lanches)"
                     >
                       <FolderPlus className="w-4 h-4" />
-                      <span>Nova Categoria</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleSaveAllPrefixes}
-                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>Salvar Alterações</span>
+                      <span className="hidden sm:inline">Nova Categoria</span>
                     </button>
                   </div>
                 </div>
@@ -3376,16 +3461,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                         <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 truncate">Normal</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 truncate">0 a {orderTimeLimits.greenLimit}m</div>
+                      <div className="text-[9px] text-slate-400 truncate">0 a {orderTimeLimits.greenLimit || 1}m</div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
                         min="1"
-                        max="60"
+                        max="120"
                         value={orderTimeLimits.greenLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('greenLimit', e.target.value)}
+                        onBlur={handleBlurOrderTimeLimits}
                         className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-emerald-400 text-center outline-none focus:border-emerald-400"
                       />
                       <span className="text-[9px] text-slate-400 font-mono">m</span>
@@ -3399,16 +3485,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
                         <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 truncate">No Prazo</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.greenLimit} a {orderTimeLimits.blueLimit}m</div>
+                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.greenLimit || 1} a {orderTimeLimits.blueLimit || 2}m</div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
-                        min="1"
-                        max="60"
+                        min={Number(orderTimeLimits.greenLimit) + 1}
+                        max="180"
                         value={orderTimeLimits.blueLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
+                        onBlur={handleBlurOrderTimeLimits}
                         className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-sky-400 text-center outline-none focus:border-sky-400"
                       />
                       <span className="text-[9px] text-slate-400 font-mono">m</span>
@@ -3422,16 +3509,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
                         <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 truncate">Alerta 1</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.blueLimit} a {orderTimeLimits.yellowLimit}m</div>
+                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.blueLimit || 2} a {orderTimeLimits.yellowLimit || 3}m</div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
-                        min="1"
-                        max="90"
+                        min={Number(orderTimeLimits.blueLimit) + 1}
+                        max="240"
                         value={orderTimeLimits.yellowLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
+                        onBlur={handleBlurOrderTimeLimits}
                         className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-amber-300 text-center outline-none focus:border-amber-400"
                       />
                       <span className="text-[9px] text-slate-400 font-mono">m</span>
@@ -3445,16 +3533,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
                         <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 truncate">Atrasado</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.yellowLimit} a {orderTimeLimits.orangeLimit}m</div>
+                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.yellowLimit || 3} a {orderTimeLimits.orangeLimit || 4}m</div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
-                        min="1"
-                        max="120"
+                        min={Number(orderTimeLimits.yellowLimit) + 1}
+                        max="360"
                         value={orderTimeLimits.orangeLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
+                        onBlur={handleBlurOrderTimeLimits}
                         className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-orange-400 text-center outline-none focus:border-orange-400"
                       />
                       <span className="text-[9px] text-slate-400 font-mono">m</span>
@@ -3478,19 +3567,38 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
                 {/* BARRA VISUAL DA LINHA DO TEMPO COMPACTA */}
                 <div className="h-3 rounded overflow-hidden flex text-[8px] font-black font-mono text-slate-950 border border-slate-800">
-                  <div className="bg-emerald-500 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, (orderTimeLimits.greenLimit / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Normal: 0 a ${orderTimeLimits.greenLimit} min`}>
+                  <div 
+                    className="bg-emerald-500 flex items-center justify-center transition-all" 
+                    style={{ width: `${Math.max(10, ((Number(orderTimeLimits.greenLimit) || 1) / ((Number(orderTimeLimits.orangeLimit) || 15) * 1.25)) * 100)}%` }} 
+                    title={`Normal: 0 a ${orderTimeLimits.greenLimit} min`}
+                  >
                     0-{orderTimeLimits.greenLimit}m
                   </div>
-                  <div className="bg-sky-400 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.blueLimit - orderTimeLimits.greenLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`No prazo: ${orderTimeLimits.greenLimit} a ${orderTimeLimits.blueLimit} min`}>
+                  <div 
+                    className="bg-sky-400 flex items-center justify-center transition-all" 
+                    style={{ width: `${Math.max(10, ((Math.max(1, (Number(orderTimeLimits.blueLimit) || 2) - (Number(orderTimeLimits.greenLimit) || 1))) / ((Number(orderTimeLimits.orangeLimit) || 15) * 1.25)) * 100)}%` }} 
+                    title={`No prazo: ${orderTimeLimits.greenLimit} a ${orderTimeLimits.blueLimit} min`}
+                  >
                     {orderTimeLimits.blueLimit}m
                   </div>
-                  <div className="bg-amber-400 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.yellowLimit - orderTimeLimits.blueLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Alerta 1: ${orderTimeLimits.blueLimit} a ${orderTimeLimits.yellowLimit} min`}>
+                  <div 
+                    className="bg-amber-400 flex items-center justify-center transition-all" 
+                    style={{ width: `${Math.max(10, ((Math.max(1, (Number(orderTimeLimits.yellowLimit) || 3) - (Number(orderTimeLimits.blueLimit) || 2))) / ((Number(orderTimeLimits.orangeLimit) || 15) * 1.25)) * 100)}%` }} 
+                    title={`Alerta 1: ${orderTimeLimits.blueLimit} a ${orderTimeLimits.yellowLimit} min`}
+                  >
                     {orderTimeLimits.yellowLimit}m
                   </div>
-                  <div className="bg-orange-500 flex items-center justify-center transition-all" style={{ width: `${Math.max(12, ((orderTimeLimits.orangeLimit - orderTimeLimits.yellowLimit) / (orderTimeLimits.orangeLimit * 1.3)) * 100)}%` }} title={`Atrasado: ${orderTimeLimits.yellowLimit} a ${orderTimeLimits.orangeLimit} min`}>
+                  <div 
+                    className="bg-orange-500 flex items-center justify-center transition-all" 
+                    style={{ width: `${Math.max(10, ((Math.max(1, (Number(orderTimeLimits.orangeLimit) || 4) - (Number(orderTimeLimits.yellowLimit) || 3))) / ((Number(orderTimeLimits.orangeLimit) || 15) * 1.25)) * 100)}%` }} 
+                    title={`Atrasado: ${orderTimeLimits.yellowLimit} a ${orderTimeLimits.orangeLimit} min`}
+                  >
                     {orderTimeLimits.orangeLimit}m
                   </div>
-                  <div className="bg-rose-600 flex items-center justify-center flex-1 text-white animate-pulse" title={`Muito Atrasado: acima de ${orderTimeLimits.orangeLimit} min`}>
+                  <div 
+                    className="bg-rose-600 flex items-center justify-center flex-1 text-white animate-pulse" 
+                    title={`Muito Atrasado: acima de ${orderTimeLimits.orangeLimit} min`}
+                  >
                     &gt;{orderTimeLimits.orangeLimit}m
                   </div>
                 </div>
@@ -3821,6 +3929,33 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           {activeTab === 'system' && (
             <div className="space-y-6">
 
+              {/* PAINEL: SÍMBOLO DA MOEDA (R$) NOS VALORES */}
+              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-3.5 sm:p-4 shadow-xl flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30 shrink-0">
+                    <DollarSign className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="font-black text-white text-sm tracking-wide flex items-center gap-2">
+                      EXIBIÇÃO DE MOEDA (R$)
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Exibir o prefixo 'R$' antes de todos os valores no sistema (cards de venda, comandas, cozinha, telão e relatórios).
+                    </p>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2.5 cursor-pointer bg-slate-950 hover:bg-slate-850 border border-slate-700 hover:border-emerald-500/60 px-3.5 py-2 rounded-xl transition-all select-none shadow-sm shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={showCurrencySymbol}
+                    onChange={(e) => handleToggleCurrencySymbol(e.target.checked)}
+                    className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-800 border-slate-600 cursor-pointer accent-emerald-500"
+                  />
+                  <span className="text-xs font-black text-white">Exibir R$ nos valores</span>
+                </label>
+              </div>
+
               {/* PAINEL 1: FUNDO DA SEÇÃO DOS CARDS (CAIXA) - COMPACTO (50% MENOR NA ALTURA) */}
               <div className="bg-slate-900/95 rounded-2xl border border-amber-500/30 p-3.5 sm:p-4 shadow-xl space-y-3 relative overflow-hidden">
                 {/* CABEÇALHO COMPACTO: TÍTULO, BADGE E RESTAURAR */}
@@ -4131,9 +4266,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <input
                           type="number"
                           min="1"
-                          max="60"
+                          max="120"
                           value={orderTimeLimits.greenLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('greenLimit', e.target.value)}
+                          onBlur={handleBlurOrderTimeLimits}
                           className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-emerald-400 text-center outline-none focus:border-emerald-400"
                         />
                         <span className="text-xs text-slate-400 font-mono">min</span>
@@ -4147,10 +4283,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="text-xs text-slate-400">Até</span>
                         <input
                           type="number"
-                          min="1"
-                          max="60"
+                          min={Number(orderTimeLimits.greenLimit) + 1}
+                          max="180"
                           value={orderTimeLimits.blueLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
+                          onBlur={handleBlurOrderTimeLimits}
                           className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-sky-400 text-center outline-none focus:border-sky-400"
                         />
                         <span className="text-xs text-slate-400 font-mono">min</span>
@@ -4164,10 +4301,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="text-xs text-slate-400">Até</span>
                         <input
                           type="number"
-                          min="1"
-                          max="60"
+                          min={Number(orderTimeLimits.blueLimit) + 1}
+                          max="240"
                           value={orderTimeLimits.yellowLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
+                          onBlur={handleBlurOrderTimeLimits}
                           className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-yellow-400 text-center outline-none focus:border-yellow-400"
                         />
                         <span className="text-xs text-slate-400 font-mono">min</span>
@@ -4181,10 +4319,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="text-xs text-slate-400">Até</span>
                         <input
                           type="number"
-                          min="1"
-                          max="60"
+                          min={Number(orderTimeLimits.yellowLimit) + 1}
+                          max="360"
                           value={orderTimeLimits.orangeLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
+                          onBlur={handleBlurOrderTimeLimits}
                           className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-orange-400 text-center outline-none focus:border-orange-400"
                         />
                         <span className="text-xs text-slate-400 font-mono">min</span>
