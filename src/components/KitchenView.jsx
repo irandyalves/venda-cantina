@@ -14,7 +14,9 @@ import {
   Sparkles,
   User,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { storageService } from '../services/storage';
 import { soundService } from '../services/sound';
@@ -30,6 +32,27 @@ export default function KitchenView({ environment, onNavigate }) {
 
   // Escuta alterações na configuração de som e roteamento da cozinha
   const [productionRouting, setProductionRouting] = useState(() => storageService.getProductionRouting());
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setIsFullscreen(false);
+    }
+  };
 
   useEffect(() => {
     const handleKitchenSettings = (e) => {
@@ -410,8 +433,8 @@ export default function KitchenView({ environment, onNavigate }) {
           </div>
         </div>
 
-        {/* LADO DIREITO: ESPERA E ENTREGUES */}
-        <div className="flex items-center gap-3">
+        {/* LADO DIREITO: ESPERA E ENTREGUES + BOTÃO TELA CHEIA */}
+        <div className="flex items-center gap-2 sm:gap-3">
 
           <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
             <button
@@ -436,6 +459,23 @@ export default function KitchenView({ environment, onNavigate }) {
               ✓ Entregues ({deliveredOrders.length})
             </button>
           </div>
+
+          {/* BOTÃO TELA CHEIA */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="p-2 sm:px-3 sm:py-2 bg-slate-850 hover:bg-slate-800 text-slate-200 hover:text-white rounded-xl border border-slate-700/80 transition-all flex items-center gap-1.5 text-xs font-black cursor-pointer shadow-sm active:scale-95"
+            title="Alternar Modo Tela Cheia"
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Maximize2 className="w-4 h-4 text-emerald-400" />
+            )}
+            <span className="hidden sm:inline font-bold">
+              {isFullscreen ? 'Sair Tela Cheia' : 'Tela Cheia'}
+            </span>
+          </button>
         </div>
       </header>
 
