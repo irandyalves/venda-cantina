@@ -37,7 +37,8 @@ import {
   ImageIcon,
   Eraser,
   Palette,
-  Flame
+  Flame,
+  ChefHat
 } from 'lucide-react';
 import { storageService, formatPrice, getSectionBackgroundStyle } from '../services/storage';
 import { authService } from '../services/auth';
@@ -353,8 +354,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     inteiraPrice: '0,00',
     color: '#eab308',
     image: null,
-    icon2d: null
+    icon2d: null,
+    destination: 'COZINHA'
   });
+  const [quickEditApplyToCategory, setQuickEditApplyToCategory] = useState(true);
   const [quickEditShowPresets, setQuickEditShowPresets] = useState(false);
   const [quickEditAutoRemoveBg, setQuickEditAutoRemoveBg] = useState(true);
   const [quickEditIsProcessingImg, setQuickEditIsProcessingImg] = useState(false);
@@ -933,27 +936,29 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         let sendToKitchen = true;
         let targetEnvironment = 'COZINHA';
 
-        // SE ESTE CAIXA ESTIVER CONFIGURADO PARA UMA COZINHA ESPECÍFICA (EX: COZINHA 1 OU COZINHA 2):
-        if (destinationKitchen && destinationKitchen !== 'auto') {
+        // Roteamento inteligente: prioridade para a configuração individual do item ou de sua categoria
+        let itemExplicitEnv = null;
+        let itemExplicitSend = null;
+
+        if (routing.destinationEnv?.[targetId] !== undefined) {
+          itemExplicitEnv = routing.destinationEnv[targetId];
+          itemExplicitSend = routing.sendToKitchen?.[targetId] !== false;
+        } else if (routing.destinationEnv?.[catId] !== undefined) {
+          itemExplicitEnv = routing.destinationEnv[catId];
+          itemExplicitSend = routing.sendToKitchen?.[catId] !== false;
+        }
+
+        if (itemExplicitEnv !== null) {
+          targetEnvironment = itemExplicitEnv;
+          sendToKitchen = itemExplicitEnv !== 'none' && itemExplicitSend !== false;
+        } else if (destinationKitchen && destinationKitchen !== 'auto') {
+          // Se o caixa tiver uma cozinha forçada no cabeçalho
           sendToKitchen = true;
           targetEnvironment = destinationKitchen;
         } else {
-          // Roteamento padrão inteligente por item/categoria
-          if (routing.sendToKitchen?.[targetId] !== undefined) {
-            sendToKitchen = routing.sendToKitchen[targetId];
-          } else if (routing.sendToKitchen?.[catId] !== undefined) {
-            sendToKitchen = routing.sendToKitchen[catId];
-          } else {
-            sendToKitchen = catId === 'pizza';
-          }
-
-          if (routing.destinationEnv?.[targetId] !== undefined) {
-            targetEnvironment = routing.destinationEnv[targetId];
-          } else if (routing.destinationEnv?.[catId] !== undefined) {
-            targetEnvironment = routing.destinationEnv[catId];
-          } else {
-            targetEnvironment = sendToKitchen ? 'COZINHA' : 'none';
-          }
+          // Padrão do sistema: Pizza vai para 'COZINHA', outros direto no balcão
+          sendToKitchen = (catId === 'pizza');
+          targetEnvironment = sendToKitchen ? 'COZINHA' : 'none';
         }
 
         return {
@@ -975,9 +980,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         };
       });
 
+      const kitchenItems = orderItems.filter(it => it.sendToKitchen && it.targetEnvironment && it.targetEnvironment !== 'none');
       const primaryTargetEnv = (destinationKitchen && destinationKitchen !== 'auto')
         ? destinationKitchen
-        : (orderItems.find(it => it.targetEnvironment && it.targetEnvironment !== 'none')?.targetEnvironment || 'COZINHA');
+        : (kitchenItems.length > 0 ? kitchenItems[0].targetEnvironment : 'COZINHA');
 
       const destKitchenObj = environments.find(e => e.id === primaryTargetEnv);
 
@@ -1131,7 +1137,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const pedacoVar = category.variations?.find(v => v.id === 'pedaco') || { price: 9 };
     const inteiraVar = category.variations?.find(v => v.id === 'inteira') || { price: 48 };
 
+    const routing = storageService.getProductionRouting();
+    let currentDest = routing.destinationEnv?.[item.id] || routing.destinationEnv?.[category.id];
+    if (!currentDest) {
+      currentDest = isPizza ? 'COZINHA' : 'none';
+    }
+
     setQuickEditShowPresets(false);
+    setQuickEditApplyToCategory(true);
     setQuickEditModal({
       isOpen: true,
       item,
@@ -1142,7 +1155,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       inteiraPrice: formatCurrencyMask(inteiraVar.price || 0),
       color: item.color || getCategoryColor(category),
       image: item.image || null,
-      icon2d: item.icon2d || null
+      icon2d: item.icon2d || null,
+      destination: currentDest
     });
   };
 
@@ -1189,7 +1203,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   const handleSaveQuickEdit = (e) => {
     e.preventDefault();
-    const { category, item, name, price, pedacoPrice, inteiraPrice, color, image, icon2d } = quickEditModal;
+    const { category, item, name, price, pedacoPrice, inteiraPrice, color, image, icon2d, destination } = quickEditModal;
     if (!category || !item) return;
 
     const isPizza = category.id === 'pizza';
@@ -1239,6 +1253,32 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
     storageService.saveProducts(updatedCategories);
     setCategories(updatedCategories);
+
+    // Salva o roteamento de preparo para o item e/ou categoria
+    const targetEnv = destination || (isPizza ? 'COZINHA' : 'none');
+    const isKitchen = targetEnv !== 'none';
+    const currentRouting = storageService.getProductionRouting();
+    const updatedRouting = {
+      ...currentRouting,
+      sendToKitchen: {
+        ...(currentRouting.sendToKitchen || {}),
+        [item.id]: isKitchen,
+        ...(quickEditApplyToCategory || isPizza ? {
+          [category.id]: isKitchen,
+          ...(isPizza ? { 'pizza': isKitchen, 'pedaco': isKitchen, 'inteira': isKitchen } : {})
+        } : {})
+      },
+      destinationEnv: {
+        ...(currentRouting.destinationEnv || {}),
+        [item.id]: targetEnv,
+        ...(quickEditApplyToCategory || isPizza ? {
+          [category.id]: targetEnv,
+          ...(isPizza ? { 'pizza': targetEnv, 'pedaco': targetEnv, 'inteira': targetEnv } : {})
+        } : {})
+      }
+    };
+    storageService.saveProductionRouting(updatedRouting);
+
     setQuickEditModal({ 
       isOpen: false, 
       item: null, 
@@ -1246,17 +1286,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       name: '', 
       price: '0,00', 
       pedacoPrice: '0,00', 
-      inteiraPrice: '0,00',
+      inteiraPrice: '0,00', 
       color: '#eab308',
       image: null,
-      icon2d: null
+      icon2d: null,
+      destination: 'COZINHA'
     });
     setToast({
       type: 'success',
       title: 'ITEM ATUALIZADO!',
       orderNumber: 'OK',
       customerName: cleanName.toUpperCase(),
-      destination: category.name,
+      destination: targetEnv === 'none' ? 'Balcão (Sem Preparo)' : (environments.find(e => e.id === targetEnv)?.name || targetEnv),
       terminal: cashierTerminal,
       total: isPizza ? `Fatia: R$ ${pedacoPrice} | Inteira: R$ ${inteiraPrice}` : `R$ ${price}`
     });
@@ -1402,7 +1443,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               title="Para qual cozinha os pedidos deste caixa serão despachados"
             >
               <option value="auto" className="bg-slate-900 text-slate-300 font-bold">
-                🔀 Automático (Por Produto)
+                🔀 Por Categoria / Produto (Padrão)
               </option>
               {kitchenEnvironments.map((env) => (
                 <option key={env.id} value={env.id} className="bg-slate-900 text-amber-300 font-bold">
@@ -2392,7 +2433,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
          ======================================================== */}
       {quickEditModal.isOpen && quickEditModal.item && quickEditModal.category && (
         <div 
-          onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null })}
+          onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null, destination: 'COZINHA' })}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
         >
           <div 
@@ -2415,7 +2456,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
               <button 
                 type="button"
-                onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null })}
+                onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null, destination: 'COZINHA' })}
                 className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -2438,46 +2479,99 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
 
               {quickEditModal.category.id === 'pizza' ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-black uppercase tracking-wider text-amber-400 block mb-1">
-                      Fatia (R$):
+                <div className="flex flex-row items-center gap-2.5 sm:gap-3 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <label className="text-xs font-black uppercase tracking-wider text-amber-400 whitespace-nowrap">
+                      FATIA (R$):
                     </label>
                     <input
                       type="text"
                       inputMode="numeric"
                       value={quickEditModal.pedacoPrice}
                       onChange={(e) => setQuickEditModal(prev => ({ ...prev, pedacoPrice: formatCurrencyMask(e.target.value) }))}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-base font-mono font-black text-amber-300 outline-none focus:border-amber-400 text-right"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm sm:text-base font-mono font-black text-amber-300 outline-none focus:border-amber-400 text-right"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs font-black uppercase tracking-wider text-yellow-400 block mb-1">
-                      Inteira (R$):
+                  <div className="h-6 w-px bg-slate-800 shrink-0" />
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <label className="text-xs font-black uppercase tracking-wider text-yellow-400 whitespace-nowrap">
+                      INTEIRA (R$):
                     </label>
                     <input
                       type="text"
                       inputMode="numeric"
                       value={quickEditModal.inteiraPrice}
                       onChange={(e) => setQuickEditModal(prev => ({ ...prev, inteiraPrice: formatCurrencyMask(e.target.value) }))}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-base font-mono font-black text-yellow-300 outline-none focus:border-yellow-400 text-right"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm sm:text-base font-mono font-black text-yellow-300 outline-none focus:border-yellow-400 text-right"
                     />
                   </div>
                 </div>
               ) : (
-                <div>
-                  <label className="text-xs font-black uppercase tracking-wider text-emerald-400 block mb-1">
-                    Preço (R$):
+                <div className="flex items-center gap-2.5 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+                  <label className="text-xs font-black uppercase tracking-wider text-emerald-400 whitespace-nowrap">
+                    PREÇO (R$):
                   </label>
                   <input
                     type="text"
                     inputMode="numeric"
                     value={quickEditModal.price}
                     onChange={(e) => setQuickEditModal(prev => ({ ...prev, price: formatCurrencyMask(e.target.value) }))}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-base font-mono font-black text-emerald-400 outline-none focus:border-emerald-400 text-right"
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-base font-mono font-black text-emerald-400 outline-none focus:border-emerald-400 text-right"
                   />
                 </div>
               )}
+
+              {/* ONDE O PEDIDO VAI (DESTINO DE PREPARO / COZINHA) */}
+              <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <ChefHat className="w-4 h-4 text-amber-400" />
+                    <span>Onde o Pedido Vai (Cozinha de Preparo)</span>
+                  </label>
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    {quickEditModal.category.name}
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                  <div className="flex-1">
+                    <select
+                      value={quickEditModal.destination || (quickEditModal.category.id === 'pizza' ? 'COZINHA' : 'none')}
+                      onChange={(e) => setQuickEditModal(prev => ({ ...prev, destination: e.target.value }))}
+                      className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-400 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-white outline-none cursor-pointer"
+                    >
+                      {kitchenEnvironments.map((env) => (
+                        <option key={env.id} value={env.id} className="bg-slate-900 text-amber-300 font-bold">
+                          🍳 {env.name}
+                        </option>
+                      ))}
+                      {!kitchenEnvironments.some(e => e.id === 'COZINHA') && (
+                        <option value="COZINHA" className="bg-slate-900 text-amber-300 font-bold">
+                          🍳 COZINHA PIZZA
+                        </option>
+                      )}
+                      <option value="none" className="bg-slate-900 text-slate-300 font-bold">
+                        📦 Balcão / Entrega Direta (Sem Cozinha)
+                      </option>
+                    </select>
+                  </div>
+
+                  <label className="flex items-center gap-2 px-3 py-2 bg-slate-900/90 rounded-xl border border-slate-800 cursor-pointer select-none shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={quickEditApplyToCategory}
+                      onChange={(e) => setQuickEditApplyToCategory(e.target.checked)}
+                      className="rounded border-slate-700 text-emerald-500 focus:ring-0 bg-slate-950 cursor-pointer w-3.5 h-3.5"
+                    />
+                    <span className="text-[11px] font-bold text-slate-300 whitespace-nowrap">
+                      Aplicar à categoria ({quickEditModal.category.name})
+                    </span>
+                  </label>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Todos os caixas enviarão os pedidos deste produto/categoria diretamente para o local selecionado.
+                </p>
+              </div>
 
               {/* SEÇÃO DE ARTE / FOTO / ÍCONE 2D */}
               <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 space-y-3">
@@ -2600,8 +2694,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 )}
               </div>
 
-              {/* SELEÇÃO DE COR DE DESTAQUE */}
-              <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              {/* SELEÇÃO DE COR DE DESTAQUE: BOLINHAS METADE DO TAMANHO, TODAS NA MESMA LINHA */}
+              <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
                     <Palette className="w-3.5 h-3.5 text-amber-400" />
@@ -2617,7 +2711,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     </span>
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-950/80 rounded-xl border border-slate-800 justify-start">
+                <div className="flex items-center justify-between gap-1 p-2 bg-slate-950/80 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none">
                   {ITEM_COLOR_PALETTE.map((col) => {
                     const isSelected = (quickEditModal.color || '#eab308').toLowerCase() === col.hex.toLowerCase();
                     return (
@@ -2626,15 +2720,15 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                         type="button"
                         onClick={() => setQuickEditModal(prev => ({ ...prev, color: col.hex }))}
                         title={col.name}
-                        className={`w-6 h-6 rounded-full transition-transform hover:scale-115 relative flex items-center justify-center cursor-pointer border ${
+                        className={`w-3.5 h-3.5 rounded-full transition-transform hover:scale-130 relative flex items-center justify-center cursor-pointer shrink-0 border ${
                           isSelected 
-                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 border-white scale-110 shadow-md z-10' 
-                            : 'border-white/30 hover:border-white/80 opacity-90 hover:opacity-100'
+                            ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-900 border-white scale-125 shadow-md z-10' 
+                            : 'border-white/20 hover:border-white/80 opacity-90 hover:opacity-100'
                         }`}
                         style={{ backgroundColor: col.hex }}
                       >
                         {isSelected && (
-                          <Check className="w-3 h-3 text-white stroke-[3] drop-shadow-md" />
+                          <Check className="w-2.5 h-2.5 text-white stroke-[3] drop-shadow-xs" />
                         )}
                       </button>
                     );
@@ -2645,7 +2739,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null })}
+                  onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null, destination: 'COZINHA' })}
                   className="py-2 px-4 bg-slate-800 hover:bg-slate-750 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
                 >
                   Cancelar

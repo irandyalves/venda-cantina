@@ -5047,7 +5047,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     </span>
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-950/80 rounded-xl border border-slate-800 justify-start">
+                <div className="flex items-center justify-between gap-1 p-2 bg-slate-950/80 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none">
                   {ITEM_COLOR_PALETTE.map((col) => {
                     const isSelected = newItemColor.toLowerCase() === col.hex.toLowerCase();
                     return (
@@ -5056,14 +5056,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         type="button"
                         onClick={() => setNewItemColor(col.hex)}
                         title={col.name}
-                        className={`w-6 h-6 rounded-full transition-transform hover:scale-115 relative flex items-center justify-center cursor-pointer border ${
+                        className={`w-3.5 h-3.5 rounded-full transition-transform hover:scale-130 relative flex items-center justify-center cursor-pointer shrink-0 border ${
                           isSelected 
-                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 border-white scale-110 shadow-md z-10' 
-                            : 'border-white/30 hover:border-white/80 opacity-90 hover:opacity-100'
+                            ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-900 border-white scale-125 shadow-md z-10' 
+                            : 'border-white/20 hover:border-white/80 opacity-90 hover:opacity-100'
                         }`}
                         style={{ backgroundColor: col.hex }}
                       >
-                        {isSelected && <Check className="w-3.5 h-3.5 text-white drop-shadow stroke-[3]" />}
+                        {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3] drop-shadow-xs" />}
                       </button>
                     );
                   })}
@@ -5347,7 +5347,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     </span>
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-950/80 rounded-xl border border-slate-800 justify-start">
+                <div className="flex items-center justify-between gap-1 p-2 bg-slate-950/80 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none">
                   {ITEM_COLOR_PALETTE.map((col) => {
                     const isSelected = (gearItemData.color || '#eab308').toLowerCase() === col.hex.toLowerCase();
                     return (
@@ -5356,14 +5356,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         type="button"
                         onClick={() => setGearItemData(prev => ({ ...prev, color: col.hex }))}
                         title={col.name}
-                        className={`w-6 h-6 rounded-full transition-transform hover:scale-115 relative flex items-center justify-center cursor-pointer border ${
+                        className={`w-3.5 h-3.5 rounded-full transition-transform hover:scale-130 relative flex items-center justify-center cursor-pointer shrink-0 border ${
                           isSelected 
-                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 border-white scale-110 shadow-md z-10' 
-                            : 'border-white/30 hover:border-white/80 opacity-90 hover:opacity-100'
+                            ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-900 border-white scale-125 shadow-md z-10' 
+                            : 'border-white/20 hover:border-white/80 opacity-90 hover:opacity-100'
                         }`}
                         style={{ backgroundColor: col.hex }}
                       >
-                        {isSelected && <Check className="w-3.5 h-3.5 text-white drop-shadow stroke-[3]" />}
+                        {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3] drop-shadow-xs" />}
                       </button>
                     );
                   })}
