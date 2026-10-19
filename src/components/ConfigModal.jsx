@@ -2026,6 +2026,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             <h2 className="text-lg font-bold text-white tracking-wide">
               CONFIGURAÇÕES
             </h2>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('reports');
+                setShowNewEventForm(prev => !prev);
+              }}
+              className={`ml-5 px-3.5 py-1.5 font-black text-xs rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer ${
+                showNewEventForm && activeTab === 'reports'
+                  ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300'
+                  : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+              }`}
+              title="Cadastrar um novo evento para a cantina"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Criar Novo Evento</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -2046,23 +2062,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               {hasUnsavedChanges && (
                 <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping" />
               )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('reports');
-                setShowNewEventForm(prev => !prev);
-              }}
-              className={`px-3.5 py-1.5 font-black text-xs rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer ${
-                showNewEventForm && activeTab === 'reports'
-                  ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300'
-                  : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-              }`}
-              title="Cadastrar um novo evento para a cantina"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Criar Novo Evento</span>
             </button>
 
             <button
@@ -4543,204 +4542,156 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </button>
                 </div>
 
-                {/* 2 COLUNAS LADO A LADO: COLUNA DA ESQUERDA (ALTURA), COLUNA DA DIREITA (DISTÂNCIA) */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 items-stretch">
+                {/* CONTROLES UNIFICADOS: ALTURA E DISTÂNCIA DOS CARDS (SEM SEÇÕES SEPARADAS) */}
+                <div className="space-y-2">
                   
-                  {/* ========================================================
-                      COLUNA DA ESQUERDA: ALTURA DOS CARDS (TUDO SLIDE)
-                     ======================================================== */}
-                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-3 flex flex-col justify-between">
-                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="p-1 bg-amber-500/20 text-amber-400 rounded-md">
-                          <Maximize2 className="w-3.5 h-3.5" />
-                        </span>
-                        <div>
-                          <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                            ALTURA DOS CARDS
-                          </h4>
-                          <p className="text-[10px] text-slate-400">Espessura / altura vertical de cada comanda</p>
-                        </div>
-                      </div>
+                  {/* 1. COZINHA */}
+                  <div className="bg-slate-950/70 hover:bg-slate-950/90 px-3.5 py-2 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center gap-3 transition-colors">
+                    <div className="flex items-center gap-2 md:w-48 shrink-0">
+                      <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg shrink-0">
+                        <ChefHat className="w-4 h-4" />
+                      </span>
+                      <span className="text-xs font-bold text-slate-100 whitespace-nowrap">
+                        Cozinha (Comandas)
+                      </span>
                     </div>
 
-                    <div className="space-y-2.5">
-                      {/* 1. COZINHA - ALTURA */}
-                      <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <ChefHat className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Cozinha (Comandas)</span>
-                          </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            {resolveHeightPx(systemSettings.kitchenCardHeight, 52)}px
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500 font-mono">36px</span>
-                          <input
-                            type="range"
-                            min="36"
-                            max="110"
-                            step="2"
-                            value={resolveHeightPx(systemSettings.kitchenCardHeight, 52)}
-                            onChange={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
-                            className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                          />
-                          <span className="text-[10px] text-slate-500 font-mono">110px</span>
-                        </div>
-                      </div>
+                    {/* SLIDE ALTURA */}
+                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
+                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Altura:</span>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">36</span>
+                      <input
+                        type="range"
+                        min="36"
+                        max="110"
+                        step="2"
+                        value={resolveHeightPx(systemSettings.kitchenCardHeight, 52)}
+                        onChange={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
+                        className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                      />
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">110</span>
+                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[50px] text-center">
+                        {resolveHeightPx(systemSettings.kitchenCardHeight, 52)}px
+                      </span>
+                    </div>
 
-                      {/* 2. TELÃO - ALTURA */}
-                      <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <Tv className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>Telão / TV (Público)</span>
-                          </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            {resolveHeightPx(systemSettings.displayCardHeight, 64)}px
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500 font-mono">44px</span>
-                          <input
-                            type="range"
-                            min="44"
-                            max="130"
-                            step="2"
-                            value={resolveHeightPx(systemSettings.displayCardHeight, 64)}
-                            onChange={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
-                            className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                          />
-                          <span className="text-[10px] text-slate-500 font-mono">130px</span>
-                        </div>
-                      </div>
-
-                      {/* 3. CAIXA - ALTURA */}
-                      <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <Monitor className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Caixa (Rodapé)</span>
-                          </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            {resolveHeightPx(systemSettings.cashierCardHeight, 42)}px
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500 font-mono">28px</span>
-                          <input
-                            type="range"
-                            min="28"
-                            max="90"
-                            step="2"
-                            value={resolveHeightPx(systemSettings.cashierCardHeight, 42)}
-                            onChange={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
-                            className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                          />
-                          <span className="text-[10px] text-slate-500 font-mono">90px</span>
-                        </div>
-                      </div>
+                    {/* SLIDE DISTÂNCIA */}
+                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
+                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Distância:</span>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">2</span>
+                      <input
+                        type="range"
+                        min="2"
+                        max="32"
+                        step="1"
+                        value={resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}
+                        onChange={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
+                        className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                      />
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">32</span>
+                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[46px] text-center">
+                        {resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}px
+                      </span>
                     </div>
                   </div>
 
-                  {/* ========================================================
-                      COLUNA DA DIREITA: DISTÂNCIA ENTRE OS CARDS (TUDO SLIDE)
-                     ======================================================== */}
-                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-3 flex flex-col justify-between">
-                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-md">
-                          <Sliders className="w-3.5 h-3.5" />
-                        </span>
-                        <div>
-                          <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                            DISTÂNCIA ENTRE OS CARDS
-                          </h4>
-                          <p className="text-[10px] text-slate-400">Espaçamento vertical do de cima para o de baixo</p>
-                        </div>
-                      </div>
+                  {/* 2. TELÃO / TV */}
+                  <div className="bg-slate-950/70 hover:bg-slate-950/90 px-3.5 py-2 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center gap-3 transition-colors">
+                    <div className="flex items-center gap-2 md:w-48 shrink-0">
+                      <span className="p-1.5 bg-indigo-500/20 text-indigo-400 rounded-lg shrink-0">
+                        <Tv className="w-4 h-4" />
+                      </span>
+                      <span className="text-xs font-bold text-slate-100 whitespace-nowrap">
+                        Telão / TV (Público)
+                      </span>
                     </div>
 
-                    <div className="space-y-2.5">
-                      {/* 1. COZINHA - DISTÂNCIA */}
-                      <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <ChefHat className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Cozinha (Comandas)</span>
-                          </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            {resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}px
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500 font-mono">2px</span>
-                          <input
-                            type="range"
-                            min="2"
-                            max="32"
-                            step="1"
-                            value={resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}
-                            onChange={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
-                            className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                          />
-                          <span className="text-[10px] text-slate-500 font-mono">32px</span>
-                        </div>
-                      </div>
+                    {/* SLIDE ALTURA */}
+                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
+                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Altura:</span>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">44</span>
+                      <input
+                        type="range"
+                        min="44"
+                        max="130"
+                        step="2"
+                        value={resolveHeightPx(systemSettings.displayCardHeight, 64)}
+                        onChange={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
+                        className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                      />
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">130</span>
+                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[50px] text-center">
+                        {resolveHeightPx(systemSettings.displayCardHeight, 64)}px
+                      </span>
+                    </div>
 
-                      {/* 2. TELÃO - DISTÂNCIA */}
-                      <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <Tv className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>Telão / TV (Público)</span>
-                          </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            {resolveSpacingPx(systemSettings.displayCardSpacing, 6)}px
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500 font-mono">2px</span>
-                          <input
-                            type="range"
-                            min="2"
-                            max="32"
-                            step="1"
-                            value={resolveSpacingPx(systemSettings.displayCardSpacing, 6)}
-                            onChange={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
-                            className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                          />
-                          <span className="text-[10px] text-slate-500 font-mono">32px</span>
-                        </div>
-                      </div>
+                    {/* SLIDE DISTÂNCIA */}
+                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
+                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Distância:</span>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">2</span>
+                      <input
+                        type="range"
+                        min="2"
+                        max="32"
+                        step="1"
+                        value={resolveSpacingPx(systemSettings.displayCardSpacing, 6)}
+                        onChange={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
+                        className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                      />
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">32</span>
+                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[46px] text-center">
+                        {resolveSpacingPx(systemSettings.displayCardSpacing, 6)}px
+                      </span>
+                    </div>
+                  </div>
 
-                      {/* 3. CAIXA - DISTÂNCIA */}
-                      <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <Monitor className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Caixa (Rodapé)</span>
-                          </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            {resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}px
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500 font-mono">2px</span>
-                          <input
-                            type="range"
-                            min="2"
-                            max="32"
-                            step="1"
-                            value={resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}
-                            onChange={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
-                            className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                          />
-                          <span className="text-[10px] text-slate-500 font-mono">32px</span>
-                        </div>
-                      </div>
+                  {/* 3. CAIXA */}
+                  <div className="bg-slate-950/70 hover:bg-slate-950/90 px-3.5 py-2 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center gap-3 transition-colors">
+                    <div className="flex items-center gap-2 md:w-48 shrink-0">
+                      <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
+                        <Monitor className="w-4 h-4" />
+                      </span>
+                      <span className="text-xs font-bold text-slate-100 whitespace-nowrap">
+                        Caixa (Rodapé)
+                      </span>
+                    </div>
+
+                    {/* SLIDE ALTURA */}
+                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
+                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Altura:</span>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">28</span>
+                      <input
+                        type="range"
+                        min="28"
+                        max="90"
+                        step="2"
+                        value={resolveHeightPx(systemSettings.cashierCardHeight, 42)}
+                        onChange={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
+                        className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                      />
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">90</span>
+                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[50px] text-center">
+                        {resolveHeightPx(systemSettings.cashierCardHeight, 42)}px
+                      </span>
+                    </div>
+
+                    {/* SLIDE DISTÂNCIA */}
+                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
+                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Distância:</span>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">2</span>
+                      <input
+                        type="range"
+                        min="2"
+                        max="32"
+                        step="1"
+                        value={resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}
+                        onChange={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
+                        className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                      />
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">32</span>
+                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[46px] text-center">
+                        {resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}px
+                      </span>
                     </div>
                   </div>
 
