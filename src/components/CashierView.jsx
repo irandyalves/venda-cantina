@@ -40,6 +40,118 @@ import ProfileSelector from './ProfileSelector';
 import AutoToast from './AutoToast';
 import ProductIcon2D from './ProductIcon2D';
 
+// Ícone Oficial do PIX (losangos entrelaçados estilizados do Banco Central)
+const PixIcon = ({ className = "w-4 h-4", isSelected }) => (
+  <svg 
+    role="img" 
+    viewBox="0 0 24 24" 
+    className={className} 
+    fill={isSelected ? "currentColor" : "#32bcad"}
+  >
+    <path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156" />
+  </svg>
+);
+
+// Ícone do Cartão de Débito (Contactless por aproximação + chip)
+const DebitCardIcon = ({ className = "w-4 h-4", isSelected }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none">
+    <rect 
+      x="2" y="4" width="20" height="16" rx="2.5" 
+      fill={isSelected ? "currentColor" : "#022c22"} 
+      fillOpacity={isSelected ? "0.2" : "0.9"}
+      stroke={isSelected ? "currentColor" : "#10b981"} 
+      strokeWidth="1.6" 
+    />
+    {/* Chip dourado */}
+    <rect 
+      x="4.5" y="7" width="4.5" height="3.5" rx="0.8" 
+      fill={isSelected ? "#78350f" : "#fbbf24"} 
+      stroke={isSelected ? "currentColor" : "#d97706"}
+      strokeWidth="0.5"
+    />
+    {/* Símbolo de aproximação / Contactless waves ))) */}
+    <path 
+      d="M15.5 7.5a2.5 2.5 0 0 1 0 3.5M17.5 6.2a4.5 4.5 0 0 1 0 6.1" 
+      stroke={isSelected ? "currentColor" : "#34d399"} 
+      strokeWidth="1.3" 
+      strokeLinecap="round" 
+    />
+    {/* Linhas do cartão */}
+    <line x1="4.5" y1="13.5" x2="11.5" y2="13.5" stroke={isSelected ? "currentColor" : "#6ee7b7"} strokeWidth="1.2" strokeLinecap="round" strokeDasharray="1.5 1" />
+    {/* Círculos de bandeira no rodapé */}
+    <circle cx="16" cy="15.5" r="2" fill={isSelected ? "currentColor" : "#ef4444"} fillOpacity="0.85" />
+    <circle cx="18" cy="15.5" r="2" fill={isSelected ? "currentColor" : "#f59e0b"} fillOpacity="0.85" />
+  </svg>
+);
+
+// Ícone do Cartão de Crédito (com tarja magnética superior preta + chip)
+const CreditCardIcon = ({ className = "w-4 h-4", isSelected }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none">
+    <rect 
+      x="2" y="4" width="20" height="16" rx="2.5" 
+      fill={isSelected ? "currentColor" : "#0f172a"} 
+      fillOpacity={isSelected ? "0.2" : "0.9"}
+      stroke={isSelected ? "currentColor" : "#3b82f6"} 
+      strokeWidth="1.6" 
+    />
+    {/* Tarja magnética superior escura */}
+    <rect 
+      x="2" y="7.5" width="20" height="3.2" 
+      fill={isSelected ? "currentColor" : "#020617"} 
+      fillOpacity={isSelected ? "0.5" : "1"}
+    />
+    {/* Chip dourado */}
+    <rect 
+      x="4.5" y="13" width="4.5" height="3.5" rx="0.8" 
+      fill={isSelected ? "#78350f" : "#fbbf24"} 
+      stroke={isSelected ? "currentColor" : "#d97706"}
+      strokeWidth="0.5"
+    />
+    {/* Linhas de numeração do cartão */}
+    <line x1="11.5" y1="14" x2="18.5" y2="14" stroke={isSelected ? "currentColor" : "#93c5fd"} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="11.5" y1="16" x2="15.5" y2="16" stroke={isSelected ? "currentColor" : "#60a5fa"} strokeWidth="1.2" strokeLinecap="round" />
+  </svg>
+);
+
+// Ícone de Dinheiro (cédulas verdes de papel com $ central)
+const CashIcon = ({ className = "w-4 h-4", isSelected }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" strokeLinecap="round" strokeLinejoin="round">
+    {/* Cédula traseira inclinada/deslocada */}
+    <rect 
+      x="2" y="3.5" width="16" height="10" rx="2" 
+      stroke={isSelected ? "currentColor" : "#059669"} 
+      strokeWidth="1.2"
+      fill={isSelected ? "currentColor" : "#065f46"} 
+      fillOpacity={isSelected ? "0.2" : "0.6"} 
+    />
+    {/* Cédula frontal */}
+    <rect 
+      x="5" y="7" width="17" height="12.5" rx="2" 
+      stroke={isSelected ? "currentColor" : "#10b981"} 
+      strokeWidth="1.5"
+      fill={isSelected ? "currentColor" : "#047857"} 
+      fillOpacity={isSelected ? "0.3" : "0.95"} 
+    />
+    {/* Círculo central */}
+    <circle 
+      cx="13.5" cy="13.2" r="3" 
+      stroke={isSelected ? "currentColor" : "#6ee7b7"} 
+      strokeWidth="1.2"
+      fill={isSelected ? "currentColor" : "#064e3b"}
+      fillOpacity={isSelected ? "0.4" : "0.9"}
+    />
+    {/* Cifrão central */}
+    <path 
+      d="M13.5 11.4v3.6M12.4 12.2c0-.6.5-1 1.1-1s1.1.3 1.1.9c0 .7-1.1.7-1.1 1.2 0 .5.5.8 1.1.8s1.1-.4 1.1-.9" 
+      stroke={isSelected ? "#0f172a" : "#ecfdf5"} 
+      strokeWidth="1.1" 
+    />
+    {/* Pontinhos nas bordas */}
+    <circle cx="7.5" cy="13.2" r="0.75" fill={isSelected ? "currentColor" : "#a7f3d0"} />
+    <circle cx="19.5" cy="13.2" r="0.75" fill={isSelected ? "currentColor" : "#a7f3d0"} />
+  </svg>
+);
+
 export default function CashierView({ environment, onOpenConfig, onNavigate }) {
   // Estado do Caixa
   const [categories, setCategories] = useState([]);
@@ -1344,10 +1456,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             {/* BOTÕES DE FORMA DE PAGAMENTO: PIX, DÉBITO, CRÉDITO, DINHEIRO */}
             <div className="flex items-center gap-1.5 shrink-0">
               {[
-                { id: 'PIX', label: 'PIX', icon: QrCode },
-                { id: 'DEBITO', label: 'DÉBITO', icon: CreditCard },
-                { id: 'CREDITO', label: 'CRÉDITO', icon: CreditCard },
-                { id: 'DINHEIRO', label: 'DINHEIRO', icon: Banknote },
+                { id: 'PIX', label: 'PIX', icon: PixIcon },
+                { id: 'DEBITO', label: 'DÉBITO', icon: DebitCardIcon },
+                { id: 'CREDITO', label: 'CRÉDITO', icon: CreditCardIcon },
+                { id: 'DINHEIRO', label: 'DINHEIRO', icon: CashIcon },
               ].map((pm) => {
                 const isSelected = paymentMethod === pm.id;
                 const IconComp = pm.icon;
@@ -1363,7 +1475,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     }`}
                     title={`Forma de pagamento: ${pm.label}`}
                   >
-                    <IconComp className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400'}`} />
+                    <IconComp className="w-4 h-4 shrink-0" isSelected={isSelected} />
                     <span>{pm.label}</span>
                   </button>
                 );
