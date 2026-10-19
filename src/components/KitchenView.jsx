@@ -419,7 +419,7 @@ export default function KitchenView({ environment, onNavigate }) {
       
       {/* CABEÇALHO DA COZINHA (SELETOR À ESQUERDA + DESTINO DOS CAIXAS + ESPERA/ENTREGUES À DIREITA) */}
       <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between shrink-0 shadow-xl gap-3">
-        {/* LADO ESQUERDO: SELETOR DE AMBIENTE + RECEBE PEDIDOS DO */}
+        {/* LADO ESQUERDO: SELETOR DE AMBIENTE */}
         <div className="flex items-center gap-3 flex-wrap">
           <ProfileSelector 
             title={environment?.name || 'COZINHA & PRODUÇÃO'}
@@ -428,15 +428,6 @@ export default function KitchenView({ environment, onNavigate }) {
               if (onNavigate) onNavigate(profileId);
             }}
           />
-
-          <div className="flex items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-xl border border-slate-800">
-            <span className="text-emerald-400 text-xs sm:text-sm font-bold whitespace-nowrap flex items-center gap-1">
-              Recebe <ArrowRight className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5] shrink-0" /> pedidos de
-            </span>
-            <span className="bg-black text-amber-300 text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg border border-slate-700 shadow-sm whitespace-nowrap uppercase">
-              {storageService.getTargetProductsForKitchen(environment?.id || 'COZINHA')}
-            </span>
-          </div>
         </div>
 
         {/* LADO DIREITO: ESPERA E ENTREGUES + BOTÃO TELA CHEIA */}
