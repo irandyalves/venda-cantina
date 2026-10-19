@@ -2783,22 +2783,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
-                {/* TABELA COMPLETA COM STATUS, EXCLUÍDOS EM ESMAECIDO E RESTAURAR */}
+                {/* TABELA COMPLETA COM STATUS, EXCLUÍDOS EM ESMAECIDO E RESTAURAR (COMPACTA) */}
                 <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-2">
-                  <div className="max-h-80 overflow-y-auto">
-                    <table className="w-full text-left text-xs text-slate-300">
-                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider z-10">
+                  <div className="max-h-[520px] overflow-y-auto">
+                    <table className="w-full text-left text-[11px] text-slate-300">
+                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[9px] tracking-wider z-10 border-b border-slate-800">
                         <tr>
-                          <th className="p-2.5">Comanda</th>
-                          <th className="p-2.5">Cliente</th>
-                          <th className="p-2.5">Item</th>
-                          <th className="p-2.5">Qtde</th>
-                          <th className="p-2.5">Pagamento</th>
-                          <th className="p-2.5 text-right">Valor</th>
-                          <th className="p-2.5 text-center">Ações</th>
+                          <th className="py-1.5 px-2">Comanda</th>
+                          <th className="py-1.5 px-2">Cliente</th>
+                          <th className="py-1.5 px-2">Item</th>
+                          <th className="py-1.5 px-2">Qtde</th>
+                          <th className="py-1.5 px-2">Pagamento</th>
+                          <th className="py-1.5 px-2 text-right">Valor</th>
+                          <th className="py-1.5 px-2 text-center">Ações</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800">
+                      <tbody className="divide-y divide-slate-800/80">
                         {orders.length === 0 ? (
                           <tr>
                             <td colSpan="7" className="p-4 text-center text-slate-500 italic">
@@ -2814,44 +2814,44 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                 className={`transition-colors ${
                                   isCancelled 
                                     ? 'opacity-40 bg-slate-950/80 text-slate-500 line-through select-none' 
-                                    : 'hover:bg-slate-800/40'
+                                    : 'hover:bg-slate-800/50'
                                 }`}
                               >
-                                <td className="p-2.5 font-mono font-bold text-orange-400">{ord.orderNumber}</td>
-                                <td className="p-2.5 font-bold text-white">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                <td className="py-1 px-2 font-mono font-bold text-orange-400 whitespace-nowrap">{ord.orderNumber}</td>
+                                <td className="py-1 px-2 font-semibold text-white">
+                                  <div className="flex items-center gap-1 flex-wrap">
                                     <span className={isCancelled ? 'line-through text-slate-400' : ''}>
                                       {ord.customerName}
                                     </span>
                                     {isCancelled && (
-                                      <span className="no-underline text-[9px] font-black uppercase tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1.5 py-0.5 rounded shadow-sm inline-block">
+                                      <span className="no-underline text-[8px] font-black uppercase tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1 py-0.2 rounded shadow-sm inline-block">
                                         EXCLUÍDO
                                       </span>
                                     )}
                                   </div>
                                 </td>
-                                <td className="p-2.5">{ord.fullDescription || ord.itemName}</td>
-                                <td className="p-2.5">{ord.quantity}x</td>
-                                <td className="p-2.5">{ord.paymentMethod}</td>
-                                <td className={`p-2.5 text-right font-bold ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
+                                <td className="py-1 px-2 text-slate-300 truncate max-w-[180px]">{ord.fullDescription || ord.itemName}</td>
+                                <td className="py-1 px-2 whitespace-nowrap">{ord.quantity}x</td>
+                                <td className="py-1 px-2 whitespace-nowrap text-slate-400">{ord.paymentMethod}</td>
+                                <td className={`py-1 px-2 text-right font-bold whitespace-nowrap ${isCancelled ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
                                   {formatPrice(ord.totalPrice, showCurrencySymbol)}
                                 </td>
-                                <td className="p-2.5 text-center no-underline">
+                                <td className="py-1 px-2 text-center no-underline whitespace-nowrap">
                                   {isCancelled ? (
                                     <button
                                       onClick={() => handleRestoreOrder(ord.id)}
-                                      className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[11px] rounded-lg border border-slate-700 inline-flex items-center gap-1 shadow-sm no-underline cursor-pointer"
+                                      className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[10px] rounded border border-slate-700 inline-flex items-center gap-0.5 shadow-sm no-underline cursor-pointer"
                                       title="Restaurar venda de volta ao faturamento do caixa"
                                     >
-                                      <RotateCcw className="w-3 h-3" /> Restaurar
+                                      <RotateCcw className="w-2.5 h-2.5" /> Restaurar
                                     </button>
                                   ) : (
                                     <button
                                       onClick={() => handleOpenCancelConfirm(ord)}
-                                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                      className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors inline-flex items-center cursor-pointer"
                                       title="Excluir venda do faturamento (permanece no histórico esmaecida)"
                                     >
-                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <Trash2 className="w-3 h-3" />
                                     </button>
                                   )}
                                 </td>
@@ -2865,113 +2865,83 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
-              {/* SEÇÃO: BACKUPS (CÓPIAS SALVAS DE TURNOS ARQUIVADOS) */}
-              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+              {/* SEÇÃO: BACKUPS (EM 2 COLUNAS ESPREMIDAS) */}
+              <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700 pb-2.5">
                   <div className="flex items-center gap-2">
                     <Archive className="w-4 h-4 text-emerald-400" />
                     <div>
-                      <h4 className="font-extrabold text-white text-sm">Backups</h4>
-                      <p className="text-[11px] text-slate-400">
-                        Cópias salvas e turnos arquivados com faturamento, auditoria e vendas anteriores
+                      <h4 className="font-extrabold text-white text-sm leading-tight">Backups</h4>
+                      <p className="text-[10px] text-slate-400">
+                        Cópias salvas e turnos arquivados com faturamento e vendas anteriores
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 font-mono bg-slate-900/60 px-2 py-1 rounded-lg border border-slate-700">
-                      {turnoHistory.length} backup(s) arquivado(s)
+                    <span className="text-[11px] text-slate-400 font-mono bg-slate-900/60 px-2 py-0.5 rounded-lg border border-slate-700">
+                      {turnoHistory.length} backup(s)
                     </span>
                     <button
                       onClick={handleOpenResetModal}
-                      className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm hover:scale-[1.02] cursor-pointer"
+                      className="px-2.5 py-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm hover:scale-[1.02] cursor-pointer"
                       title="Salvar cópia de backup e iniciar novo turno limpo"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" /> Zerar / Fechar Turno
+                      <RotateCcw className="w-3 h-3" /> Zerar / Fechar Turno
                     </button>
                   </div>
                 </div>
 
                 {turnoHistory.length === 0 ? (
-                  <div className="text-center py-6 text-slate-500 text-xs italic bg-slate-900/30 rounded-xl border border-slate-800">
+                  <div className="text-center py-4 text-slate-500 text-xs italic bg-slate-900/30 rounded-xl border border-slate-800">
                     Nenhum backup arquivado ainda. Ao clicar em &quot;Zerar / Fechar Turno&quot;, uma cópia completa de segurança será preservada aqui.
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
                     {turnoHistory.map((bkp, idx) => (
                       <div
                         key={bkp.id || idx}
-                        className="p-3 bg-slate-900/70 hover:bg-slate-900 border border-slate-700/80 rounded-xl flex items-center justify-between gap-3 transition-colors"
+                        className="p-2.5 bg-slate-900/70 hover:bg-slate-900 border border-slate-700/80 rounded-xl flex items-center justify-between gap-2 transition-colors"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 font-bold text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 font-bold text-[11px]">
                             #{turnoHistory.length - idx}
                           </div>
                           <div className="truncate">
-                            <p className="text-white text-xs font-bold truncate">
-                              {bkp.label || bkp.name || `Backup do Turno (${new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleDateString()})`}
+                            <p className="text-white text-[11px] font-bold truncate leading-tight">
+                              {bkp.label || bkp.name || `Backup (${new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleDateString()})`}
                             </p>
-                            <p className="text-[11px] text-slate-400 flex items-center gap-2">
-                              <span>📅 {new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleString()}</span>
+                            <p className="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap leading-tight mt-0.5">
+                              <span>📅 {new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleDateString()} {new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                               <span>•</span>
-                              <span className="text-emerald-400 font-semibold font-mono">
-                                Total: {formatPrice(bkp.totalRevenue || bkp.stats?.totalRevenue || 0, showCurrencySymbol)}
+                              <span className="text-emerald-400 font-bold font-mono">
+                                {formatPrice(bkp.totalRevenue || bkp.stats?.totalRevenue || 0, showCurrencySymbol)}
                               </span>
                               <span>•</span>
-                              <span>{bkp.orders?.length || bkp.ordersCount || 0} pedidos</span>
+                              <span>{bkp.orders?.length || bkp.ordersCount || 0} ped.</span>
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
                           <button
                             onClick={() => handleOpenConference(bkp)}
-                            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border border-slate-600 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border border-slate-600 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                             title="Conferir vendas e faturamento deste backup"
                           >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Conferir
+                            <CheckCircle2 className="w-3 h-3" /> Conferir
                           </button>
                           <button
                             onClick={() => handleRequestReopenTurno(bkp)}
-                            className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/40 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/40 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                             title="Reabrir este turno no caixa atual"
                           >
-                            <RotateCcw className="w-3.5 h-3.5" /> Reabrir Caixa
+                            <RotateCcw className="w-3 h-3" /> Reabrir
                           </button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
-
-              {/* SEÇÃO 3: HISTÓRICO DE EVENTOS REALIZADOS */}
-              <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-700 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-amber-400" />
-                    <h4 className="font-extrabold text-white text-sm">
-                      Histórico de Eventos da Cantina
-                    </h4>
-                  </div>
-                  <span className="text-xs text-slate-400 font-mono">
-                    {eventsList.length} evento(s)
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {eventsList.map(evt => (
-                    <div key={evt.id} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
-                      <div>
-                        <div className="text-xs font-bold text-white">{evt.name}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{evt.date || 'Hoje'}</div>
-                      </div>
-                      {currentEvent?.id === evt.id && (
-                        <span className="text-[9px] bg-amber-400/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-400/30">
-                          Ativo
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
               </div>
 
             </div>
