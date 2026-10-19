@@ -40,7 +40,7 @@ import {
   Flame,
   ChefHat
 } from 'lucide-react';
-import { storageService, formatPrice, getSectionBackgroundStyle } from '../services/storage';
+import { storageService, formatPrice, getSectionBackgroundStyle, resolveSpacingPx, resolveHeightPx } from '../services/storage';
 import { authService } from '../services/auth';
 import ProfileSelector from './ProfileSelector';
 import AutoToast from './AutoToast';
@@ -1334,9 +1334,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         style={{
           borderLeftColor: leftBorderColor,
           borderTopColor: topBottomBorderColor,
-          borderBottomColor: topBottomBorderColor
+          borderBottomColor: topBottomBorderColor,
+          minHeight: `${resolveHeightPx(systemSettings?.cashierCardHeight, 42)}px`
         }}
-        className={`px-2 py-0.5 rounded-l-lg rounded-r-none border-y border-l-[4px] border-r-0 transition-all shadow-md text-xs flex items-center justify-between gap-1.5 relative bg-slate-900/90 hover:bg-slate-850 ${
+        className={`px-2 py-1 rounded-l-lg rounded-r-none border-y border-l-[4px] border-r-0 transition-all shadow-md text-xs flex items-center justify-between gap-1.5 relative bg-slate-900/90 hover:bg-slate-850 ${
           isDelivered ? 'opacity-70 hover:opacity-100' : ''
         }`}
       >
@@ -2095,7 +2096,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className={`flex-1 overflow-y-auto ${cashierSpacingClass} pr-0 min-h-0 custom-scrollbar`}>
+            <div 
+              className="flex-1 overflow-y-auto pr-0 min-h-0 custom-scrollbar flex flex-col"
+              style={{ gap: `${resolveSpacingPx(systemSettings?.cashierCardSpacing, 6)}px` }}
+            >
               {preparingList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium pr-2">
                   Nenhum pedido em preparo
@@ -2120,7 +2124,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className={`flex-1 overflow-y-auto ${cashierSpacingClass} pr-0 min-h-0 custom-scrollbar`}>
+            <div 
+              className="flex-1 overflow-y-auto pr-0 min-h-0 custom-scrollbar flex flex-col"
+              style={{ gap: `${resolveSpacingPx(systemSettings?.cashierCardSpacing, 6)}px` }}
+            >
               {readyList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium pr-2">
                   Nenhum pedido pronto
@@ -2145,7 +2152,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </span>
             </div>
 
-            <div className={`flex-1 overflow-y-auto ${cashierSpacingClass} pr-0 min-h-0 custom-scrollbar`}>
+            <div 
+              className="flex-1 overflow-y-auto pr-0 min-h-0 custom-scrollbar flex flex-col"
+              style={{ gap: `${resolveSpacingPx(systemSettings?.cashierCardSpacing, 6)}px` }}
+            >
               {deliveredList.length === 0 ? (
                 <div className="py-4 text-center text-slate-500 text-[10px] font-medium pr-2">
                   Nenhum pedido entregue

@@ -18,7 +18,7 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
-import { storageService } from '../services/storage';
+import { storageService, resolveSpacingPx, resolveHeightPx } from '../services/storage';
 import { soundService } from '../services/sound';
 import ProfileSelector from './ProfileSelector';
 
@@ -491,14 +491,10 @@ export default function KitchenView({ environment, onNavigate }) {
             </p>
           </div>
         ) : (
-          <div className={`${
-            {
-              compact: 'space-y-1',
-              normal: 'space-y-1.5',
-              relaxed: 'space-y-2.5',
-              spacious: 'space-y-4'
-            }[systemSettings?.kitchenCardSpacing || 'normal'] || 'space-y-1.5'
-          } w-full`}>
+          <div 
+            className="flex flex-col w-full"
+            style={{ gap: `${resolveSpacingPx(systemSettings?.kitchenCardSpacing, 6)}px` }}
+          >
             {displayedOrders.map((order) => {
               const isReady = order.status === 'pronto';
               const isDelivered = order.status === 'entregue';
@@ -510,7 +506,8 @@ export default function KitchenView({ environment, onNavigate }) {
               return (
                 <div
                   key={order.id}
-                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-0.5 pl-2 pr-2.5 sm:pr-3 rounded-l-lg rounded-r-none border-y border-l-[5px] border-r-0 transition-all shadow-md gap-1 relative ${
+                  style={{ minHeight: `${resolveHeightPx(systemSettings?.kitchenCardHeight, 52)}px` }}
+                  className={`flex flex-col md:flex-row items-stretch md:items-center justify-between py-1 pl-2 pr-2.5 sm:pr-3 rounded-l-lg rounded-r-none border-y border-l-[5px] border-r-0 transition-all shadow-md gap-1 relative ${
                     isDelivered
                       ? 'bg-slate-900/40 border-slate-800 border-l-slate-600 opacity-60'
                       : isNewestHighlight

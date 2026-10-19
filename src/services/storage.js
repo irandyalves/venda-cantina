@@ -857,10 +857,14 @@ class StorageService {
       cardSoundEnabled: true,        // Sons e alertas sonoros do sistema
       // TEMPOS
       callPasswordDuration: 6,       // Duração da chamada de senha na TV (em segundos: 4, 6, 8, 10, 15)
-      // DISTÂNCIA ENTRE CARDS (COZINHA, TELÃO, CAIXA)
-      kitchenCardSpacing: 'normal',  // 'compact' (space-y-1), 'normal' (space-y-1.5), 'relaxed' (space-y-2.5), 'spacious' (space-y-4)
-      displayCardSpacing: 'normal',  // 'compact' (space-y-1), 'normal' (space-y-1.5), 'relaxed' (space-y-2.5), 'spacious' (space-y-4)
-      cashierCardSpacing: 'normal',  // 'compact' (space-y-0.5), 'normal' (space-y-1.5), 'relaxed' (space-y-2.5), 'spacious' (space-y-4)
+      // DISTÂNCIA ENTRE CARDS (COZINHA, TELÃO, CAIXA) - em pixels (2px a 32px)
+      kitchenCardSpacing: 6,
+      displayCardSpacing: 6,
+      cashierCardSpacing: 6,
+      // ALTURA DOS CARDS (COZINHA, TELÃO, CAIXA) - em pixels
+      kitchenCardHeight: 52,
+      displayCardHeight: 64,
+      cashierCardHeight: 42,
       // FONTES
       fontScale: 'normal'            // 'normal', 'large', 'xl'
     };
@@ -1652,4 +1656,19 @@ export const getSectionBackgroundStyle = (settings) => {
     textureOpacity: Number(settings?.textureOpacity ?? 100),
     darkness: Number(settings?.darkness ?? 0)
   };
+};
+
+// Funções de resolução para compatibilidade entre string antiga ('compact', 'normal', etc) e número em px
+export const resolveSpacingPx = (val, defaultPx = 6) => {
+  if (typeof val === 'number') return val;
+  const map = { compact: 4, normal: 6, relaxed: 10, spacious: 16 };
+  if (val && val in map) return map[val];
+  const num = parseInt(val, 10);
+  return Number.isFinite(num) ? num : defaultPx;
+};
+
+export const resolveHeightPx = (val, defaultPx = 52) => {
+  if (typeof val === 'number') return val;
+  const num = parseInt(val, 10);
+  return Number.isFinite(num) ? num : defaultPx;
 };
