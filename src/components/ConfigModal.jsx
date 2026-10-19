@@ -339,6 +339,18 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     storageService.saveBackgroundSettings(nextSettings);
   };
 
+  // Estado Geral do Sistema (Fundo, Efeitos, Tempos, Fontes, Distância de Cards)
+  const [systemSettings, setSystemSettings] = useState(() => storageService.getSystemSettings());
+
+  const handleUpdateSystemSetting = (key, val) => {
+    const nextSettings = {
+      ...systemSettings,
+      [key]: val
+    };
+    setSystemSettings(nextSettings);
+    storageService.saveSystemSettings(nextSettings);
+  };
+
   useEffect(() => {
     if (isOpen) {
       if (initialTab) setActiveTab(initialTab);
@@ -376,6 +388,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const handleBgChange = (e) => {
       setBgSettings(e.detail || storageService.getBackgroundSettings());
     };
+    const handleSystemChange = (e) => {
+      setSystemSettings(e.detail || storageService.getSystemSettings());
+    };
 
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
     window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
@@ -385,6 +400,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     window.addEventListener('cantina_events_list_changed', handleEventsListChange);
     window.addEventListener('cantina_order_time_limits_changed', handleLimitsChange);
     window.addEventListener('cantina_background_settings_changed', handleBgChange);
+    window.addEventListener('cantina_system_settings_changed', handleSystemChange);
 
     return () => {
       unsubOrders();
@@ -396,6 +412,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       window.removeEventListener('cantina_events_list_changed', handleEventsListChange);
       window.removeEventListener('cantina_order_time_limits_changed', handleLimitsChange);
       window.removeEventListener('cantina_background_settings_changed', handleBgChange);
+      window.removeEventListener('cantina_system_settings_changed', handleSystemChange);
     };
   }, []);
 
@@ -1974,6 +1991,19 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 {turnoHistory.length}
               </span>
             )}
+          </button>
+
+          {/* 7. SISTEMA */}
+          <button
+            onClick={() => setActiveTab('system')}
+            className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
+              activeTab === 'system'
+                ? 'bg-slate-800 text-amber-400 border-amber-400 font-black'
+                : 'text-slate-400 border-transparent hover:text-white'
+            }`}
+          >
+            <Settings className="w-4 h-4 text-amber-400" />
+            <span>SISTEMA</span>
           </button>
         </div>
 
@@ -4017,6 +4047,674 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     </button>
                   </div>
 
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* =========================================================
+              ABA 7: SISTEMA & PERSONALIZAÇÃO COMPLETA
+              - Fundo da Seção dos Cards (Caixa)
+              - Efeitos & Animações
+              - Tempos do Sistema & Chamada de Senha
+              - Distância entre Cards nas Cozinhas
+              - Fontes & Tipografia
+             ========================================================= */}
+          {activeTab === 'system' && (
+            <div className="space-y-6">
+
+              {/* PAINEL 1: FUNDO DA SEÇÃO DOS CARDS (CAIXA) */}
+              <div className="bg-slate-900/95 rounded-2xl border border-amber-500/30 p-4 sm:p-5 shadow-xl space-y-4 relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
+                      <Palette className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2 flex-wrap">
+                        FUNDO DA SEÇÃO DOS CARDS (CAIXA)
+                        <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                          {BACKGROUND_PRESETS.find(p => p.id === bgSettings.theme)?.name || 'Personalizado'}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Escolha o estilo de fundo, ajuste a opacidade da textura e torne mais claro ou escuro conforme sua preferência.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const def = { theme: 'cream', textureOpacity: 100, darkness: 0, customColor: '#eace9a' };
+                      setBgSettings(def);
+                      storageService.saveBackgroundSettings(def);
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-auto"
+                    title="Restaurar padrão clássico original (Creme Texturado)"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Restaurar Padrão</span>
+                  </button>
+                </div>
+
+                {/* SELETOR DE PRESETS / TEMAS */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    Estilos de Fundo Pré-definidos:
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
+                    {BACKGROUND_PRESETS.map((preset) => {
+                      const isSelected = bgSettings.theme === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => handleUpdateBgSetting('theme', preset.id)}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between min-h-[76px] ${
+                            isSelected
+                              ? 'bg-slate-800 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/10'
+                              : 'bg-slate-950/60 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                            <div 
+                              className="w-5 h-5 rounded-full border border-white/20 shadow-sm shrink-0" 
+                              style={{ backgroundColor: preset.previewColor }}
+                            />
+                            {isSelected && (
+                              <span className="p-0.5 bg-amber-400 text-slate-950 rounded-full">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <div className={`text-xs font-black truncate ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                              {preset.name}
+                            </div>
+                            <div className="text-[10px] text-slate-400 truncate leading-tight">
+                              {preset.desc}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* COR PERSONALIZADA (SE TEMA FOR 'CUSTOM') */}
+                {bgSettings.theme === 'custom' && (
+                  <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-wrap items-center gap-3">
+                    <span className="text-xs font-bold text-slate-300">Cor Personalizada de Fundo:</span>
+                    <input
+                      type="color"
+                      value={bgSettings.customColor || '#eace9a'}
+                      onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
+                      className="w-9 h-9 rounded-lg cursor-pointer border border-slate-700 bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={bgSettings.customColor || '#eace9a'}
+                      onChange={(e) => handleUpdateBgSetting('customColor', e.target.value)}
+                      className="w-24 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white text-center"
+                    />
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {['#eace9a', '#f5f5f4', '#d6d3d1', '#78716c', '#44403c', '#1c1917', '#0f172a', '#1e293b', '#262626', '#172554'].map(c => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => handleUpdateBgSetting('customColor', c)}
+                          className="w-6 h-6 rounded-md border border-white/20 hover:scale-110 transition-transform cursor-pointer"
+                          style={{ backgroundColor: c }}
+                          title={c}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* SLIDERS DE OPACIDADE E ESCURECIMENTO (RESPONSIVO: 1 COL EM MOBILE, 2 COLS EM DESKTOP) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {/* SLIDER 1: INTENSIDADE DA TEXTURA (OPACIDADE 0% a 100%) */}
+                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <Sliders className="w-4 h-4 text-amber-400" />
+                        Intensidade da Textura
+                      </label>
+                      <span className="text-xs font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {bgSettings.textureOpacity ?? 100}%
+                      </span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={bgSettings.textureOpacity ?? 100}
+                      onChange={(e) => handleUpdateBgSetting('textureOpacity', Number(e.target.value))}
+                      className="w-full accent-amber-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
+                    />
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>0% (Sem textura / Liso)</span>
+                      <span>50%</span>
+                      <span>100% (Textura máxima)</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-1">
+                      {[
+                        { label: 'Liso (0%)', val: 0 },
+                        { label: 'Suave (50%)', val: 50 },
+                        { label: 'Cheia (100%)', val: 100 }
+                      ].map(btn => (
+                        <button
+                          key={btn.val}
+                          type="button"
+                          onClick={() => handleUpdateBgSetting('textureOpacity', btn.val)}
+                          className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                            (bgSettings.textureOpacity ?? 100) === btn.val
+                              ? 'bg-amber-500 text-slate-950 border-amber-400'
+                              : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
+                          }`}
+                        >
+                          {btn.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* SLIDER 2: NÍVEL DE CLARIDADE / ESCURECIMENTO (0% A 80%) */}
+                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <Sun className="w-4 h-4 text-amber-400" />
+                        <span>Claridade / Escurecimento</span>
+                        <Moon className="w-4 h-4 text-indigo-400 ml-1" />
+                      </label>
+                      <span className="text-xs font-mono font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        {bgSettings.darkness ?? 0}% {Number(bgSettings.darkness || 0) === 0 ? '(Mais Claro)' : '(Mais Escuro)'}
+                      </span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="0"
+                      max="80"
+                      step="5"
+                      value={bgSettings.darkness ?? 0}
+                      onChange={(e) => handleUpdateBgSetting('darkness', Number(e.target.value))}
+                      className="w-full accent-indigo-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
+                    />
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <Sun className="w-3 h-3 text-amber-400" />
+                        0% (Mais Claro)
+                      </span>
+                      <span>40%</span>
+                      <span className="flex items-center gap-1">
+                        <Moon className="w-3 h-3 text-indigo-400" />
+                        80% (Mais Escuro)
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-1">
+                      {[
+                        { label: 'Claro (0%)', val: 0 },
+                        { label: 'Médio (35%)', val: 35 },
+                        { label: 'Escuro (65%)', val: 65 }
+                      ].map(btn => (
+                        <button
+                          key={btn.val}
+                          type="button"
+                          onClick={() => handleUpdateBgSetting('darkness', btn.val)}
+                          className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                            (bgSettings.darkness ?? 0) === btn.val
+                              ? 'bg-indigo-500 text-white border-indigo-400'
+                              : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
+                          }`}
+                        >
+                          {btn.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* PRÉ-VISUALIZAÇÃO AO VIVO COM CARDS REAIS DE AMOSTRA */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                    <span className="flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5 text-amber-400" />
+                      Pré-visualização Ao Vivo (Como os cards aparecem na tela do Caixa):
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
+                      Atualização em tempo real conforme você ajusta os controles
+                    </span>
+                  </div>
+
+                  <div 
+                    className="relative rounded-2xl overflow-hidden border border-slate-700/80 p-3 sm:p-4 min-h-[140px] shadow-inner"
+                    style={{
+                      backgroundColor: previewBgStyle.bgColor
+                    }}
+                  >
+                    {/* Camada Textura do Preview */}
+                    {previewBgStyle.bgImage && (
+                      <div 
+                        aria-hidden="true"
+                        className="absolute inset-0 pointer-events-none transition-opacity duration-200"
+                        style={{
+                          backgroundImage: previewBgStyle.bgImage,
+                          backgroundRepeat: 'repeat',
+                          backgroundSize: previewBgStyle.bgSize || '460px auto',
+                          opacity: (bgSettings.textureOpacity ?? 100) / 100
+                        }}
+                      />
+                    )}
+
+                    {/* Camada Escurecimento do Preview */}
+                    {Number(bgSettings.darkness || 0) > 0 && (
+                      <div 
+                        aria-hidden="true"
+                        className="absolute inset-0 pointer-events-none bg-black transition-opacity duration-200"
+                        style={{
+                          opacity: (Number(bgSettings.darkness || 0)) / 100
+                        }}
+                      />
+                    )}
+
+                    {/* Cards de Amostra no Preview */}
+                    <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
+                      {/* Amostra 1: Pizza com Borda Verde Suave */}
+                      <div className="rounded-2xl bg-slate-900/95 border-2 border-emerald-400 ring-2 ring-emerald-400/40 p-3 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.25)] flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                          <Pizza className="w-6 h-6 text-amber-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[10px] font-black uppercase text-amber-400 font-mono">PIZZA</span>
+                          <h4 className="text-xs font-black text-white truncate">Pizza Calabresa</h4>
+                          <span className="text-xs font-mono font-black text-emerald-400">R$ 15,00</span>
+                        </div>
+                        <span className="text-[10px] bg-emerald-500 text-slate-950 font-black px-2 py-0.5 rounded-full shrink-0">
+                          ✓ Exemplo
+                        </span>
+                      </div>
+
+                      {/* Amostra 2: Açaí com Sombra Suave */}
+                      <div className="rounded-2xl bg-slate-900/95 border border-slate-800 p-3 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.25)] flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
+                          <IceCream className="w-6 h-6 text-purple-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[10px] font-black uppercase text-purple-400 font-mono">AÇAÍ</span>
+                          <h4 className="text-xs font-black text-white truncate">Açaí Copo 300ml</h4>
+                          <span className="text-xs font-mono font-black text-emerald-400">R$ 12,00</span>
+                        </div>
+                        <span className="text-[10px] bg-slate-800 text-slate-400 font-bold px-2 py-0.5 rounded-full border border-slate-700 shrink-0">
+                          Card Normal
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* PAINEL 2: TEMPOS DO SISTEMA & TELÃO */}
+              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shrink-0">
+                      <Clock className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
+                        TEMPOS DO SISTEMA & TELÃO
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Configure a duração da chamada de senha na TV e os limites de tempo dos pedidos na cozinha.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* TEMPO DE EXIBIÇÃO DE AVISO CHAMADA DE SENHA */}
+                <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Tv className="w-4 h-4 text-amber-400" />
+                        Tempo de Exibição da Chamada de Senha na TV
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        Tempo que o aviso central com 'SENHA', número, nome e pedido permanece na tela antes de voltar aos cards.
+                      </p>
+                    </div>
+                    <span className="text-xs font-mono font-black px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      {systemSettings.callPasswordDuration || 6} segundos
+                    </span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="3"
+                    max="20"
+                    step="1"
+                    value={systemSettings.callPasswordDuration || 6}
+                    onChange={(e) => handleUpdateSystemSetting('callPasswordDuration', Number(e.target.value))}
+                    className="w-full accent-amber-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
+                  />
+
+                  <div className="flex items-center gap-2 flex-wrap pt-1">
+                    {[
+                      { label: '3s (Rápido)', val: 3 },
+                      { label: '6s (Padrão)', val: 6 },
+                      { label: '8s', val: 8 },
+                      { label: '10s', val: 10 },
+                      { label: '15s (Longo)', val: 15 }
+                    ].map(btn => (
+                      <button
+                        key={btn.val}
+                        type="button"
+                        onClick={() => handleUpdateSystemSetting('callPasswordDuration', btn.val)}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          (systemSettings.callPasswordDuration || 6) === btn.val
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-black'
+                            : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
+                        }`}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* LIMITES DE TEMPO E CORES DOS PEDIDOS NA COZINHA */}
+                <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-emerald-400" />
+                        Limites de Tempo e Cores dos Pedidos na Cozinha
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        Tempo em minutos para mudança de cor do card conforme o pedido fica esperando.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleResetOrderTimeLimits}
+                        className="px-2 py-1 bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        title="Restaurar tempos padrão"
+                      >
+                        <RotateCcw className="w-3 h-3 text-amber-400" />
+                        <span>Padrão</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveOrderTimeLimits}
+                        className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-lg transition-all shadow flex items-center gap-1 cursor-pointer"
+                      >
+                        <Save className="w-3 h-3" />
+                        <span>Salvar Tempos</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 pt-1">
+                    {/* VERDE */}
+                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-emerald-500 border border-slate-800 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-emerald-400 block">Normal (Verde)</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400">Até</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={orderTimeLimits.greenLimit}
+                          onChange={(e) => handleUpdateOrderTimeLimits('greenLimit', e.target.value)}
+                          className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-emerald-400 text-center outline-none focus:border-emerald-400"
+                        />
+                        <span className="text-xs text-slate-400 font-mono">min</span>
+                      </div>
+                    </div>
+
+                    {/* AZUL */}
+                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-sky-500 border border-slate-800 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-sky-400 block">No Prazo (Azul)</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400">Até</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={orderTimeLimits.blueLimit}
+                          onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
+                          className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-sky-400 text-center outline-none focus:border-sky-400"
+                        />
+                        <span className="text-xs text-slate-400 font-mono">min</span>
+                      </div>
+                    </div>
+
+                    {/* AMARELO */}
+                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-yellow-500 border border-slate-800 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-yellow-400 block">Alerta 1 (Amarelo)</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400">Até</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={orderTimeLimits.yellowLimit}
+                          onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
+                          className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-yellow-400 text-center outline-none focus:border-yellow-400"
+                        />
+                        <span className="text-xs text-slate-400 font-mono">min</span>
+                      </div>
+                    </div>
+
+                    {/* LARANJA */}
+                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-orange-500 border border-slate-800 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-orange-400 block">Atrasado (Laranja)</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400">Até</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={orderTimeLimits.orangeLimit}
+                          onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
+                          className="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-orange-400 text-center outline-none focus:border-orange-400"
+                        />
+                        <span className="text-xs text-slate-400 font-mono">min</span>
+                      </div>
+                    </div>
+
+                    {/* VERMELHO */}
+                    <div className="bg-slate-900 p-2.5 rounded-xl border-l-4 border-l-rose-500 border border-slate-800 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-rose-400 block">Muito Atrasado</span>
+                      <div className="text-xs font-mono text-rose-300 pt-1">
+                        Acima de {orderTimeLimits.orangeLimit}m
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* PAINEL 3: DISTÂNCIA ENTRE CARDS NAS COZINHAS */}
+              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30 shrink-0">
+                      <LayoutGrid className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
+                        DISTÂNCIA ENTRE CARDS NAS COZINHAS
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Ajuste o espaçamento vertical entre as comandas na tela da Cozinha conforme o tamanho do monitor ou tablet.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {[
+                    { id: 'compact', label: 'Compacto (4px)', desc: 'Mais pedidos visíveis na tela' },
+                    { id: 'normal', label: 'Normal (6px)', desc: 'Padrão equilibrado' },
+                    { id: 'relaxed', label: 'Espaçoso (10px)', desc: 'Maior destaque individual' },
+                    { id: 'spacious', label: 'Amplo (16px)', desc: 'Separação máxima estilo painel' }
+                  ].map(opt => {
+                    const isSelected = (systemSettings.kitchenCardSpacing || 'normal') === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleUpdateSystemSetting('kitchenCardSpacing', opt.id)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          isSelected
+                            ? 'bg-slate-800 border-emerald-400 ring-2 ring-emerald-400/40 shadow-lg'
+                            : 'bg-slate-950/70 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className={`text-xs font-black ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                            {opt.label}
+                          </span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                        </div>
+                        <span className="text-[10px] text-slate-400 leading-tight">
+                          {opt.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* PAINEL 4: EFEITOS VISUAIS & ÁUDIO */}
+              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
+                      <Sparkles className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
+                        EFEITOS VISUAIS & ÁUDIO
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Controle os efeitos visuais de destaque e os avisos sonoros da cantina.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Efeito Pulsante nos Cards */}
+                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-emerald-400" />
+                        Efeito Pulsante nos Cards em Preparo
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Borda verde pulsante suave e ícone giratório nos pedidos ativos.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateSystemSetting('cardPulsing', systemSettings.cardPulsing === false)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all border shrink-0 cursor-pointer ${
+                        systemSettings.cardPulsing !== false
+                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      {systemSettings.cardPulsing !== false ? '✓ Ativado' : '✕ Desativado'}
+                    </button>
+                  </div>
+
+                  {/* Som e Alertas */}
+                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Volume2 className="w-4 h-4 text-amber-400" />
+                        Sons e Alertas Sonoros
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Tocar sino ao chamar senha e sinal sonoro de novo pedido.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateSystemSetting('cardSoundEnabled', systemSettings.cardSoundEnabled === false)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all border shrink-0 cursor-pointer ${
+                        systemSettings.cardSoundEnabled !== false
+                          ? 'bg-amber-600 text-white border-amber-400 shadow-md'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      {systemSettings.cardSoundEnabled !== false ? '✓ Ativado' : '✕ Desativado'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* PAINEL 5: FONTES & TIPOGRAFIA */}
+              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-purple-500/20 text-purple-400 rounded-xl border border-purple-500/30 shrink-0">
+                      <Tag className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
+                        FONTES & TIPOGRAFIA
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Ajuste o tamanho de exibição dos números de pedidos e nomes de clientes para telas distantes.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {[
+                    { id: 'normal', label: 'Padrão (100%)', desc: 'Tamanho ideal para uso em balcão e mesas' },
+                    { id: 'large', label: 'Grande (+20%)', desc: 'Maior visibilidade para monitores distantes' },
+                    { id: 'xl', label: 'Extra Grande (+40%)', desc: 'Máxima legibilidade para TVs suspensas' }
+                  ].map(f => {
+                    const isSelected = (systemSettings.fontScale || 'normal') === f.id;
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => handleUpdateSystemSetting('fontScale', f.id)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          isSelected
+                            ? 'bg-slate-800 border-purple-400 ring-2 ring-purple-400/40 shadow-lg'
+                            : 'bg-slate-950/70 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className={`text-xs font-black ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                            {f.label}
+                          </span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                        </div>
+                        <span className="text-[10px] text-slate-400 leading-tight">
+                          {f.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

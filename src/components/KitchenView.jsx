@@ -32,6 +32,7 @@ export default function KitchenView({ environment, onNavigate }) {
 
   // Escuta alterações na configuração de som e roteamento da cozinha
   const [productionRouting, setProductionRouting] = useState(() => storageService.getProductionRouting());
+  const [systemSettings, setSystemSettings] = useState(() => storageService.getSystemSettings());
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -66,13 +67,18 @@ export default function KitchenView({ environment, onNavigate }) {
     const handleLockChange = (e) => {
       setScreensLocked(!!e.detail);
     };
+    const handleSystemChange = (e) => {
+      setSystemSettings(e.detail || storageService.getSystemSettings());
+    };
     window.addEventListener('cantina_kitchen_settings_changed', handleKitchenSettings);
     window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
     window.addEventListener('cantina_screens_locked_changed', handleLockChange);
+    window.addEventListener('cantina_system_settings_changed', handleSystemChange);
     return () => {
       window.removeEventListener('cantina_kitchen_settings_changed', handleKitchenSettings);
       window.removeEventListener('cantina_production_routing_changed', handleRoutingChange);
       window.removeEventListener('cantina_screens_locked_changed', handleLockChange);
+      window.removeEventListener('cantina_system_settings_changed', handleSystemChange);
     };
   }, []);
 
@@ -494,7 +500,14 @@ export default function KitchenView({ environment, onNavigate }) {
             </p>
           </div>
         ) : (
-          <div className="space-y-1.5 w-full">
+          <div className={`${
+            {
+              compact: 'space-y-1',
+              normal: 'space-y-1.5',
+              relaxed: 'space-y-2.5',
+              spacious: 'space-y-4'
+            }[systemSettings?.kitchenCardSpacing || 'normal'] || 'space-y-1.5'
+          } w-full`}>
             {displayedOrders.map((order) => {
               const isReady = order.status === 'pronto';
               const isDelivered = order.status === 'entregue';

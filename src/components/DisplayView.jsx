@@ -24,12 +24,13 @@ export default function DisplayView({ environment, onNavigate }) {
   
   // Configurações da TV vindas do Storage (definidas pelo Caixa)
   const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
+  const [systemSettings, setSystemSettings] = useState(() => storageService.getSystemSettings());
 
   const prevBellTimestampsRef = useRef(new Map());
   const isFirstLoadRef = useRef(true);
   const deliveredModalTimerRef = useRef(null);
 
-  // Escuta configurações da TV
+  // Escuta configurações da TV e do Sistema
   useEffect(() => {
     const handleSettingsChange = (e) => {
       setTvSettings(e.detail);
@@ -37,11 +38,16 @@ export default function DisplayView({ environment, onNavigate }) {
     const handleLockChange = (e) => {
       setScreensLocked(!!e.detail);
     };
+    const handleSystemChange = (e) => {
+      setSystemSettings(e.detail || storageService.getSystemSettings());
+    };
     window.addEventListener('cantina_tv_settings_changed', handleSettingsChange);
     window.addEventListener('cantina_screens_locked_changed', handleLockChange);
+    window.addEventListener('cantina_system_settings_changed', handleSystemChange);
     return () => {
       window.removeEventListener('cantina_tv_settings_changed', handleSettingsChange);
       window.removeEventListener('cantina_screens_locked_changed', handleLockChange);
+      window.removeEventListener('cantina_system_settings_changed', handleSystemChange);
     };
   }, []);
 
@@ -73,11 +79,11 @@ export default function DisplayView({ environment, onNavigate }) {
     }
   }, [tvSettings.autoFullscreen]);
 
-  // Função para acionar o modal central com som por exatamente 6 segundos
+  // Função para acionar o modal central com som pelo tempo configurado no sistema
   const triggerDeliveredModal = (order) => {
     try {
       soundService.getAudioContext();
-      if (tvSettings.soundEnabled !== false) {
+      if (tvSettings.soundEnabled !== false && systemSettings?.cardSoundEnabled !== false) {
         soundService.playDeliveredAlertSound();
       }
     } catch (e) {
@@ -90,10 +96,10 @@ export default function DisplayView({ environment, onNavigate }) {
       clearTimeout(deliveredModalTimerRef.current);
     }
 
-    // 6 segundos, some sozinho e volta para os cards normais
+    const durationSec = Math.max(2, Number(systemSettings?.callPasswordDuration || 6));
     deliveredModalTimerRef.current = setTimeout(() => {
       setDeliveredModalOrder(null);
-    }, 6000);
+    }, durationSec * 1000);
   };
 
   const linkedKitchenId = environment?.linkedKitchen;
@@ -349,25 +355,30 @@ export default function DisplayView({ environment, onNavigate }) {
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border-4 border-amber-400 rounded-3xl p-6 sm:p-10 text-center shadow-[0_0_120px_rgba(245,158,11,0.85)] animate-modal-delivered space-y-6 relative overflow-hidden"
           >
-            {/* BARRA DE PROGRESSO DE 6 SEGUNDOS */}
-            <div className="absolute top-0 left-0 h-2 bg-gradient-to-r from-amber-400 via-emerald-400 to-amber-400 animate-progress-6s" />
+            {/* BARRA DE PROGRESSO COM DURAÇÃO CONFIGURADA */}
+            <div 
+              className="absolute top-0 left-0 h-2 bg-gradient-to-r from-amber-400 via-emerald-400 to-amber-400 animate-modal-progress" 
+              style={{
+                animationDuration: `${Math.max(2, Number(systemSettings?.callPasswordDuration || 6))}s`
+              }}
+            />
 
-            {/* SELO SUPERIOR */}
+            {/* SELO SUPERIOR / CAPTION: 'SENHA' */}
             <div className="flex items-center justify-center gap-2">
-              <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-full animate-bounce">
+              <span className="p-2 bg-amber-500/20 text-amber-400 rounded-full animate-bounce">
                 <Sparkles className="w-6 h-6" />
               </span>
-              <span className="text-base sm:text-lg md:text-xl uppercase font-black tracking-widest text-emerald-400 bg-emerald-950/80 px-6 py-1.5 rounded-full border border-emerald-500/50 shadow">
-                PEDIDO Nº
+              <span className="text-xl sm:text-2xl md:text-3xl uppercase font-black tracking-widest text-amber-300 bg-amber-950/80 px-8 py-2 rounded-full border-2 border-amber-500/60 shadow-[0_0_25px_rgba(245,158,11,0.6)]">
+                SENHA
               </span>
-              <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-full animate-bounce">
+              <span className="p-2 bg-amber-500/20 text-amber-400 rounded-full animate-bounce">
                 <Sparkles className="w-6 h-6" />
               </span>
             </div>
 
-            {/* 1. NÚMERO DO PEDIDO (GRANDE) */}
+            {/* 1. EMBAIXO A SENHA PROPRIAMENTE DITA */}
             <div>
-              <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-amber-400 font-mono tracking-tight drop-shadow-[0_0_40px_rgba(251,191,36,0.9)] animate-pulse">
+              <div className="text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] font-black text-amber-400 font-mono tracking-tight drop-shadow-[0_0_50px_rgba(251,191,36,0.95)] animate-pulse">
                 {deliveredModalOrder.orderNumber}
               </div>
             </div>
@@ -379,7 +390,7 @@ export default function DisplayView({ environment, onNavigate }) {
               </div>
             </div>
 
-            {/* 3. O QUE PEDIU */}
+            {/* 3. E O PEDIDO */}
             <div className="flex items-center justify-center pt-1">
               <div className="text-xl sm:text-2xl md:text-3xl font-black text-purple-200 bg-purple-950/80 px-6 py-3.5 rounded-2xl border-2 border-purple-500/60 shadow-lg drop-shadow-[0_0_20px_rgba(216,180,254,0.7)]">
                 {renderItemDetails(deliveredModalOrder)}
@@ -472,7 +483,7 @@ export default function DisplayView({ environment, onNavigate }) {
                 </span>
                 <div>
                   <h2 className="text-base sm:text-lg font-black text-emerald-300 uppercase tracking-widest leading-tight">
-                    PRONTOS (RETIRAR)
+                    PRONTOS
                   </h2>
                   <p className="text-[10px] text-slate-400">Aguardando retirada no balcão</p>
                 </div>
@@ -504,7 +515,7 @@ export default function DisplayView({ environment, onNavigate }) {
 
                       <span className="text-emerald-400 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                      <span className="text-lg sm:text-xl md:text-2xl font-black text-white uppercase tracking-wide truncate shrink-0 max-w-[38%]">
+                      <span className="text-lg sm:text-xl md:text-2xl font-black text-white uppercase tracking-wide truncate shrink-0 max-w-[55%]">
                         {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
                       </span>
 
@@ -514,10 +525,6 @@ export default function DisplayView({ environment, onNavigate }) {
                         {formatOrderSummary(order)}
                       </span>
                     </div>
-
-                    <span className="text-xs sm:text-sm font-black text-emerald-300 bg-emerald-900/80 border border-emerald-400/80 px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.4)] animate-pulse ml-2">
-                      ✓ RETIRAR
-                    </span>
                   </div>
                 ))
               )}
@@ -567,7 +574,7 @@ export default function DisplayView({ environment, onNavigate }) {
 
                         <span className="text-blue-400/50 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                        <span className="text-lg sm:text-xl md:text-2xl font-black text-slate-300 uppercase tracking-wide truncate shrink-0 max-w-[38%]">
+                        <span className="text-lg sm:text-xl md:text-2xl font-black text-slate-300 uppercase tracking-wide truncate shrink-0 max-w-[55%]">
                           {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
                         </span>
 
@@ -577,10 +584,6 @@ export default function DisplayView({ environment, onNavigate }) {
                           {formatOrderSummary(order)}
                         </span>
                       </div>
-
-                      <span className="text-xs sm:text-sm font-bold text-blue-300/80 bg-blue-950/60 border border-blue-500/40 px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 ml-2">
-                        ✓ ENTREGUE
-                      </span>
                     </div>
                   ))
                 )}

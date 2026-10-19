@@ -1684,6 +1684,83 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
       </section>
 
+      {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (COLADA NO CABEÇALHO SUPERIOR, BORDA A BORDA, SEM CANTOS ARREDONDADOS) */}
+      <nav className="w-full bg-slate-950 px-3 sm:px-4 py-2 border-t border-dashed border-slate-700/80 shrink-0 z-20 flex items-center justify-between gap-2 flex-wrap shadow-md">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+            <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
+            Tipo:
+          </span>
+
+          {/* BOTÃO TODOS */}
+          <button
+            type="button"
+            onClick={() => setSelectedTypeFilter('all')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              selectedTypeFilter === 'all'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 ring-2 ring-amber-400'
+                : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800'
+            }`}
+          >
+            <span>TODOS</span>
+            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+              selectedTypeFilter === 'all'
+                ? 'bg-slate-950/30 text-slate-950 font-bold'
+                : 'bg-slate-950 text-amber-400 border border-slate-800'
+            }`}>
+              {totalItemsCount}
+            </span>
+          </button>
+
+          {/* BOTÕES DE CADA TIPO / CATEGORIA */}
+          {categories.map((c) => {
+            const count = c.items?.length || 0;
+            const isSelected = selectedTypeFilter === c.id;
+            const color = getCategoryColor(c);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setSelectedTypeFilter(c.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  isSelected
+                    ? 'bg-slate-800 text-white shadow-md ring-2 ring-amber-400/40 font-black'
+                    : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border-slate-800'
+                }`}
+                style={{ borderColor: isSelected ? color : undefined }}
+              >
+                <span className="uppercase text-[11px]" style={{ color: isSelected ? color : undefined }}>
+                  {c.name}
+                </span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                  isSelected
+                    ? 'bg-amber-400 text-slate-950 font-black'
+                    : 'bg-slate-950 text-slate-400 border border-slate-800'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* BOTÃO RÁPIDO PARA ADICIONAR NOVO ITEM */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const targetCat = (selectedTypeFilter !== 'all' && categories.find(c => c.id === selectedTypeFilter)) || categories[0];
+              handleOpenQuickAdd(targetCat);
+            }}
+            className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+            title="Adicionar novo item ao cardápio"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <span>Novo Item</span>
+          </button>
+        </div>
+      </nav>
+
       {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA COM ORGANIZAÇÃO POR TIPO) */}
       <main 
         className="flex-1 overflow-y-auto relative shadow-inner"
@@ -1717,87 +1794,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             />
           )}
 
-          {/* Conteúdo Real dos Produtos e Filtros */}
-          <div className="relative z-10 space-y-3.5">
-            {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (ORGANIZAÇÃO INTELIGENTE POR TIPO) */}
-        <div className="flex items-center justify-between gap-2 flex-wrap bg-slate-950/85 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.18)]">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
-              <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
-              Tipo:
-            </span>
-
-            {/* BOTÃO TODOS */}
-            <button
-              type="button"
-              onClick={() => setSelectedTypeFilter('all')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                selectedTypeFilter === 'all'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 ring-2 ring-amber-400'
-                  : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800'
-              }`}
-            >
-              <span>TODOS</span>
-              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                selectedTypeFilter === 'all'
-                  ? 'bg-slate-950/30 text-slate-950 font-bold'
-                  : 'bg-slate-950 text-amber-400 border border-slate-800'
-              }`}>
-                {totalItemsCount}
-              </span>
-            </button>
-
-            {/* BOTÕES DE CADA TIPO / CATEGORIA */}
-            {categories.map((c) => {
-              const count = c.items?.length || 0;
-              const isSelected = selectedTypeFilter === c.id;
-              const color = getCategoryColor(c);
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setSelectedTypeFilter(c.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                    isSelected
-                      ? 'bg-slate-800 text-white shadow-md ring-2 ring-amber-400/40 font-black'
-                      : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border-slate-800'
-                  }`}
-                  style={{ borderColor: isSelected ? color : undefined }}
-                >
-                  <span className="uppercase text-[11px]" style={{ color: isSelected ? color : undefined }}>
-                    {c.name}
-                  </span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
-                    isSelected
-                      ? 'bg-amber-400 text-slate-950 font-black'
-                      : 'bg-slate-950 text-slate-400 border border-slate-800'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* BOTÃO RÁPIDO PARA ADICIONAR NOVO ITEM */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                const targetCat = (selectedTypeFilter !== 'all' && categories.find(c => c.id === selectedTypeFilter)) || categories[0];
-                handleOpenQuickAdd(targetCat);
-              }}
-              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-              title="Adicionar novo item ao cardápio"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Novo Item</span>
-            </button>
-          </div>
-        </div>
-
-        {/* DASHBOARD INTELIGENTE DE CARDS: ZERO ESPAÇO LIVRE DESPERDIÇADO */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
+          {/* Conteúdo Real dos Produtos */}
+          <div className="relative z-10">
+            {/* DASHBOARD INTELIGENTE DE CARDS: ZERO ESPAÇO LIVRE DESPERDIÇADO */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
           {displayedItems.map(({ item, category }) => {
             const inCartQty = getItemCartQuantity(item.id);
             const itemColor = item.color || getCategoryColor(category);

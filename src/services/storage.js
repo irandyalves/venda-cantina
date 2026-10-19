@@ -539,12 +539,21 @@ class StorageService {
         if (event.data?.type === 'BACKGROUND_SETTINGS_UPDATED') {
           window.dispatchEvent(new CustomEvent('cantina_background_settings_changed', { detail: event.data.payload }));
         }
+        if (event.data?.type === 'SYSTEM_SETTINGS_UPDATED') {
+          window.dispatchEvent(new CustomEvent('cantina_system_settings_changed', { detail: event.data.payload }));
+        }
       };
     }
 
     // Escuta evento 'storage' para navegadores que não compartilham BroadcastChannel
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
+        if (e.key === 'cantina_system_settings') {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            window.dispatchEvent(new CustomEvent('cantina_system_settings_changed', { detail: parsed }));
+          } catch (_) {}
+        }
         if (e.key === 'cantina_card_section_background') {
           try {
             const parsed = JSON.parse(e.newValue);
@@ -832,6 +841,40 @@ class StorageService {
       syncChannel.postMessage({ type: 'BACKGROUND_SETTINGS_UPDATED', payload: safeSettings });
     }
     window.dispatchEvent(new CustomEvent('cantina_background_settings_changed', { detail: safeSettings }));
+  }
+
+  // --- CONFIGURAÇÕES GERAIS DO SISTEMA ---
+  getSystemSettings() {
+    const defaultSettings = {
+      // EFEITOS
+      cardPulsing: true,             // Efeito pulsante/girando nos cards em preparo
+      cardSoundEnabled: true,        // Sons e alertas sonoros do sistema
+      // TEMPOS
+      callPasswordDuration: 6,       // Duração da chamada de senha na TV (em segundos: 4, 6, 8, 10, 15)
+      // DISTÂNCIA ENTRE CARDS NA COZINHA
+      kitchenCardSpacing: 'normal',  // 'compact' (space-y-1), 'normal' (space-y-1.5), 'relaxed' (space-y-2.5), 'spacious' (space-y-4)
+      // FONTES
+      fontScale: 'normal'            // 'normal', 'large', 'xl'
+    };
+    try {
+      const raw = localStorage.getItem('cantina_system_settings');
+      if (raw) return { ...defaultSettings, ...JSON.parse(raw) };
+    } catch (e) {
+      console.error('Erro ao ler configurações do sistema:', e);
+    }
+    return defaultSettings;
+  }
+
+  saveSystemSettings(settings) {
+    const safeSettings = {
+      ...this.getSystemSettings(),
+      ...settings
+    };
+    localStorage.setItem('cantina_system_settings', JSON.stringify(safeSettings));
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'SYSTEM_SETTINGS_UPDATED', payload: safeSettings });
+    }
+    window.dispatchEvent(new CustomEvent('cantina_system_settings_changed', { detail: safeSettings }));
   }
 
   // --- LIMITES DE TEMPO E CORES DOS PEDIDOS (COZINHA) ---
