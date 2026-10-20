@@ -1106,7 +1106,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     // Salva alterações do item
     let updated;
-    if (gearItemData.isVariation) {
+    if (gearItemData.isVariation && gearItemData.categoryId === 'pizza') {
       updated = categories.map(cat => {
         if (cat.id === 'pizza') {
           return {
@@ -1167,11 +1167,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       // 2. Atualizar categorias (removendo da antiga se mudou e inserindo na nova)
       updated = categories.map(cat => {
         let items = (cat.items || []).filter(it => it.id !== gearItemData.id);
+        let variations = cat.variations || [];
+        if (gearItemData.isVariation && cat.id === 'pizza' && gearItemData.categoryId !== 'pizza') {
+          variations = variations.filter(v => v.id !== gearItemData.variationId);
+        }
         if (cat.id === gearItemData.categoryId) {
           items = [...items, updatedItem];
         }
         return {
           ...cat,
+          variations,
           items
         };
       });
@@ -1987,6 +1992,26 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     });
   }
 
+  // Pizza itens diretos cadastrados
+  if (pizzaCat?.items) {
+    pizzaCat.items.forEach(it => {
+      allSaleItems.push({
+        ...it,
+        id: it.id,
+        name: it.name,
+        categoryName: 'PIZZA',
+        price: it.price !== undefined ? it.price : 0,
+        prefix: it.prefix || 'Pp-',
+        categoryId: 'pizza',
+        isVariation: false,
+        color: it.color || '#eab308',
+        image: it.image || null,
+        icon2d: it.icon2d || null,
+        description: it.description || 'Opção de pizza'
+      });
+    });
+  }
+
   // Açaí itens
   if (acaiCat?.items) {
     acaiCat.items.forEach(it => {
@@ -2514,8 +2539,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <button
                       type="button"
                       onClick={() => {
-                        setNewItemCategory('pizza');
-                        setNewItemPrefix('Pp-');
+                        const initCat = selectedCategoryFilter !== 'all' ? selectedCategoryFilter : 'pizza';
+                        const matchedCat = categories.find(c => c.id === initCat);
+                        const initPrefix = initCat === 'acai' ? (acaiPrefix || 'A-') : initCat === 'batata' ? (batataPrefix || 'B-') : initCat === 'pizza' ? 'Pp-' : (matchedCat?.prefixDefault || 'Ped-');
+                        setNewItemCategory(initCat);
+                        setNewItemPrefix(initPrefix);
                         setNewItemName('');
                         setNewItemPrice('0,00');
                         setNewItemDesc('');
@@ -2630,11 +2658,18 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       key={`${item.categoryId}_${item.id}`} 
                       className="bg-slate-900/95 hover:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-700/80 hover:border-slate-600 space-y-1.5 transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between relative group"
                     >
-                      {/* TOPO: ÍCONE 2D SEM FUNDO, NOME, CATEGORIA, LOCALIZADOR E BOTÕES VERTICAIS À DIREITA */}
-                      <div className="flex items-start justify-between gap-1.5">
-                        {/* LADO ESQUERDO: ÍCONE + TEXTOS */}
+                      {/* TOPO: NOME DO ITEM (EM CIMA DO ÍCONE, DESTACADO DE PONTA A PONTA) */}
+                      <div className="flex items-center justify-between gap-1 min-w-0">
+                        <h4 className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wide truncate flex-1" title={item.name}>
+                          {item.name}
+                        </h4>
+                      </div>
+
+                      {/* MEIO: ÍCONE DESCIDO + CATEGORIA/COZINHA/DESCRIÇÃO + BOTÕES VERTICAIS À DIREITA */}
+                      <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                        {/* LADO ESQUERDO: ÍCONE DESCIDO + TEXTOS */}
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {/* ÍCONE 2D SEM FUNDO (COMPACTO E PROPORCIONAL) */}
+                          {/* ÍCONE 2D SEM FUNDO (DESCIDO ABAIXO DO NOME) */}
                           <div className="shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
                             <ProductIcon2D item={item} category={{ id: item.categoryId }} className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-md" />
                           </div>
@@ -2681,13 +2716,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                               })()}
                             </div>
 
-                            {/* NOME DO ITEM (FONTE REDUZIDA, TRUNCADO COM ...) */}
-                            <h4 className="text-[11px] font-bold text-white uppercase tracking-wide truncate block mt-0.5" title={item.name}>
-                              {item.name}
-                            </h4>
-
                             {/* DESCRIÇÃO DO ITEM */}
-                            <p className="text-[8.5px] text-slate-400 truncate block">
+                            <p className="text-[8.5px] text-slate-400 truncate block mt-0.5">
                               {item.description || 'Disponível no caixa'}
                             </p>
                           </div>
@@ -4255,21 +4285,21 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </div>
                     )}
 
-                    {/* 2. CONTROLES DE EFEITOS (OPACIDADE, PROFUNDIDADE, TAMANHO E CLARIDADE) EM GRID 2X2 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                    {/* 2. CONTROLES DE EFEITOS (OPACIDADE, PROFUNDIDADE, TAMANHO E CLARIDADE) OS 4 NA MESMA LINHA */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 pt-0.5">
                       {/* EFEITO 1: TEXTURA (OPACIDADE) */}
-                      <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <Sliders className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Opacidade da Textura</span>
+                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
+                            <Sliders className="w-3 h-3 text-amber-400" />
+                            <span className="truncate">Opacidade</span>
                           </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                             {bgSettings.textureOpacity ?? 100}%
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500">0%</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-slate-500 shrink-0">0%</span>
                           <input
                             type="range"
                             min="0"
@@ -4277,25 +4307,25 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             step="5"
                             value={bgSettings.textureOpacity ?? 100}
                             onChange={(e) => handleUpdateBgSetting('textureOpacity', Number(e.target.value))}
-                            className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                            className="flex-1 accent-amber-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                           />
-                          <span className="text-[10px] text-slate-500">100%</span>
+                          <span className="text-[9px] text-slate-500 shrink-0">100%</span>
                         </div>
                       </div>
 
                       {/* EFEITO 2: PROFUNDIDADE DA TEXTURA (RELEVO / CONTRASTE) */}
-                      <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Profundidade / Relevo</span>
+                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
+                            <Layers className="w-3 h-3 text-cyan-400" />
+                            <span className="truncate">Profundidade</span>
                           </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                            {bgSettings.textureDepth ?? 100}% {Number(bgSettings.textureDepth || 100) > 130 ? '(Marcado)' : Number(bgSettings.textureDepth || 100) < 70 ? '(Suave)' : '(Padrão)'}
+                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                            {bgSettings.textureDepth ?? 100}%
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500">30%</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-slate-500 shrink-0">30%</span>
                           <input
                             type="range"
                             min="30"
@@ -4303,25 +4333,25 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             step="5"
                             value={bgSettings.textureDepth ?? 100}
                             onChange={(e) => handleUpdateBgSetting('textureDepth', Number(e.target.value))}
-                            className="flex-1 accent-cyan-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                            className="flex-1 accent-cyan-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                           />
-                          <span className="text-[10px] text-slate-500">200%</span>
+                          <span className="text-[9px] text-slate-500 shrink-0">200%</span>
                         </div>
                       </div>
 
                       {/* EFEITO 3: TAMANHO DA TEXTURA (ESCALA / REDUZIR OU AUMENTAR) */}
-                      <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Tamanho da Textura</span>
+                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
+                            <Maximize2 className="w-3 h-3 text-emerald-400" />
+                            <span className="truncate">Tamanho</span>
                           </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            {bgSettings.textureSize ?? 100}% {Number(bgSettings.textureSize || 100) > 130 ? '(Amplo)' : Number(bgSettings.textureSize || 100) < 30 ? '(Micro)' : '(Padrão)'}
+                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            {bgSettings.textureSize ?? 100}%
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500">2%</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-slate-500 shrink-0">2%</span>
                           <input
                             type="range"
                             min="2"
@@ -4329,26 +4359,25 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             step="1"
                             value={bgSettings.textureSize ?? 100}
                             onChange={(e) => handleUpdateBgSetting('textureSize', Number(e.target.value))}
-                            className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                            className="flex-1 accent-emerald-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                           />
-                          <span className="text-[10px] text-slate-500">250%</span>
+                          <span className="text-[9px] text-slate-500 shrink-0">250%</span>
                         </div>
                       </div>
 
                       {/* EFEITO 4: CLARIDADE / ESCURECIMENTO */}
-                      <div className="bg-slate-950/70 py-2 px-3 rounded-xl border border-slate-800 space-y-1.5">
+                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <Sun className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Claridade / Escuro</span>
-                            <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
+                            <Sun className="w-3 h-3 text-amber-400" />
+                            <span className="truncate">Claridade/Escuro</span>
                           </label>
-                          <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            {bgSettings.darkness ?? 0}% {Number(bgSettings.darkness || 0) === 0 ? '(Claro)' : '(Escuro)'}
+                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            {bgSettings.darkness ?? 0}%
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-500">0%</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-slate-500 shrink-0">0%</span>
                           <input
                             type="range"
                             min="0"
@@ -5517,12 +5546,19 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </label>
                   <select
                     value={gearItemData.categoryId}
-                    onChange={(e) => setGearItemData(prev => ({ ...prev, categoryId: e.target.value }))}
-                    disabled={gearItemData.isVariation}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400 cursor-pointer disabled:opacity-50"
+                    onChange={(e) => {
+                      const newCatId = e.target.value;
+                      const matchedCat = categories.find(c => c.id === newCatId);
+                      setGearItemData(prev => ({ 
+                        ...prev, 
+                        categoryId: newCatId,
+                        prefix: prev.prefix || matchedCat?.prefixDefault || 'Ped-'
+                      }));
+                    }}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-300 font-bold outline-none focus:border-amber-400 cursor-pointer"
                   >
                     {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id} className="bg-slate-900 text-white">
+                      <option key={cat.id} value={cat.id} className="bg-slate-900 text-white font-bold">
                         {cat.name}
                       </option>
                     ))}
