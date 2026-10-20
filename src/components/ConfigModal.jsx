@@ -2675,15 +2675,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            {/* LINHA 1: CATEGORIA (À ESQ TRUNCADA COM ...) + LOCALIZADOR VERMELHO COZINHA */}
+                            {/* LINHA 1: CATEGORIA (EM VERDE) + LOCALIZADOR RETIRAR EM (EM VERMELHO, SEM ÍCONE) */}
                             <div className="flex items-center gap-1 flex-wrap">
                               <span 
-                                className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded border font-mono inline-block truncate max-w-[70px]"
-                                style={{ 
-                                  color: item.color || '#f59e0b', 
-                                  borderColor: `${item.color || '#f59e0b'}50`, 
-                                  backgroundColor: `${item.color || '#f59e0b'}18` 
-                                }}
+                                className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded border font-mono inline-block truncate max-w-[75px] bg-emerald-950/80 text-emerald-300 border-emerald-500/50"
                                 title={item.categoryName}
                               >
                                 {item.categoryName}
@@ -2700,25 +2695,27 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   : (productionRouting.destinationEnv?.[catId] !== undefined ? productionRouting.destinationEnv[catId] : (isToKitchen ? 'COZINHA' : 'none'));
                                 const destEnvObj = environments.find(e => e.id === currentDest);
                                 const destName = destEnvObj ? destEnvObj.name : (currentDest !== 'none' ? currentDest : 'Balcão');
+                                const labelText = currentDest !== 'none' ? `Retirar em ${destName}` : 'Retirar no Balcão';
                                 return (
                                   <span 
-                                    className={`text-[8px] font-bold uppercase px-1.5 py-0.2 rounded border inline-flex items-center gap-0.5 truncate max-w-[105px] ${
+                                    className={`text-[8px] font-bold uppercase px-1.5 py-0.2 rounded border inline-flex items-center truncate max-w-[130px] ${
                                       currentDest !== 'none'
-                                        ? 'bg-red-950/80 text-red-300 border-red-500/50'
-                                        : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                                        ? 'bg-red-950/90 text-red-300 border-red-500/60'
+                                        : 'bg-slate-900 text-slate-300 border-slate-700'
                                     }`}
-                                    title={currentDest !== 'none' ? `Enviado para preparo em: ${destName}` : 'Entrega direta no balcão'}
+                                    title={labelText}
                                   >
-                                    <MapPin className={`w-2 h-2 shrink-0 ${currentDest !== 'none' ? 'text-red-400 fill-red-400/20' : 'text-emerald-400'}`} />
-                                    <span className="truncate">{destName}</span>
+                                    <span className="truncate">{labelText}</span>
                                   </span>
                                 );
                               })()}
                             </div>
 
-                            {/* DESCRIÇÃO DO ITEM */}
+                            {/* DESCRIÇÃO DO ITEM (INTEIRA, MEIA A MEIA, FATIA EM CASO DE PIZZA) */}
                             <p className="text-[8.5px] text-slate-400 truncate block mt-0.5">
-                              {item.description || 'Disponível no caixa'}
+                              {item.categoryId === 'pizza'
+                                ? 'Inteira, meia a meia, fatia'
+                                : (item.description || 'Disponível no caixa')}
                             </p>
                           </div>
                         </div>

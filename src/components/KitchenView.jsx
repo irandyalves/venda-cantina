@@ -102,60 +102,59 @@ export default function KitchenView({ environment, onNavigate }) {
   const knownOrderIdsRef = useRef(new Set());
   const isFirstLoadRef = useRef(true);
 
-  // Helper para verificar se o pedido é destinado para preparo neste ambiente/cozinha específico
-  const isOrderForKitchen = (order) => {
-    if (order.sendToKitchen === false || order.targetEnvironment === 'none') {
-      return false;
-    }
-
+  // Helper para verificar se um item individual pertence a esta cozinha/ambiente
+  const isItemForThisKitchen = (it) => {
     const currentEnvId = environment?.id || 'COZINHA';
+    const envUpper = currentEnvId.toUpperCase();
 
-    // Se o pedido tiver multi-itens, checa se qualquer item pertence a esta cozinha
-    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-      return order.items.some(it => {
-        if (it.targetEnvironment && it.targetEnvironment !== 'none') {
-          return it.targetEnvironment === currentEnvId;
-        }
-        if (it.sendToKitchen === false) return false;
-        const cat = String(it.categoryId || it.category || '').toLowerCase();
-        if (currentEnvId === 'COZINHA') {
-          return cat.includes('pizza');
-        }
-        return false;
-      });
+    // 1. Destino explícito no item
+    if (it.targetEnvironment) {
+      if (it.targetEnvironment === 'none') return false;
+      return it.targetEnvironment === currentEnvId;
     }
 
-    if (order.targetEnvironment) {
-      return order.targetEnvironment === currentEnvId;
-    }
-
-    if (order.sendToKitchen === true) {
-      return currentEnvId === 'COZINHA';
-    }
-
-    const targetId = order.variationId || order.itemId;
-    if (targetId && productionRouting.destinationEnv?.[targetId]) {
+    // 2. Destino no productionRouting por id do item ou variação
+    const targetId = it.variationId || it.itemId || it.id;
+    if (targetId && productionRouting?.destinationEnv?.[targetId]) {
       const dest = productionRouting.destinationEnv[targetId];
       if (dest === 'none') return false;
       return dest === currentEnvId;
     }
-    if (targetId && productionRouting.sendToKitchen?.[targetId] !== undefined) {
-      if (!productionRouting.sendToKitchen[targetId]) return false;
-      return currentEnvId === 'COZINHA';
-    }
 
-    const cat = (order.category || order.categoryName || '').toLowerCase();
-    if (productionRouting.destinationEnv?.[cat]) {
+    // 3. Destino no productionRouting por categoria
+    const cat = String(it.categoryId || it.category || it.categoryName || '').toLowerCase();
+    if (cat && productionRouting?.destinationEnv?.[cat]) {
       const dest = productionRouting.destinationEnv[cat];
       if (dest === 'none') return false;
       return dest === currentEnvId;
     }
-    if (productionRouting.sendToKitchen?.[cat] !== undefined) {
-      if (!productionRouting.sendToKitchen[cat]) return false;
-      return currentEnvId === 'COZINHA';
+
+    // 4. Verificação por sendToKitchen
+    if (it.sendToKitchen === false) return false;
+
+    // 5. Mapeamento padrão por palavras-chave de categoria e ambiente
+    const desc = String(it.description || it.name || it.itemName || '').toLowerCase();
+    if (envUpper.includes('ACAI') || envUpper.includes('AÇAÍ')) {
+      return cat.includes('acai') || cat.includes('açaí') || desc.includes('açaí') || desc.includes('acai') || desc.includes('copo') || desc.includes('tigela');
+    }
+    if (envUpper.includes('BATATA')) {
+      return cat.includes('batata') || desc.includes('batata') || desc.includes('cone') || desc.includes('cheddar');
+    }
+    if (envUpper.includes('PIZZA') || currentEnvId === 'COZINHA') {
+      return cat.includes('pizza') || desc.includes('pizza') || desc.includes('fatia') || desc.includes('inteira') || desc.includes('margueritta') || desc.includes('calabresa');
     }
 
-    return cat.includes('pizza') && (currentEnvId.includes('COZINHA') || currentEnvId.includes('PIZZA'));
+    return cat.includes(currentEnvId.toLowerCase()) || desc.includes(currentEnvId.toLowerCase());
+  };
+
+  // Helper para verificar se o pedido é destinado para preparo neste ambiente/cozinha específico
+  const isOrderForKitchen = (order) => {
+    if (order.sendToKitchen === false) {
+      return false;
+    }
+
+    const items = getOrderItems(order);
+    return items.some(it => isItemForThisKitchen(it));
   };
 
   // Relógio para atualizar cronômetros dos pedidos a cada segundo
@@ -559,24 +558,47 @@ export default function KitchenView({ environment, onNavigate }) {
                     </span>
                   </div>
 
-                  {/* BLOCO 2: TODOS OS PEDIDOS DO CLIENTE NO MESMO CARD (FONTE FINA E REDUZIDA NOS ITENS) */}
-                  <div className="flex-1 bg-slate-950/70 px-1.5 py-0.2 rounded border border-slate-800/80 flex items-center gap-1 flex-wrap min-h-0">
-                    {itemsList.map((it, idx) => (
-                      <span
-                        key={idx}
-                        className={`inline-flex items-center gap-1 px-1 py-0 rounded text-[9px] sm:text-[10px] font-normal leading-tight shadow-xs ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
-                      >
-                        <span className="font-black text-orange-400 font-mono text-[9px] sm:text-[10px]">
-                          {String(it.quantity).padStart(2, '0')}
-                        </span>
-                        <span className="font-normal text-slate-100 text-[9px] sm:text-[10px]">
-                          {it.description || it.name || it.itemName}
-                        </span>
-                        {idx < itemsList.length - 1 && (
-                          <span className="text-slate-400 font-normal ml-0.5 select-none text-[7px]">•</span>
-                        )}
-                      </span>
-                    ))}
+                  {/* BLOCO 2: ITENS DESTA COZINHA EM 1º LUGAR (DESTACADOS) + OUTROS AMBIENTES ESMAECIDOS EM ITÁLICO */}
+                  <div className="flex-1 bg-slate-950/70 px-1.5 py-0.5 rounded border border-slate-800/80 flex items-center gap-1.5 flex-wrap min-h-0">
+                    {(() => {
+                      const thisKitchenItems = itemsList.filter(it => isItemForThisKitchen(it));
+                      const otherKitchenItems = itemsList.filter(it => !isItemForThisKitchen(it));
+
+                      return (
+                        <>
+                          {/* 1. ITENS DESTA COZINHA (1º LUGAR, DESTACADOS COM CORES VIVAS) */}
+                          {thisKitchenItems.map((it, idx) => (
+                            <span
+                              key={`mine_${idx}`}
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] sm:text-[10.5px] font-bold leading-tight shadow-sm border ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
+                            >
+                              <span className="font-black text-amber-300 font-mono text-[9.5px] sm:text-[10.5px]">
+                                {String(it.quantity).padStart(2, '0')}x
+                              </span>
+                              <span className="font-bold text-white text-[9.5px] sm:text-[10.5px]">
+                                {it.description || it.name || it.itemName}
+                              </span>
+                            </span>
+                          ))}
+
+                          {/* 2. DEMAIS ITENS DE OUTRAS COZINHAS (ESMAECIDOS E EM ITÁLICO PARA PRESERVAR HISTÓRICO) */}
+                          {otherKitchenItems.map((it, idx) => (
+                            <span
+                              key={`other_${idx}`}
+                              className="inline-flex items-center gap-1 px-1 py-0.2 rounded text-[8.5px] font-normal italic leading-tight bg-slate-900/50 border border-slate-800/60 text-slate-400 opacity-40 hover:opacity-75 transition-opacity select-none"
+                              title="Item destinado a outro ambiente"
+                            >
+                              <span className="font-mono text-[8px] text-slate-500">
+                                {String(it.quantity).padStart(2, '0')}x
+                              </span>
+                              <span className="truncate max-w-[120px]">
+                                {it.description || it.name || it.itemName}
+                              </span>
+                            </span>
+                          ))}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* BLOCO 3: TEMPO + PRONTO (SINO) + ENTREGAR (ALTURA COMPACTADA EM 30%) */}
