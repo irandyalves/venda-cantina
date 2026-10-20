@@ -2578,10 +2578,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
-                {/* CATEGORIAS CADASTRADAS: FILTROS INTERATIVOS COM CHIPS MODERNOS */}
-                <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-800 shadow-inner flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+                {/* CATEGORIAS CADASTRADAS: FILTROS INTERATIVOS COM ESTILO DE ABAS DO PRINT 2 */}
+                <div className="bg-slate-950/70 pt-2 px-3 pb-0 rounded-2xl border border-slate-800 shadow-inner flex items-center justify-between gap-3 flex-wrap border-b border-slate-800">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1 py-2">
                       <Filter className="w-3.5 h-3.5 text-amber-400" />
                       Filtrar:
                     </span>
@@ -2590,16 +2590,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <button
                       type="button"
                       onClick={() => setSelectedCategoryFilter('all')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                      className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
                         selectedCategoryFilter === 'all'
-                          ? 'bg-slate-900/90 text-amber-400 border-2 border-amber-500 shadow-md'
-                          : 'bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800'
+                          ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
+                          : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-800/40'
                       }`}
                     >
                       <span>TODAS</span>
                       <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
                         selectedCategoryFilter === 'all'
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-bold'
+                          ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
                           : 'bg-slate-900 text-slate-400 border-slate-800'
                       }`}>
                         {allSaleItems.length}
@@ -2615,16 +2615,16 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <div
                           key={c.id}
                           onClick={() => setSelectedCategoryFilter(c.id)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                          className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
                             isSelected
-                              ? 'bg-slate-900/90 text-amber-400 border-2 border-amber-500 shadow-md'
-                              : 'bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800'
+                              ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
+                              : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-800/40'
                           }`}
                         >
                           <span className="uppercase text-[11px] font-black">{c.name}</span>
-                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md border ${
+                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
                             isSelected
-                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-black'
+                              ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
                               : 'bg-slate-900 text-slate-400 border-slate-800'
                           }`}>
                             {count}
@@ -2651,7 +2651,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <button
                       type="button"
                       onClick={() => setSelectedCategoryFilter('all')}
-                      className="text-[11px] text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer shrink-0"
+                      className="text-[11px] text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer shrink-0 pb-2"
                     >
                       Mostrar Todas ({allSaleItems.length})
                     </button>

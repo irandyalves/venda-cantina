@@ -1759,13 +1759,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
       </section>
 
-      {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (COLADA NO CABEÇALHO SUPERIOR, BORDA A BORDA, COM SOMBRA SOBRE OS CARDS DE PRODUTOS) */}
-      <nav className="w-full bg-slate-950 px-3 sm:px-4 py-2 border-t border-dashed border-slate-700/80 shrink-0 relative z-20 flex items-center justify-between gap-2 flex-wrap shadow-[0_12px_28px_rgba(0,0,0,0.85),0_4px_10px_rgba(0,0,0,0.6)]">
-        {/* LINHA FININHA BEGE NO RODAPÉ DO CABEÇALHO */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#eace9a] shadow-[0_1px_4px_rgba(0,0,0,0.8)] pointer-events-none" />
+      {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (ESTILO DE ABAS DO PRINT 2) */}
+      <nav className="w-full bg-slate-950 px-3 sm:px-4 pt-2 pb-0 border-t border-dashed border-slate-700/80 shrink-0 relative z-20 flex items-center justify-between gap-2 flex-wrap shadow-[0_12px_28px_rgba(0,0,0,0.85),0_4px_10px_rgba(0,0,0,0.6)] border-b border-slate-800">
+        {/* LINHA DE BASE NO RODAPÉ DO CABEÇALHO */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-800 pointer-events-none" />
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+          <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1 py-2">
             <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
             Tipo:
           </span>
@@ -1774,17 +1774,17 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <button
             type="button"
             onClick={() => setSelectedTypeFilter('all')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
               selectedTypeFilter === 'all'
-                ? 'bg-slate-800 text-white border-amber-500 shadow-md ring-2 ring-amber-400/40 font-black'
-                : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border-slate-800'
+                ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
+                : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
             }`}
           >
             <span>TODOS</span>
-            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
               selectedTypeFilter === 'all'
-                ? 'bg-amber-400 text-slate-950 font-black'
-                : 'bg-slate-950 text-slate-400 border border-slate-800'
+                ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
+                : 'bg-slate-950 text-slate-400 border-slate-800'
             }`}>
               {totalItemsCount}
             </span>
@@ -1794,26 +1794,24 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           {categories.map((c) => {
             const count = c.items?.length || 0;
             const isSelected = selectedTypeFilter === c.id;
-            const color = getCategoryColor(c);
             return (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => setSelectedTypeFilter(c.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
                   isSelected
-                    ? 'bg-slate-800 text-white shadow-md ring-2 ring-amber-400/40 font-black'
-                    : 'bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border-slate-800'
+                    ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
+                    : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
                 }`}
-                style={{ borderColor: isSelected ? color : undefined }}
               >
-                <span className="uppercase text-[11px]" style={{ color: isSelected ? color : undefined }}>
+                <span className="uppercase text-[11px] font-black">
                   {c.name}
                 </span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
                   isSelected
-                    ? 'bg-amber-400 text-slate-950 font-black'
-                    : 'bg-slate-950 text-slate-400 border border-slate-800'
+                    ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
+                    : 'bg-slate-950 text-slate-400 border-slate-800'
                 }`}>
                   {count}
                 </span>
@@ -1823,7 +1821,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
 
         {/* BOTÃO RÁPIDO PARA ADICIONAR NOVO ITEM */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-1.5">
           <button
             type="button"
             onClick={() => {
