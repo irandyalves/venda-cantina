@@ -489,7 +489,7 @@ export default function DisplayView({ environment, onNavigate }) {
                     className={`w-full bg-slate-950/90 px-3 sm:px-4 ${displayCardPadY} border-y border-amber-500/50 border-x-0 rounded-none shadow-md hover:bg-slate-900/95 transition-all flex items-center justify-between gap-2`}
                   >
                     <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden flex-1">
-                      <span className="text-2xl sm:text-3xl md:text-4xl font-black text-amber-400 font-mono tracking-tight shrink-0">
+                      <span className="text-2xl sm:text-3xl md:text-4xl font-black text-amber-400 font-mono tracking-tight shrink-0 w-[8ch] text-left">
                         {order.orderNumber}
                       </span>
 
@@ -551,7 +551,7 @@ export default function DisplayView({ environment, onNavigate }) {
                     className={`w-full bg-emerald-950/30 px-3 sm:px-4 ${displayCardPadY} border-y border-emerald-500/60 border-x-0 rounded-none shadow-md hover:bg-emerald-950/50 transition-all flex items-center justify-between gap-2`}
                   >
                     <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden flex-1">
-                      <span className="text-2xl sm:text-3xl md:text-4xl font-black text-emerald-400 font-mono tracking-tight shrink-0">
+                      <span className="text-2xl sm:text-3xl md:text-4xl font-black text-emerald-400 font-mono tracking-tight shrink-0 w-[8ch] text-left">
                         {order.orderNumber}
                       </span>
 
@@ -614,7 +614,7 @@ export default function DisplayView({ environment, onNavigate }) {
                       className={`w-full bg-blue-950/20 px-3 sm:px-4 ${displayCardPadY} border-y border-blue-500/30 border-x-0 rounded-none shadow-sm hover:bg-blue-950/35 transition-all flex items-center justify-between gap-2 opacity-80 hover:opacity-100`}
                     >
                       <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden flex-1">
-                        <span className="text-2xl sm:text-3xl md:text-4xl font-black text-blue-400/85 font-mono tracking-tight shrink-0">
+                        <span className="text-2xl sm:text-3xl md:text-4xl font-black text-blue-400/85 font-mono tracking-tight shrink-0 w-[8ch] text-left">
                           {order.orderNumber}
                         </span>
 

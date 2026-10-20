@@ -1357,9 +1357,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          {/* NÚMERO / SENHA DO PEDIDO (COLUNA COM TAMANHO FIXO DE 6 CARACTERES) */}
+          {/* NÚMERO / SENHA DO PEDIDO (COLUNA COM TAMANHO FIXO DE 8 CARACTERES) */}
           <span 
-            className="font-mono font-black text-xs px-1 py-0.2 rounded-md shrink-0 inline-flex items-center justify-center w-[6ch] box-content text-center select-none"
+            className="font-mono font-black text-xs px-1 py-0.2 rounded-md shrink-0 inline-flex items-center justify-center w-[8ch] box-content text-center select-none"
             style={{
               backgroundColor: `${itemColor}20`,
               color: isWhite ? '#94a3b8' : itemColor
