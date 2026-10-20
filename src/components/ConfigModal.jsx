@@ -269,6 +269,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   // Estado Modal de Zerar Turno e Histórico Arquivado
   const [showResetModal, setShowResetModal] = useState(false);
   const [showClearQueueModal, setShowClearQueueModal] = useState(false);
+  const [showDeleteHistoryModal, setShowDeleteHistoryModal] = useState(false);
+  const [isDeletingHistory, setIsDeletingHistory] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [turnoHistory, setTurnoHistory] = useState(() => storageService.getTurnoHistory());
   const [showHistoryList, setShowHistoryList] = useState(false);
@@ -523,6 +525,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         }
         if (showResetModal) {
           setShowResetModal(false);
+          return;
+        }
+        if (showDeleteHistoryModal) {
+          setShowDeleteHistoryModal(false);
           return;
         }
         if (showClearQueueModal) {
@@ -1866,6 +1872,21 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
   };
 
+  const handleConfirmDeleteHistory = async () => {
+    setIsDeletingHistory(true);
+    try {
+      await storageService.clearTurnoHistory();
+      setTurnoHistory([]);
+      setShowDeleteHistoryModal(false);
+      showToast('Todo o histórico de backups foi excluído com sucesso.', 'Histórico Excluído', 'success');
+    } catch (err) {
+      console.error('Erro ao excluir histórico:', err);
+      showToast('Erro ao excluir histórico: ' + (err.message || 'Tente novamente'), 'Erro', 'error');
+    } finally {
+      setIsDeletingHistory(false);
+    }
+  };
+
   const handleOpenConference = (hist) => {
     setSelectedTurnoForConference(hist);
   };
@@ -2937,13 +2958,26 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] text-slate-400 font-mono bg-slate-900/60 px-2 py-0.5 rounded-lg border border-slate-700">
                       {turnoHistory.length} backup(s)
                     </span>
                     <button
+                      type="button"
+                      disabled={turnoHistory.length === 0}
+                      onClick={() => setShowDeleteHistoryModal(true)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer ${
+                        turnoHistory.length === 0
+                          ? 'bg-slate-800/40 text-slate-600 border border-slate-700/50 cursor-not-allowed opacity-50'
+                          : 'bg-rose-600/25 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/50 shadow-sm hover:scale-[1.02]'
+                      }`}
+                      title="Excluir permanentemente todo o histórico de backups arquivados"
+                    >
+                      <Trash2 className="w-3 h-3" /> Excluir Histórico
+                    </button>
+                    <button
                       onClick={handleOpenResetModal}
-                      className="px-2.5 py-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm hover:scale-[1.02] cursor-pointer"
+                      className="px-2.5 py-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm hover:scale-[1.02] cursor-pointer"
                       title="Salvar cópia de backup e iniciar novo turno limpo"
                     >
                       <RotateCcw className="w-3 h-3" /> Zerar / Fechar Turno
@@ -2956,50 +2990,63 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     Nenhum backup arquivado ainda. Ao clicar em &quot;Zerar / Fechar Turno&quot;, uma cópia completa de segurança será preservada aqui.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
-                    {turnoHistory.map((bkp, idx) => (
-                      <div
-                        key={bkp.id || idx}
-                        className="p-2.5 bg-slate-900/70 hover:bg-slate-900 border border-slate-700/80 rounded-xl flex items-center justify-between gap-2 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 font-bold text-[11px]">
-                            #{turnoHistory.length - idx}
-                          </div>
-                          <div className="truncate">
-                            <p className="text-white text-[11px] font-bold truncate leading-tight">
-                              {bkp.label || bkp.name || `Backup (${new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleDateString()})`}
-                            </p>
-                            <p className="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap leading-tight mt-0.5">
-                              <span>📅 {new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleDateString()} {new Date(bkp.timestamp || bkp.date || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                              <span>•</span>
-                              <span className="text-emerald-400 font-bold font-mono">
-                                {formatPrice(bkp.totalRevenue || bkp.stats?.totalRevenue || 0, showCurrencySymbol)}
-                              </span>
-                              <span>•</span>
-                              <span>{bkp.orders?.length || bkp.ordersCount || 0} ped.</span>
-                            </p>
-                          </div>
-                        </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-80 overflow-y-auto pr-1">
+                    {turnoHistory.map((bkp, idx) => {
+                      const bkpDate = new Date(bkp.timestamp || bkp.date || bkp.archivedAt || Date.now());
+                      const dateFormatted = bkpDate.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+                      const timeFormatted = bkpDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const rev = bkp.totalRevenue || bkp.stats?.totalRevenue || 0;
+                      const count = bkp.orders?.length || bkp.ordersCount || bkp.totalOrders || 0;
 
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            onClick={() => handleOpenConference(bkp)}
-                            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border border-slate-600 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-                            title="Conferir vendas e faturamento deste backup"
-                          >
-                            <CheckCircle2 className="w-3 h-3" /> Conferir
-                          </button>
-                          <button
-                            onClick={() => handleRequestReopenTurno(bkp)}
-                            className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/40 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-                            title="Reabrir este turno no caixa atual"
-                          >
-                            <RotateCcw className="w-3 h-3" /> Reabrir
-                          </button>
+                      return (
+                        <div
+                          key={bkp.id || idx}
+                          className="p-2 bg-slate-900/80 hover:bg-slate-900 border border-slate-700/80 hover:border-slate-600 rounded-xl flex flex-col justify-between gap-1.5 transition-all shadow-xs"
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="w-5 h-5 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 font-bold font-mono text-[10px]">
+                                #{turnoHistory.length - idx}
+                              </span>
+                              <span className="text-white text-[11px] font-bold truncate leading-tight" title={bkp.label || bkp.name}>
+                                {bkp.label || bkp.name || `Backup (${bkpDate.toLocaleDateString()})`}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenConference(bkp)}
+                                className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border border-slate-700 rounded-md text-[10px] font-bold transition-all flex items-center gap-0.5 cursor-pointer"
+                                title="Conferir vendas deste turno"
+                              >
+                                <CheckCircle2 className="w-2.5 h-2.5" /> Conferir
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRequestReopenTurno(bkp)}
+                                className="px-1.5 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 rounded-md text-[10px] font-bold transition-all flex items-center gap-0.5 cursor-pointer"
+                                title="Reabrir este turno"
+                              >
+                                <RotateCcw className="w-2.5 h-2.5" /> Reabrir
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[10px] font-mono bg-slate-950/70 px-2 py-0.5 rounded-lg border border-slate-800/80">
+                            <span className="text-slate-400 flex items-center gap-1">
+                              📅 {dateFormatted} {timeFormatted}
+                            </span>
+                            <span className="text-emerald-400 font-black font-mono">
+                              {formatPrice(rev, showCurrencySymbol)}
+                            </span>
+                            <span className="text-slate-300 font-bold bg-slate-900 px-1 py-0.2 rounded border border-slate-800 text-[9px]">
+                              {count} ped.
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -5011,6 +5058,69 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PERSONALIZADO DE CONFIRMAÇÃO: EXCLUIR HISTÓRICO COMPLETO */}
+      {showDeleteHistoryModal && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDeletingHistory) setShowDeleteHistoryModal(false);
+          }}
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border-2 border-rose-500/60 w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-5 text-slate-100 relative overflow-hidden cursor-default text-center"
+          >
+            {/* GLOW DECORATIVO DE FUNDO */}
+            <div className="absolute -top-16 -right-16 w-36 h-36 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+
+            {/* ÍCONE DE CABEÇALHO */}
+            <div className="w-14 h-14 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto border border-rose-500/40 shadow-lg shadow-rose-950/50">
+              <Trash2 className="w-7 h-7 text-rose-400 animate-pulse" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight leading-tight">
+                TEM CERTEZA MESMO QUE QUER EXCLUIR O HISTÓRICO?
+              </h3>
+              <p className="text-xs sm:text-sm font-black text-rose-400 uppercase tracking-wider bg-rose-950/80 border border-rose-500/50 py-1.5 px-3 rounded-xl inline-block shadow-inner">
+                ESSA AÇÃO NÃO PODERÁ SER DESFEITA.
+              </p>
+              <p className="text-xs text-slate-400 pt-1 leading-relaxed">
+                Todos os <strong className="text-white">{turnoHistory.length} backup(s)</strong> de fechamentos anteriores serão apagados permanentemente do histórico local e da nuvem.
+              </p>
+            </div>
+
+            {/* BOTÕES DE AÇÃO */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteHistoryModal(false)}
+                disabled={isDeletingHistory}
+                className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer border border-slate-700"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmDeleteHistory}
+                disabled={isDeletingHistory}
+                className="py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs rounded-xl transition-all shadow-lg shadow-rose-950/60 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                {isDeletingHistory ? (
+                  <span>Excluindo...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Excluir Histórico</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

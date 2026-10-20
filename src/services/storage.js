@@ -1502,6 +1502,26 @@ class StorageService {
     window.dispatchEvent(new CustomEvent('cantina_turno_history_changed', { detail: history }));
   }
 
+  // Exclui permanentemente todo o histórico de turnos/backups
+  async clearTurnoHistory() {
+    this.saveTurnoHistory([]);
+
+    if (this.isFirebaseReady && this.db) {
+      try {
+        const historyColRef = collection(this.db, COLLECTION_HISTORY);
+        const snap = await getDocs(historyColRef);
+        const deletePromises = [];
+        snap.forEach(docSnap => {
+          deletePromises.push(deleteDoc(docSnap.ref));
+        });
+        await Promise.all(deletePromises);
+        console.log('🗑️ [Cloud Firestore] Histórico de turnos excluído com sucesso');
+      } catch (err) {
+        console.error('⚠️ Falha ao excluir histórico no Firestore:', err);
+      }
+    }
+  }
+
   // Cria cópia completa de segurança de todas as vendas e comandas no histórico
   async archiveCurrentTurno() {
     const localOrders = this.getLocalOrders();
