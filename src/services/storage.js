@@ -931,13 +931,13 @@ class StorageService {
       // TEMPOS
       callPasswordDuration: 6,       // Duração da chamada de senha na TV (em segundos: 4, 6, 8, 10, 15)
       // DISTÂNCIA ENTRE CARDS (COZINHA, TELÃO, CAIXA) - em pixels (2px a 32px)
-      kitchenCardSpacing: 6,
-      displayCardSpacing: 6,
-      cashierCardSpacing: 6,
+      kitchenCardSpacing: 3,
+      displayCardSpacing: 3,
+      cashierCardSpacing: 3,
       // ALTURA DOS CARDS (COZINHA, TELÃO, CAIXA) - em pixels
-      kitchenCardHeight: 52,
-      displayCardHeight: 64,
-      cashierCardHeight: 42,
+      kitchenCardHeight: 36,
+      displayCardHeight: 44,
+      cashierCardHeight: 32,
       // FONTES
       fontScale: 'normal'            // 'normal', 'large', 'xl'
     };
@@ -1837,15 +1837,15 @@ export const getSectionBackgroundStyle = (settings) => {
 };
 
 // Funções de resolução para compatibilidade entre string antiga ('compact', 'normal', etc) e número em px
-export const resolveSpacingPx = (val, defaultPx = 6) => {
+export const resolveSpacingPx = (val, defaultPx = 3) => {
   if (typeof val === 'number') return val;
-  const map = { compact: 4, normal: 6, relaxed: 10, spacious: 16 };
+  const map = { compact: 2, normal: 3, relaxed: 6, spacious: 12 };
   if (val && val in map) return map[val];
   const num = parseInt(val, 10);
   return Number.isFinite(num) ? num : defaultPx;
 };
 
-export const resolveHeightPx = (val, defaultPx = 52) => {
+export const resolveHeightPx = (val, defaultPx = 36) => {
   if (typeof val === 'number') return val;
   const num = parseInt(val, 10);
   return Number.isFinite(num) ? num : defaultPx;

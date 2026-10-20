@@ -60,6 +60,7 @@ import { storageService, formatPrice, BACKGROUND_PRESETS, getSectionBackgroundSt
 import { authService, PERFIS } from '../services/auth';
 import { DEFAULT_CATEGORIES } from '../data/defaultProducts';
 import ProductIcon2D, { PRODUCT_2D_PRESETS } from './ProductIcon2D';
+import AnalogClock from './AnalogClock';
 import { processProductImage } from '../utils/imageProcessor';
 
 export const ITEM_COLOR_PALETTE = [
@@ -2078,23 +2079,29 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 setActiveTab('reports');
                 setShowNewEventForm(prev => !prev);
               }}
-              className={`ml-5 px-3.5 py-1.5 font-black text-xs rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer ${
+              className={`ml-5 px-3.5 py-1.5 font-black text-xs rounded-xl transition-all shadow flex items-center justify-center cursor-pointer ${
                 showNewEventForm && activeTab === 'reports'
                   ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300'
                   : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
               }`}
               title="Cadastrar um novo evento para a cantina"
             >
-              <Plus className="w-4 h-4" />
-              <span>Criar Novo Evento</span>
+              <span>Novo Evento</span>
             </button>
           </div>
 
-          {/* HORA LOCAL NO CENTRO (FUNDO PRETO, FONTE BRANCA) */}
+          {/* HORA LOCAL NO CENTRO: RELÓGIO ANALÓGICO DESTACADO À ESQ (SEM FUNDO EXTERNO) + HORA DIGITAL (+40%) */}
           <div className="flex-1 flex justify-center items-center px-4">
-            <div className="bg-black text-white px-3.5 py-1 rounded-xl font-mono font-black text-xs sm:text-sm tracking-widest border border-slate-800 shadow-inner flex items-center gap-2 select-none">
-              <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>{currentTime}</span>
+            <div className="flex items-center gap-2.5 select-none">
+              {/* RELÓGIO ANALÓGICO COM FUNDO BRANCO, TRAÇOS/PONTEIROS PRETOS E SEGUNDO VERMELHO */}
+              <div className="shrink-0 drop-shadow-md hover:scale-105 transition-transform" title="Relógio analógico em tempo real">
+                <AnalogClock size={32} />
+              </div>
+
+              {/* CAIXA HORA DIGITAL (FUNDO PRETO, FONTE BRANCA AUMENTADA EM 40%, SEÇÃO SEPARADA) */}
+              <div className="bg-black text-white px-3.5 py-1 rounded-xl font-mono font-black text-base sm:text-lg tracking-widest border border-slate-800 shadow-inner flex items-center">
+                <span>{currentTime}</span>
+              </div>
             </div>
           </div>
 
@@ -2514,10 +2521,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         setNewItemDesc('');
                         setShowAddItemModal(true);
                       }}
-                      className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                      className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center cursor-pointer shrink-0"
                       title="Adicionar novo item para venda"
                     >
-                      <Plus className="w-4 h-4 stroke-[3]" />
                       <span>+ Novo Item</span>
                     </button>
 
@@ -2617,27 +2623,27 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   )}
                 </div>
 
-                {/* GRID DOS ITENS CADASTRADOS PARA VENDA */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                {/* GRID DOS ITENS CADASTRADOS PARA VENDA (4 POR LINHA, INTERVALO REDUZIDO EM 50%) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2">
                   {filteredSaleItems.map((item) => (
                     <div 
                       key={`${item.categoryId}_${item.id}`} 
-                      className="bg-slate-900/95 hover:bg-slate-900 p-3.5 rounded-2xl border border-slate-700/80 hover:border-slate-600 space-y-3 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group"
+                      className="bg-slate-900/95 hover:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-700/80 hover:border-slate-600 space-y-1.5 transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between relative group"
                     >
-                      {/* TOPO: ÍCONE 2D SEM FUNDO (+30% MAIOR), NOME, CATEGORIA, LOCALIZADOR E BOTÕES VERTICAIS À DIREITA */}
-                      <div className="flex items-start justify-between gap-2">
+                      {/* TOPO: ÍCONE 2D SEM FUNDO, NOME, CATEGORIA, LOCALIZADOR E BOTÕES VERTICAIS À DIREITA */}
+                      <div className="flex items-start justify-between gap-1.5">
                         {/* LADO ESQUERDO: ÍCONE + TEXTOS */}
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          {/* ÍCONE 2D SEM FUNDO (+30% MAIOR) */}
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {/* ÍCONE 2D SEM FUNDO (COMPACTO E PROPORCIONAL) */}
                           <div className="shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <ProductIcon2D item={item} category={{ id: item.categoryId }} className="w-13 h-13 sm:w-14 sm:h-14 object-contain drop-shadow-md" />
+                            <ProductIcon2D item={item} category={{ id: item.categoryId }} className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-md" />
                           </div>
 
                           <div className="min-w-0 flex-1">
                             {/* LINHA 1: CATEGORIA (À ESQ TRUNCADA COM ...) + LOCALIZADOR VERMELHO COZINHA */}
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-1 flex-wrap">
                               <span 
-                                className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border font-mono inline-block truncate max-w-[85px]"
+                                className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded border font-mono inline-block truncate max-w-[70px]"
                                 style={{ 
                                   color: item.color || '#f59e0b', 
                                   borderColor: `${item.color || '#f59e0b'}50`, 
@@ -2661,14 +2667,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                 const destName = destEnvObj ? destEnvObj.name : (currentDest !== 'none' ? currentDest : 'Balcão');
                                 return (
                                   <span 
-                                    className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border inline-flex items-center gap-1 truncate max-w-[125px] ${
+                                    className={`text-[8px] font-bold uppercase px-1.5 py-0.2 rounded border inline-flex items-center gap-0.5 truncate max-w-[105px] ${
                                       currentDest !== 'none'
                                         ? 'bg-red-950/80 text-red-300 border-red-500/50'
                                         : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
                                     }`}
                                     title={currentDest !== 'none' ? `Enviado para preparo em: ${destName}` : 'Entrega direta no balcão'}
                                   >
-                                    <MapPin className={`w-2.5 h-2.5 shrink-0 ${currentDest !== 'none' ? 'text-red-400 fill-red-400/20' : 'text-emerald-400'}`} />
+                                    <MapPin className={`w-2 h-2 shrink-0 ${currentDest !== 'none' ? 'text-red-400 fill-red-400/20' : 'text-emerald-400'}`} />
                                     <span className="truncate">{destName}</span>
                                   </span>
                                 );
@@ -2676,27 +2682,27 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             </div>
 
                             {/* NOME DO ITEM (FONTE REDUZIDA, TRUNCADO COM ...) */}
-                            <h4 className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-wide truncate block mt-1" title={item.name}>
+                            <h4 className="text-[11px] font-bold text-white uppercase tracking-wide truncate block mt-0.5" title={item.name}>
                               {item.name}
                             </h4>
 
                             {/* DESCRIÇÃO DO ITEM */}
-                            <p className="text-[9px] text-slate-400 truncate block mt-0.5">
+                            <p className="text-[8.5px] text-slate-400 truncate block">
                               {item.description || 'Disponível no caixa'}
                             </p>
                           </div>
                         </div>
 
                         {/* LADO DIREITO: BOTÕES DE AÇÃO VERTICAL (EDITAR, COR E EXCLUIR UM EMBAIXO DO OUTRO) */}
-                        <div className="flex flex-col gap-1 items-center shrink-0 relative pt-0.5">
+                        <div className="flex flex-col gap-0.5 items-center shrink-0 relative">
                           {/* 1. LÁPIS VERDE (EDITAR) */}
                           <button
                             type="button"
                             onClick={() => handleOpenGearModal(item)}
-                            className="w-6.5 h-6.5 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 border border-slate-700 hover:border-emerald-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950 shadow-xs"
+                            className="w-5.5 h-5.5 rounded-md text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 border border-slate-700 hover:border-emerald-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950 shadow-xs"
                             title="Editar nome, foto ou ícone deste item"
                           >
-                            <Pencil className="w-3 h-3" />
+                            <Pencil className="w-2.5 h-2.5" />
                           </button>
 
                           {/* 2. BOTÃO DE COR: BOLINHA COLORIDA */}
@@ -2707,11 +2713,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                 e.stopPropagation();
                                 setColorPickerItemId(colorPickerItemId === item.id ? null : item.id);
                               }}
-                              className="w-6.5 h-6.5 rounded-lg border border-slate-700 hover:border-slate-500 flex items-center justify-center transition-all cursor-pointer p-0.5 hover:scale-110 bg-slate-950 shadow-xs"
+                              className="w-5.5 h-5.5 rounded-md border border-slate-700 hover:border-slate-500 flex items-center justify-center transition-all cursor-pointer p-0.5 hover:scale-110 bg-slate-950 shadow-xs"
                               title="Alterar cor deste item"
                             >
                               <span 
-                                className="w-3.5 h-3.5 rounded-full shadow-xs border border-white/40 block shrink-0" 
+                                className="w-3 h-3 rounded-full shadow-xs border border-white/40 block shrink-0" 
                                 style={{ backgroundColor: item.color || '#eab308' }}
                               />
                             </button>
@@ -2767,19 +2773,19 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           <button
                             type="button"
                             onClick={() => handleOpenDeleteItemConfirm(item)}
-                            className="w-6.5 h-6.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950 shadow-xs"
+                            className="w-5.5 h-5.5 rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950 shadow-xs"
                             title="Excluir item do cardápio"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       </div>
 
-                      {/* EMBAIXO: INPUTS ELEGANTES DE SENHA E VALOR NA MESMA LINHA (CAMPO NA FRENTE DO LABEL) */}
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                      {/* EMBAIXO: INPUTS ELEGANTES DE SENHA E VALOR NA MESMA LINHA (COMPACTADOS EM 30%) */}
+                      <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-800/80">
                         {/* SENHA */}
-                        <div className="bg-slate-950/80 px-2 py-1.5 rounded-xl border border-slate-800 focus-within:border-amber-500/60 flex items-center justify-between gap-1.5 transition-colors">
-                          <label className="text-[10px] text-slate-400 font-black uppercase tracking-wider shrink-0 select-none">
+                        <div className="bg-slate-950/80 px-1.5 py-1 rounded-lg border border-slate-800 focus-within:border-amber-500/60 flex items-center justify-between gap-1 transition-colors">
+                          <label className="text-[9px] text-slate-400 font-black uppercase tracking-wider shrink-0 select-none">
                             Senha
                           </label>
                           <input
@@ -2787,13 +2793,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             value={item.prefix || ''}
                             onChange={(e) => handleUpdateItemPrefix(e.target.value, item)}
                             placeholder="Pp-"
-                            className="w-16 sm:w-20 bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-0.5 text-xs font-mono font-black text-amber-300 outline-none focus:border-amber-400 text-center transition-colors"
+                            className="w-14 sm:w-16 bg-slate-900 border border-slate-700 rounded-md px-1 py-0.5 text-xs font-mono font-black text-amber-300 outline-none focus:border-amber-400 text-center transition-colors"
                           />
                         </div>
 
                         {/* VALOR */}
-                        <div className="bg-slate-950/80 px-2 py-1.5 rounded-xl border border-slate-800 focus-within:border-emerald-500/60 flex items-center justify-between gap-1.5 transition-colors">
-                          <label className="text-[10px] text-slate-400 font-black uppercase tracking-wider shrink-0 select-none">
+                        <div className="bg-slate-950/80 px-1.5 py-1 rounded-lg border border-slate-800 focus-within:border-emerald-500/60 flex items-center justify-between gap-1.5 transition-colors">
+                          <label className="text-[9px] text-slate-400 font-black uppercase tracking-wider shrink-0 select-none">
                             Valor
                           </label>
                           <input
@@ -2802,7 +2808,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             value={formatCurrencyMask(item.price)}
                             onChange={(e) => handleUpdateItemPrice(e.target.value, item)}
                             placeholder="0,00"
-                            className="w-16 sm:w-20 bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-0.5 text-xs font-mono font-black text-emerald-400 outline-none focus:border-emerald-400 text-right transition-colors"
+                            className="w-14 sm:w-16 bg-slate-900 border border-slate-700 rounded-md px-1 py-0.5 text-xs font-mono font-black text-emerald-400 outline-none focus:border-emerald-400 text-right transition-colors"
                           />
                         </div>
                       </div>
