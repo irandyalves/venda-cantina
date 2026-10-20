@@ -3631,13 +3631,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <Clock className="w-4 h-4" />
                     </span>
                     <h3 className="font-extrabold text-white text-xs sm:text-sm flex items-center gap-2 truncate">
-                      <span>Tempos e Cores dos Pedidos (Cozinha)</span>
+                      <span>LIMITES DE TEMPO (COZINHA)</span>
                       <span className="text-[9px] bg-emerald-400/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded-full border border-emerald-400/30 hidden md:inline">
                         5 Cores
                       </span>
                     </h3>
                     <span className="text-[10px] text-slate-400 hidden xl:inline truncate">
-                      • Verde/Azul (no prazo), Amarelo (alerta 1), Laranja (atrasado), Vermelho (muito atrasado)
+                      • Verde/Azul (no prazo), Amarelo (alerta), Laranja (atrasado), Vermelho (crítico)
                     </span>
                   </div>
 
@@ -3663,105 +3663,105 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
-                {/* 5 ESTÁGIOS ESMAGADOS NA MESMA LINHA (ALTURA REDUZIDA EM 70%) */}
+                {/* 5 ESTÁGIOS COM SLIDERS NA MESMA LINHA */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-1.5">
                   {/* 1. VERDE: NORMAL */}
-                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-emerald-500 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1">
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-emerald-500 border border-slate-700/80 flex flex-col justify-between gap-1 shadow-xs">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                         <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 truncate">Normal</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 truncate">0 a {orderTimeLimits.greenLimit || 1}m</div>
+                      <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.2 rounded shrink-0">
+                        Até {orderTimeLimits.greenLimit || 1}m
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-[9px] text-slate-400 font-bold">Até</span>
+                    <div className="pt-0.5">
                       <input
-                        type="number"
+                        type="range"
                         min="1"
-                        max="120"
-                        value={orderTimeLimits.greenLimit}
+                        max="30"
+                        step="1"
+                        value={orderTimeLimits.greenLimit || 1}
                         onChange={(e) => handleUpdateOrderTimeLimits('greenLimit', e.target.value)}
-                        onBlur={handleBlurOrderTimeLimits}
-                        className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-emerald-400 text-center outline-none focus:border-emerald-400"
+                        className="w-full accent-emerald-500 h-1 bg-slate-800 rounded cursor-pointer"
                       />
-                      <span className="text-[9px] text-slate-400 font-mono">m</span>
                     </div>
                   </div>
 
                   {/* 2. AZUL: NO PRAZO */}
-                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-sky-500 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1">
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-sky-500 border border-slate-700/80 flex flex-col justify-between gap-1 shadow-xs">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
                         <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 truncate">No Prazo</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.greenLimit || 1} a {orderTimeLimits.blueLimit || 2}m</div>
+                      <span className="text-[10px] font-mono font-black text-sky-400 bg-sky-500/20 border border-sky-500/30 px-1.5 py-0.2 rounded shrink-0">
+                        Até {orderTimeLimits.blueLimit || 2}m
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-[9px] text-slate-400 font-bold">Até</span>
+                    <div className="pt-0.5">
                       <input
-                        type="number"
-                        min="1"
-                        max="180"
-                        value={orderTimeLimits.blueLimit}
+                        type="range"
+                        min="2"
+                        max="60"
+                        step="1"
+                        value={orderTimeLimits.blueLimit || 2}
                         onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
-                        onBlur={handleBlurOrderTimeLimits}
-                        className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-sky-400 text-center outline-none focus:border-sky-400"
+                        className="w-full accent-sky-400 h-1 bg-slate-800 rounded cursor-pointer"
                       />
-                      <span className="text-[9px] text-slate-400 font-mono">m</span>
                     </div>
                   </div>
 
-                  {/* 3. AMARELO: ALERTA 1 */}
-                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-amber-400 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1">
+                  {/* 3. AMARELO: ALERTA */}
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-amber-400 border border-slate-700/80 flex flex-col justify-between gap-1 shadow-xs">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 truncate">Alerta 1</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 truncate">Alerta</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.blueLimit || 2} a {orderTimeLimits.yellowLimit || 3}m</div>
+                      <span className="text-[10px] font-mono font-black text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.2 rounded shrink-0">
+                        Até {orderTimeLimits.yellowLimit || 3}m
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-[9px] text-slate-400 font-bold">Até</span>
+                    <div className="pt-0.5">
                       <input
-                        type="number"
-                        min="1"
-                        max="240"
-                        value={orderTimeLimits.yellowLimit}
+                        type="range"
+                        min="3"
+                        max="90"
+                        step="1"
+                        value={orderTimeLimits.yellowLimit || 3}
                         onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
-                        onBlur={handleBlurOrderTimeLimits}
-                        className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-amber-300 text-center outline-none focus:border-amber-400"
+                        className="w-full accent-amber-400 h-1 bg-slate-800 rounded cursor-pointer"
                       />
-                      <span className="text-[9px] text-slate-400 font-mono">m</span>
                     </div>
                   </div>
 
                   {/* 4. LARANJA: ATRASADO */}
-                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-orange-500 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1">
+                  <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-orange-500 border border-slate-700/80 flex flex-col justify-between gap-1 shadow-xs">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
                         <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 truncate">Atrasado</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 truncate">{orderTimeLimits.yellowLimit || 3} a {orderTimeLimits.orangeLimit || 4}m</div>
+                      <span className="text-[10px] font-mono font-black text-orange-400 bg-orange-500/20 border border-orange-500/30 px-1.5 py-0.2 rounded shrink-0">
+                        Até {orderTimeLimits.orangeLimit || 4}m
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-[9px] text-slate-400 font-bold">Até</span>
+                    <div className="pt-0.5">
                       <input
-                        type="number"
-                        min="1"
-                        max="360"
-                        value={orderTimeLimits.orangeLimit}
+                        type="range"
+                        min="4"
+                        max="120"
+                        step="1"
+                        value={orderTimeLimits.orangeLimit || 4}
                         onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
-                        onBlur={handleBlurOrderTimeLimits}
-                        className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-orange-400 text-center outline-none focus:border-orange-400"
+                        className="w-full accent-orange-500 h-1 bg-slate-800 rounded cursor-pointer"
                       />
-                      <span className="text-[9px] text-slate-400 font-mono">m</span>
                     </div>
                   </div>
 
-                  {/* 5. VERMELHO: MUITO ATRASADO */}
+                  {/* 5. VERMELHO: CRÍTICO */}
                   <div className="bg-slate-900 px-2 py-1.5 rounded-xl border-l-4 border-l-rose-500 border border-slate-700/80 flex items-center justify-between gap-1 shadow-xs">
                     <div className="min-w-0">
                       <div className="flex items-center gap-1">
@@ -3776,8 +3776,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
-                {/* BARRA VISUAL DA LINHA DO TEMPO COMPACTA */}
-                <div className="h-3 rounded overflow-hidden flex text-[8px] font-black font-mono text-slate-950 border border-slate-800">
+                {/* BARRA VISUAL DA LINHA DO TEMPO COMPACTA (ALTURA AUMENTADA EM 60%: h-5) */}
+                <div className="h-5 rounded-lg overflow-hidden flex text-[9px] font-black font-mono text-slate-950 border border-slate-800 shadow-sm">
                   <div 
                     className="bg-emerald-500 flex items-center justify-center transition-all" 
                     style={{ width: `${Math.max(10, ((Number(orderTimeLimits.greenLimit) || 1) / ((Number(orderTimeLimits.orangeLimit) || 15) * 1.25)) * 100)}%` }} 
@@ -4440,17 +4440,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
               </div>
 
-              {/* PAINEL: TEMPOS DO SISTEMA (SENHA E LIMITES ESMAGADOS NA MESMA LINHA) */}
+              {/* PAINEL: TEMPO DA SENHA (COLUNA 1) & ALTURA/DISTÂNCIA DOS CARDS (COLUNA 2 - ESPREMIDO) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5">
-                {/* COLUNA 1 (5 cols): TEMPO EXIBIÇÃO DA SENHA */}
-                <div className="lg:col-span-5 bg-slate-900/95 rounded-xl border border-slate-800 p-3 shadow-xl space-y-2 flex flex-col justify-between">
+                {/* COLUNA 1 (4 cols): TEMPO EXIBIÇÃO DA SENHA */}
+                <div className="lg:col-span-4 bg-slate-900/95 rounded-xl border border-slate-800 p-2.5 shadow-xl space-y-2 flex flex-col justify-between">
                   <div className="flex items-center justify-between gap-1 border-b border-slate-800 pb-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
                         <Tv className="w-3.5 h-3.5" />
                       </span>
                       <h4 className="text-xs font-black text-white uppercase tracking-wide truncate">
-                        TEMPO EXIBIÇÃO DA SENHA
+                        TEMPO DA SENHA
                       </h4>
                     </div>
                     <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
@@ -4481,7 +4481,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           key={btn.val}
                           type="button"
                           onClick={() => handleUpdateSystemSetting('callPasswordDuration', btn.val)}
-                          className={`py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer text-center ${
+                          className={`py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer text-center ${
                             (systemSettings.callPasswordDuration || 6) === btn.val
                               ? 'bg-slate-900/90 text-amber-400 border-2 border-amber-500 font-black shadow-md'
                               : 'bg-slate-950/80 hover:bg-slate-850 text-slate-300 border-slate-800'
@@ -4494,301 +4494,181 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
-                {/* COLUNA 2 (7 cols): LIMITES DE TEMPO E CORES DOS PEDIDOS NA COZINHA */}
-                <div className="lg:col-span-7 bg-slate-900/95 rounded-xl border border-slate-800 p-3 shadow-xl space-y-2 flex flex-col justify-between">
+                {/* COLUNA 2 (8 cols): ALTURA & DISTÂNCIA ENTRE OS CARDS (ESPREMIDO EM 3 COLUNAS) */}
+                <div className="lg:col-span-8 bg-slate-900/95 rounded-xl border border-slate-800 p-2.5 shadow-xl space-y-1.5 flex flex-col justify-between">
                   <div className="flex items-center justify-between gap-1 border-b border-slate-800 pb-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 shrink-0">
-                        <Clock className="w-3.5 h-3.5" />
+                        <LayoutGrid className="w-3.5 h-3.5" />
                       </span>
                       <h4 className="text-xs font-black text-white uppercase tracking-wide truncate">
-                        LIMITES DE TEMPO (COZINHA)
+                        ALTURA & DISTÂNCIA ENTRE OS CARDS
                       </h4>
                     </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={handleResetOrderTimeLimits}
-                        className="px-2 py-0.5 bg-slate-950 hover:bg-slate-850 text-slate-300 border border-slate-700 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-                        title="Restaurar tempos padrão"
-                      >
-                        <RotateCcw className="w-2.5 h-2.5 text-amber-400" />
-                        <span>Padrão</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-                    {/* VERDE */}
-                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-emerald-500 border border-slate-800 flex flex-col justify-between">
-                      <span className="text-[9px] font-black uppercase text-emerald-400 block truncate">Normal</span>
-                      <div className="flex items-center gap-1 pt-0.5">
-                        <span className="text-[10px] text-slate-400">Até</span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="120"
-                          value={orderTimeLimits.greenLimit}
-                          onChange={(e) => handleUpdateOrderTimeLimits('greenLimit', e.target.value)}
-                          onBlur={handleBlurOrderTimeLimits}
-                          className="w-10 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] font-mono font-bold text-emerald-400 text-center outline-none focus:border-emerald-400"
-                        />
-                        <span className="text-[10px] text-slate-400 font-mono">m</span>
-                      </div>
-                    </div>
-
-                    {/* AZUL */}
-                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-sky-500 border border-slate-800 flex flex-col justify-between">
-                      <span className="text-[9px] font-black uppercase text-sky-400 block truncate">No Prazo</span>
-                      <div className="flex items-center gap-1 pt-0.5">
-                        <span className="text-[10px] text-slate-400">Até</span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="180"
-                          value={orderTimeLimits.blueLimit}
-                          onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
-                          onBlur={handleBlurOrderTimeLimits}
-                          className="w-10 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] font-mono font-bold text-sky-400 text-center outline-none focus:border-sky-400"
-                        />
-                        <span className="text-[10px] text-slate-400 font-mono">m</span>
-                      </div>
-                    </div>
-
-                    {/* AMARELO */}
-                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-yellow-500 border border-slate-800 flex flex-col justify-between">
-                      <span className="text-[9px] font-black uppercase text-yellow-400 block truncate">Alerta</span>
-                      <div className="flex items-center gap-1 pt-0.5">
-                        <span className="text-[10px] text-slate-400">Até</span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="240"
-                          value={orderTimeLimits.yellowLimit}
-                          onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
-                          onBlur={handleBlurOrderTimeLimits}
-                          className="w-10 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] font-mono font-bold text-yellow-400 text-center outline-none focus:border-yellow-400"
-                        />
-                        <span className="text-[10px] text-slate-400 font-mono">m</span>
-                      </div>
-                    </div>
-
-                    {/* LARANJA */}
-                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-orange-500 border border-slate-800 flex flex-col justify-between">
-                      <span className="text-[9px] font-black uppercase text-orange-400 block truncate">Atrasado</span>
-                      <div className="flex items-center gap-1 pt-0.5">
-                        <span className="text-[10px] text-slate-400">Até</span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="360"
-                          value={orderTimeLimits.orangeLimit}
-                          onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
-                          onBlur={handleBlurOrderTimeLimits}
-                          className="w-10 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] font-mono font-bold text-orange-400 text-center outline-none focus:border-orange-400"
-                        />
-                        <span className="text-[10px] text-slate-400 font-mono">m</span>
-                      </div>
-                    </div>
-
-                    {/* VERMELHO */}
-                    <div className="bg-slate-950 p-1.5 rounded-lg border-l-4 border-l-rose-500 border border-slate-800 flex flex-col justify-between">
-                      <span className="text-[9px] font-black uppercase text-rose-400 block truncate">Crítico</span>
-                      <div className="text-[10px] font-mono font-bold text-rose-300 pt-1 text-center">
-                        &gt; {orderTimeLimits.orangeLimit}m
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* PAINEL: ALTURA DOS CARDS & DISTÂNCIA ENTRE OS CARDS (2 COLUNAS - TUDO SLIDE) */}
-              <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-3.5 sm:p-4 shadow-xl space-y-3.5 relative overflow-hidden">
-                {/* CABEÇALHO */}
-                <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 shrink-0">
-                      <LayoutGrid className="w-4 h-4" />
+                    <span className="text-[9px] text-slate-400 hidden sm:inline">
+                      Cozinhas • Público • Rodapé
                     </span>
-                    <div className="min-w-0">
-                      <h3 className="font-black text-white text-xs sm:text-sm tracking-wide truncate">
-                        ALTURA & DISTÂNCIA ENTRE OS CARDS
-                      </h3>
-                      <p className="text-[10px] text-slate-400">
-                        Controle deslizante em tempo real para a altura de cada comanda e o espaçamento vertical entre elas.
-                      </p>
+                  </div>
+
+                  {/* 3 COLUNAS ESMAGADAS: COZINHAS, PÚBLICO E RODAPÉ */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                    {/* 1. COZINHAS */}
+                    <div className="bg-slate-950/70 p-1.5 rounded-lg border border-slate-800 space-y-1 min-w-0">
+                      <div className="flex items-center gap-1 pb-0.5 border-b border-slate-800/80">
+                        <span className="p-0.5 bg-amber-500/20 text-amber-400 rounded shrink-0">
+                          <ChefHat className="w-3 h-3" />
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide truncate">
+                          Cozinhas
+                        </span>
+                      </div>
+                      {/* SLIDE ALTURA */}
+                      <div className="flex items-center gap-1 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800 min-w-0">
+                        <span className="text-[10px] font-black text-amber-400 select-none shrink-0" title="Altura do Card">▲</span>
+                        <input
+                          type="range"
+                          min="36"
+                          max="110"
+                          step="2"
+                          value={resolveHeightPx(systemSettings.kitchenCardHeight, 52)}
+                          onInput={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
+                          onChange={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
+                          className="flex-1 accent-amber-500 h-1 bg-slate-800 rounded cursor-pointer min-w-0"
+                        />
+                        <span className="text-[9px] font-mono font-black px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[32px] text-center">
+                          {resolveHeightPx(systemSettings.kitchenCardHeight, 52)}px
+                        </span>
+                      </div>
+                      {/* SLIDE DISTÂNCIA */}
+                      <div className="flex items-center gap-1 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800 min-w-0">
+                        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" className="shrink-0 text-amber-400 select-none" title="Distância vertical">
+                          <line x1="2" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                          <line x1="7" y1="3.5" x2="7" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                          <polyline points="4.5,5 7,2.5 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                          <polyline points="4.5,9 7,11.5 9.5,9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                          <line x1="2" y1="12.5" x2="12" y2="12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
+                        <input
+                          type="range"
+                          min="2"
+                          max="32"
+                          step="1"
+                          value={resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}
+                          onInput={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
+                          onChange={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
+                          className="flex-1 accent-amber-500 h-1 bg-slate-800 rounded cursor-pointer min-w-0"
+                        />
+                        <span className="text-[9px] font-mono font-black px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[32px] text-center">
+                          {resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}px
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 2. PÚBLICO */}
+                    <div className="bg-slate-950/70 p-1.5 rounded-lg border border-slate-800 space-y-1 min-w-0">
+                      <div className="flex items-center gap-1 pb-0.5 border-b border-slate-800/80">
+                        <span className="p-0.5 bg-indigo-500/20 text-indigo-400 rounded shrink-0">
+                          <Tv className="w-3 h-3" />
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide truncate">
+                          Público
+                        </span>
+                      </div>
+                      {/* SLIDE ALTURA */}
+                      <div className="flex items-center gap-1 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800 min-w-0">
+                        <span className="text-[10px] font-black text-indigo-400 select-none shrink-0" title="Altura do Card">▲</span>
+                        <input
+                          type="range"
+                          min="44"
+                          max="130"
+                          step="2"
+                          value={resolveHeightPx(systemSettings.displayCardHeight, 64)}
+                          onInput={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
+                          onChange={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
+                          className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded cursor-pointer min-w-0"
+                        />
+                        <span className="text-[9px] font-mono font-black px-1 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[32px] text-center">
+                          {resolveHeightPx(systemSettings.displayCardHeight, 64)}px
+                        </span>
+                      </div>
+                      {/* SLIDE DISTÂNCIA */}
+                      <div className="flex items-center gap-1 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800 min-w-0">
+                        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" className="shrink-0 text-indigo-400 select-none" title="Distância vertical">
+                          <line x1="2" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                          <line x1="7" y1="3.5" x2="7" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                          <polyline points="4.5,5 7,2.5 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                          <polyline points="4.5,9 7,11.5 9.5,9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                          <line x1="2" y1="12.5" x2="12" y2="12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
+                        <input
+                          type="range"
+                          min="2"
+                          max="32"
+                          step="1"
+                          value={resolveSpacingPx(systemSettings.displayCardSpacing, 6)}
+                          onInput={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
+                          onChange={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
+                          className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded cursor-pointer min-w-0"
+                        />
+                        <span className="text-[9px] font-mono font-black px-1 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[32px] text-center">
+                          {resolveSpacingPx(systemSettings.displayCardSpacing, 6)}px
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 3. RODAPÉ */}
+                    <div className="bg-slate-950/70 p-1.5 rounded-lg border border-slate-800 space-y-1 min-w-0">
+                      <div className="flex items-center gap-1 pb-0.5 border-b border-slate-800/80">
+                        <span className="p-0.5 bg-emerald-500/20 text-emerald-400 rounded shrink-0">
+                          <LayoutGrid className="w-3 h-3" />
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide truncate">
+                          Rodapé
+                        </span>
+                      </div>
+                      {/* SLIDE ALTURA */}
+                      <div className="flex items-center gap-1 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800 min-w-0">
+                        <span className="text-[10px] font-black text-emerald-400 select-none shrink-0" title="Altura do Card">▲</span>
+                        <input
+                          type="range"
+                          min="28"
+                          max="90"
+                          step="2"
+                          value={resolveHeightPx(systemSettings.cashierCardHeight, 42)}
+                          onInput={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
+                          onChange={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
+                          className="flex-1 accent-emerald-500 h-1 bg-slate-800 rounded cursor-pointer min-w-0"
+                        />
+                        <span className="text-[9px] font-mono font-black px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[32px] text-center">
+                          {resolveHeightPx(systemSettings.cashierCardHeight, 42)}px
+                        </span>
+                      </div>
+                      {/* SLIDE DISTÂNCIA */}
+                      <div className="flex items-center gap-1 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800 min-w-0">
+                        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" className="shrink-0 text-emerald-400 select-none" title="Distância vertical">
+                          <line x1="2" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                          <line x1="7" y1="3.5" x2="7" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                          <polyline points="4.5,5 7,2.5 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                          <polyline points="4.5,9 7,11.5 9.5,9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                          <line x1="2" y1="12.5" x2="12" y2="12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
+                        <input
+                          type="range"
+                          min="2"
+                          max="32"
+                          step="1"
+                          value={resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}
+                          onInput={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
+                          onChange={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
+                          className="flex-1 accent-emerald-500 h-1 bg-slate-800 rounded cursor-pointer min-w-0"
+                        />
+                        <span className="text-[9px] font-mono font-black px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[32px] text-center">
+                          {resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}px
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* CONTROLES UNIFICADOS: ALTURA E DISTÂNCIA DOS CARDS (TUDO EM 1 LINHA / 3 COLUNAS ESMAGADAS) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  
-                  {/* 1. COZINHAS */}
-                  <div className="bg-slate-950/70 hover:bg-slate-950/90 p-2 rounded-xl border border-slate-800 space-y-1.5 transition-colors min-w-0">
-                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-800/80">
-                      <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg shrink-0">
-                        <ChefHat className="w-3.5 h-3.5" />
-                      </span>
-                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wide truncate">
-                        Cozinhas
-                      </span>
-                    </div>
-
-                    {/* SLIDE ALTURA (TRIÂNGULO PRA CIMA) */}
-                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
-                      <span className="text-[11px] font-black text-amber-400 select-none shrink-0" title="Altura do Card">▲</span>
-                      <input
-                        type="range"
-                        min="36"
-                        max="110"
-                        step="2"
-                        value={resolveHeightPx(systemSettings.kitchenCardHeight, 52)}
-                        onInput={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
-                        onChange={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
-                        className="flex-1 accent-amber-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
-                      />
-                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[38px] text-center">
-                        {resolveHeightPx(systemSettings.kitchenCardHeight, 52)}px
-                      </span>
-                    </div>
-
-                    {/* SLIDE DISTÂNCIA (ÍCONE DE DISTÂNCIA VERTICAL) */}
-                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className="shrink-0 text-amber-400 select-none" title="Distância / Espaçamento vertical entre os cards">
-                        <line x1="2" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                        <line x1="7" y1="3.5" x2="7" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        <polyline points="4.5,5 7,2.5 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        <polyline points="4.5,9 7,11.5 9.5,9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        <line x1="2" y1="12.5" x2="12" y2="12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                      </svg>
-                      <input
-                        type="range"
-                        min="2"
-                        max="32"
-                        step="1"
-                        value={resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}
-                        onInput={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
-                        onChange={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
-                        className="flex-1 accent-amber-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
-                      />
-                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[38px] text-center">
-                        {resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}px
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 2. PÚBLICO */}
-                  <div className="bg-slate-950/70 hover:bg-slate-950/90 p-2 rounded-xl border border-slate-800 space-y-1.5 transition-colors min-w-0">
-                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-800/80">
-                      <span className="p-1 bg-indigo-500/20 text-indigo-400 rounded-lg shrink-0">
-                        <Tv className="w-3.5 h-3.5" />
-                      </span>
-                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wide truncate">
-                        Público
-                      </span>
-                    </div>
-
-                    {/* SLIDE ALTURA (TRIÂNGULO PRA CIMA) */}
-                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
-                      <span className="text-[11px] font-black text-indigo-400 select-none shrink-0" title="Altura do Card">▲</span>
-                      <input
-                        type="range"
-                        min="44"
-                        max="130"
-                        step="2"
-                        value={resolveHeightPx(systemSettings.displayCardHeight, 64)}
-                        onInput={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
-                        onChange={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
-                        className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
-                      />
-                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[38px] text-center">
-                        {resolveHeightPx(systemSettings.displayCardHeight, 64)}px
-                      </span>
-                    </div>
-
-                    {/* SLIDE DISTÂNCIA (ÍCONE DE DISTÂNCIA VERTICAL) */}
-                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className="shrink-0 text-indigo-400 select-none" title="Distância / Espaçamento vertical entre os cards">
-                        <line x1="2" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                        <line x1="7" y1="3.5" x2="7" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        <polyline points="4.5,5 7,2.5 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        <polyline points="4.5,9 7,11.5 9.5,9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        <line x1="2" y1="12.5" x2="12" y2="12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                      </svg>
-                      <input
-                        type="range"
-                        min="2"
-                        max="32"
-                        step="1"
-                        value={resolveSpacingPx(systemSettings.displayCardSpacing, 6)}
-                        onInput={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
-                        onChange={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
-                        className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
-                      />
-                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[38px] text-center">
-                        {resolveSpacingPx(systemSettings.displayCardSpacing, 6)}px
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 3. RODAPÉ */}
-                  <div className="bg-slate-950/70 hover:bg-slate-950/90 p-2 rounded-xl border border-slate-800 space-y-1.5 transition-colors min-w-0">
-                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-800/80">
-                      <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
-                        <Monitor className="w-3.5 h-3.5" />
-                      </span>
-                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wide truncate">
-                        Rodapé
-                      </span>
-                    </div>
-
-                    {/* SLIDE ALTURA (TRIÂNGULO PRA CIMA) */}
-                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
-                      <span className="text-[11px] font-black text-emerald-400 select-none shrink-0" title="Altura do Card">▲</span>
-                      <input
-                        type="range"
-                        min="28"
-                        max="90"
-                        step="2"
-                        value={resolveHeightPx(systemSettings.cashierCardHeight, 42)}
-                        onInput={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
-                        onChange={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
-                        className="flex-1 accent-emerald-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
-                      />
-                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[38px] text-center">
-                        {resolveHeightPx(systemSettings.cashierCardHeight, 42)}px
-                      </span>
-                    </div>
-
-                    {/* SLIDE DISTÂNCIA (ÍCONE DE DISTÂNCIA VERTICAL) */}
-                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className="shrink-0 text-emerald-400 select-none" title="Distância / Espaçamento vertical entre os cards">
-                        <line x1="2" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                        <line x1="7" y1="3.5" x2="7" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        <polyline points="4.5,5 7,2.5 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        <polyline points="4.5,9 7,11.5 9.5,9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        <line x1="2" y1="12.5" x2="12" y2="12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                      </svg>
-                      <input
-                        type="range"
-                        min="2"
-                        max="32"
-                        step="1"
-                        value={resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}
-                        onInput={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
-                        onChange={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
-                        className="flex-1 accent-emerald-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
-                      />
-                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[38px] text-center">
-                        {resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}px
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-
               </div>
 
               {/* SEÇÃO EM 2 COLUNAS: ESQUERDA (PREVIEWS ESMAGADOS) | DIREITA (EFEITOS VISUAIS, SONS E FONTES ESMAGADOS) */}

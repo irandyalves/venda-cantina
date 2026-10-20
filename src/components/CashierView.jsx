@@ -1491,28 +1491,28 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           >
             {screensLocked ? (
               <>
-                <Lock className="w-3.5 h-3.5 text-rose-400" />
-                <span>Telas Travadas 🔒</span>
+                <span className="text-sm">🔒</span>
+                <span>Telas Travadas</span>
               </>
             ) : (
               <>
-                <Unlock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Travar Telas 🔓</span>
+                <span className="text-sm">🔓</span>
+                <span>Travar Telas</span>
               </>
             )}
           </button>
 
+          {/* BOTÃO CONFIGURAÇÕES: APENAS A ENGRENAGEM COLORIDA SEM FUNDO */}
           <button 
+            type="button"
             onClick={() => onOpenConfig()}
-            className="flex items-center gap-2 px-3 py-1 text-xs font-black bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-sm active:scale-95 border border-amber-500 cursor-pointer select-none"
+            className="p-1 rounded-xl hover:bg-slate-800/60 active:scale-95 transition-all cursor-pointer select-none flex items-center justify-center group"
             title="Configurações, Cadastro de Produtos, Preços e Fechamento de Caixa"
           >
-            <Settings className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">CONFIGURAÇÕES</span>
-            {/* Engrenagem 2 vezes maior que a da esquerda (w-7 h-7 / 28px vs w-3.5 h-3.5 / 14px), centro vermelho e dentes azul, sem fundo */}
+            {/* Engrenagem colorida (sem fundo, dentes azuis e centro vermelho) */}
             <svg 
               viewBox="0 0 24 24" 
-              className="w-7 h-7 shrink-0 drop-shadow-sm" 
+              className="w-8 h-8 drop-shadow-md group-hover:rotate-45 transition-transform duration-300" 
               fill="none" 
               xmlns="http://www.w3.org/2000/svg"
             >
