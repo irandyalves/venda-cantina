@@ -2677,9 +2677,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           </div>
 
                           <div className="min-w-0 flex-1 space-y-1">
-                            {/* LINHA 1: antes de Pizza em verde escreva: Categoria */}
-                            <div className="flex items-center gap-1 min-w-0">
-                              <span className="text-[9px] font-bold text-slate-400 shrink-0">Categoria</span>
+                            {/* LINHA 1: Categoria do Item */}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[8.5px] font-bold text-slate-400 w-[82px] shrink-0">Categoria do Item</span>
                               <span 
                                 className="text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border font-mono inline-block truncate max-w-[95px] bg-emerald-950/80 text-emerald-300 border-emerald-500/50"
                                 title={item.categoryName}
@@ -2688,7 +2688,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                               </span>
                             </div>
 
-                            {/* LINHA 2: Local da retira (na frente vem a cozinha pizza, açaí, etc. aqui é onde se escolhe) */}
+                            {/* LINHA 2: Local da retirada */}
                             {(() => {
                               const targetId = item.isVariation ? item.variationId : item.id;
                               const catId = item.categoryId;
@@ -2710,8 +2710,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                               );
 
                               return (
-                                <div className="flex items-center gap-1 min-w-0">
-                                  <span className="text-[9px] font-bold text-slate-400 shrink-0">Local da retira</span>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-[8.5px] font-bold text-slate-400 w-[82px] shrink-0">Local da retirada</span>
                                   <select
                                     value={currentDest}
                                     onChange={(e) => {
