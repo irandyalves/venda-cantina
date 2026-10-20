@@ -573,7 +573,7 @@ export default function KitchenView({ environment, onNavigate }) {
                               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] sm:text-[10.5px] font-bold leading-tight shadow-sm border ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
                             >
                               <span className="font-black text-amber-300 font-mono text-[9.5px] sm:text-[10.5px]">
-                                {String(it.quantity).padStart(2, '0')}x
+                                {String(it.quantity).padStart(2, '0')}
                               </span>
                               <span className="font-bold text-white text-[9.5px] sm:text-[10.5px]">
                                 {it.description || it.name || it.itemName}
@@ -589,7 +589,7 @@ export default function KitchenView({ environment, onNavigate }) {
                               title="Item destinado a outro ambiente"
                             >
                               <span className="font-mono text-[8px] text-slate-500">
-                                {String(it.quantity).padStart(2, '0')}x
+                                {String(it.quantity).padStart(2, '0')}
                               </span>
                               <span className="truncate max-w-[120px]">
                                 {it.description || it.name || it.itemName}

@@ -2322,9 +2322,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       setShowAddEnvModal(true);
                     }}
                     className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer shrink-0"
+                    title="Cadastrar novo ambiente de trabalho"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Novo Ambiente</span>
+                    <span className="text-base font-black leading-none inline-block select-none transform -translate-y-[0.5px]">+</span>
+                    <span>Novo Ambiente</span>
                   </button>
                 </div>
 
@@ -3546,7 +3547,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                     {ord.items.map((it, idx) => (
                                       <div key={idx} className="flex items-center gap-1.5 text-slate-200">
                                         <span className="font-mono font-black text-orange-400 bg-orange-950/60 border border-orange-500/30 px-1 py-0.2 rounded text-[9px]">
-                                          {String(it.quantity || 1).padStart(2, '0')}x
+                                          {String(it.quantity || 1).padStart(2, '0')}
                                         </span>
                                         <span className="font-medium">{it.description}</span>
                                         {it.unitPrice > 0 && (
