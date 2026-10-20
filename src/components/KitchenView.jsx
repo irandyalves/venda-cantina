@@ -457,10 +457,10 @@ export default function KitchenView({ environment, onNavigate }) {
           <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setActiveFilter('active')}
-              className={`px-3 py-1.5 rounded-lg font-black text-xs transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg font-black text-xs transition-all cursor-pointer border ${
                 activeFilter === 'active'
-                  ? 'bg-orange-500 text-slate-950 shadow-md ring-2 ring-orange-400/50'
-                  : 'bg-slate-850 text-slate-400 hover:text-white'
+                  ? 'bg-slate-900/90 text-orange-400 border-2 border-orange-500 shadow-md'
+                  : 'bg-slate-850 text-slate-400 hover:text-white border-transparent'
               }`}
             >
               🔥 Espera ({activeOrders.length})
@@ -468,10 +468,10 @@ export default function KitchenView({ environment, onNavigate }) {
 
             <button
               onClick={() => setActiveFilter('entregue')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer border ${
                 activeFilter === 'entregue'
-                  ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400/50'
-                  : 'bg-slate-850 text-slate-400 hover:text-white'
+                  ? 'bg-slate-900/90 text-blue-400 border-2 border-blue-500 shadow-md'
+                  : 'bg-slate-850 text-slate-400 hover:text-white border-transparent'
               }`}
             >
               ✓ Entregues ({deliveredOrders.length})

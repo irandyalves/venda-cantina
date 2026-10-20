@@ -2104,10 +2104,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 setActiveTab('reports');
                 setShowNewEventForm(prev => !prev);
               }}
-              className={`ml-5 px-3.5 py-1.5 font-black text-xs rounded-xl transition-all shadow flex items-center justify-center cursor-pointer ${
+              className={`ml-5 px-3.5 py-1.5 font-black text-xs rounded-xl transition-all shadow flex items-center justify-center cursor-pointer border ${
                 showNewEventForm && activeTab === 'reports'
-                  ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300'
-                  : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                  ? 'bg-slate-900/90 text-amber-400 border-2 border-amber-500 shadow-md'
+                  : 'bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700'
               }`}
               title="Cadastrar um novo evento para a cantina"
             >
@@ -2585,17 +2585,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <button
                       type="button"
                       onClick={() => setSelectedCategoryFilter('all')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border ${
                         selectedCategoryFilter === 'all'
-                          ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 ring-2 ring-amber-400'
-                          : 'bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800'
+                          ? 'bg-slate-900/90 text-amber-400 border-2 border-amber-500 shadow-md'
+                          : 'bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800'
                       }`}
                     >
                       <span>TODAS</span>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
                         selectedCategoryFilter === 'all'
-                          ? 'bg-slate-950/30 text-slate-950 font-bold'
-                          : 'bg-slate-900 text-amber-400 border border-slate-800'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-bold'
+                          : 'bg-slate-900 text-slate-400 border-slate-800'
                       }`}>
                         {allSaleItems.length}
                       </span>
@@ -2612,15 +2612,15 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           onClick={() => setSelectedCategoryFilter(c.id)}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                             isSelected
-                              ? 'bg-slate-800 text-white border-amber-400 ring-2 ring-amber-400/30 shadow-md'
+                              ? 'bg-slate-900/90 text-amber-400 border-2 border-amber-500 shadow-md'
                               : 'bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800'
                           }`}
                         >
                           <span className="uppercase text-[11px] font-black">{c.name}</span>
-                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md border ${
                             isSelected
-                              ? 'bg-amber-400 text-slate-950 font-black'
-                              : 'bg-slate-900 text-slate-400 border border-slate-800'
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-black'
+                              : 'bg-slate-900 text-slate-400 border-slate-800'
                           }`}>
                             {count}
                           </span>
@@ -4290,19 +4290,19 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     )}
 
                     {/* 2. CONTROLES DE EFEITOS (OPACIDADE, PROFUNDIDADE, TAMANHO E CLARIDADE) OS 4 NA MESMA LINHA */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 pt-0.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 pt-0.5 min-w-0">
                       {/* EFEITO 1: TEXTURA (OPACIDADE) */}
-                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
-                            <Sliders className="w-3 h-3 text-amber-400" />
+                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between gap-1 min-w-0">
+                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1 min-w-0">
+                            <Sliders className="w-3 h-3 text-amber-400 shrink-0" />
                             <span className="truncate">Opacidade</span>
                           </label>
-                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
                             {bgSettings.textureOpacity ?? 100}%
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[9px] text-slate-500 shrink-0">0%</span>
                           <input
                             type="range"
@@ -4318,17 +4318,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </div>
 
                       {/* EFEITO 2: RELEVO */}
-                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
-                            <Layers className="w-3 h-3 text-cyan-400" />
+                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between gap-1 min-w-0">
+                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1 min-w-0">
+                            <Layers className="w-3 h-3 text-cyan-400 shrink-0" />
                             <span className="truncate">Relevo</span>
                           </label>
-                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
                             {bgSettings.textureDepth ?? 100}%
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[9px] text-slate-500 shrink-0">30%</span>
                           <input
                             type="range"
@@ -4344,17 +4344,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </div>
 
                       {/* EFEITO 3: TAMANHO */}
-                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
-                            <Maximize2 className="w-3 h-3 text-emerald-400" />
+                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between gap-1 min-w-0">
+                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1 min-w-0">
+                            <Maximize2 className="w-3 h-3 text-emerald-400 shrink-0" />
                             <span className="truncate">Tamanho</span>
                           </label>
-                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
                             {bgSettings.textureSize ?? 100}%
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[9px] text-slate-500 shrink-0">2%</span>
                           <input
                             type="range"
@@ -4370,17 +4370,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </div>
 
                       {/* EFEITO 4: BRILHO */}
-                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
-                            <Sun className="w-3 h-3 text-amber-400" />
+                      <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between gap-1 min-w-0">
+                          <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1 min-w-0">
+                            <Sun className="w-3 h-3 text-amber-400 shrink-0" />
                             <span className="truncate">Brilho</span>
                           </label>
-                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                          <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
                             {bgSettings.darkness ?? 0}%
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[9px] text-slate-500 shrink-0">0%</span>
                           <input
                             type="range"
@@ -4389,9 +4389,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             step="5"
                             value={bgSettings.darkness ?? 0}
                             onChange={(e) => handleUpdateBgSetting('darkness', Number(e.target.value))}
-                            className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                            className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                           />
-                          <span className="text-[10px] text-slate-500">80%</span>
+                          <span className="text-[9px] text-slate-500 shrink-0">80%</span>
                         </div>
                       </div>
                     </div>
@@ -4513,7 +4513,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           onClick={() => handleUpdateSystemSetting('callPasswordDuration', btn.val)}
                           className={`py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer text-center ${
                             (systemSettings.callPasswordDuration || 6) === btn.val
-                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-sm'
+                              ? 'bg-slate-900/90 text-amber-400 border-2 border-amber-500 font-black shadow-md'
                               : 'bg-slate-950/80 hover:bg-slate-850 text-slate-300 border-slate-800'
                           }`}
                         >
