@@ -616,51 +616,56 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
   if (!isOpen) return null;
 
-  // --- AÇÕES DE TEMPO E CORES DOS PEDIDOS NA COZINHA (REGRA INTELIGENTE PROGRESSIVA) ---
-  const handleUpdateOrderTimeLimits = (field, val) => {
-    if (val === '') {
+  // --- AÇÕES DE TEMPO E CORES DOS PEDIDOS NA COZINHA (REGRA INTELIGENTE PROGRESSIVA EM CASCATA) ---
+  const handleUpdateOrderTimeLimits = (field, rawVal) => {
+    setHasUnsavedChanges(true);
+    if (rawVal === '') {
       setOrderTimeLimits(prev => ({ ...prev, [field]: '' }));
-      setHasUnsavedChanges(true);
       return;
     }
-    const num = Math.max(1, parseInt(val, 10) || 1);
-    setOrderTimeLimits(prev => {
-      let green = field === 'greenLimit' ? num : (parseInt(prev.greenLimit, 10) || 1);
-      let blue = field === 'blueLimit' ? Math.max(green + 1, num) : (parseInt(prev.blueLimit, 10) || (green + 3));
-      let yellow = field === 'yellowLimit' ? Math.max(blue + 1, num) : (parseInt(prev.yellowLimit, 10) || (blue + 4));
-      let orange = field === 'orangeLimit' ? Math.max(yellow + 1, num) : (parseInt(prev.orangeLimit, 10) || (yellow + 5));
+    const valNum = parseInt(rawVal, 10);
+    if (isNaN(valNum)) return;
 
-      // Regra inteligente progressiva: cada limite posterior é estritamente maior
-      if (field === 'greenLimit') {
-        if (blue <= green) blue = green + 5;
-        if (yellow <= blue) yellow = blue + 5;
-        if (orange <= yellow) orange = yellow + 10;
-      } else if (field === 'blueLimit') {
-        if (yellow <= blue) yellow = blue + 5;
-        if (orange <= yellow) orange = yellow + 10;
-      } else if (field === 'yellowLimit') {
-        if (orange <= yellow) orange = yellow + 5;
+    setOrderTimeLimits(prev => {
+      let g = field === 'greenLimit' ? valNum : (prev.greenLimit === '' ? '' : (parseInt(prev.greenLimit, 10) || 1));
+      let b = field === 'blueLimit' ? valNum : (prev.blueLimit === '' ? '' : (parseInt(prev.blueLimit, 10) || 2));
+      let y = field === 'yellowLimit' ? valNum : (prev.yellowLimit === '' ? '' : (parseInt(prev.yellowLimit, 10) || 3));
+      let o = field === 'orangeLimit' ? valNum : (prev.orangeLimit === '' ? '' : (parseInt(prev.orangeLimit, 10) || 4));
+
+      // Efeito cascata automático para os limites posteriores
+      if (field === 'greenLimit' && typeof g === 'number') {
+        if (typeof b === 'number' && b <= g) b = g + 1;
+        if (typeof y === 'number' && typeof b === 'number' && y <= b) y = b + 1;
+        if (typeof o === 'number' && typeof y === 'number' && o <= y) o = y + 1;
+      } else if (field === 'blueLimit' && typeof b === 'number') {
+        if (typeof y === 'number' && y <= b) y = b + 1;
+        if (typeof o === 'number' && typeof y === 'number' && o <= y) o = y + 1;
+      } else if (field === 'yellowLimit' && typeof y === 'number') {
+        if (typeof o === 'number' && o <= y) o = y + 1;
       }
 
       const next = {
-        greenLimit: green,
-        blueLimit: blue,
-        yellowLimit: yellow,
-        orangeLimit: orange
+        greenLimit: g,
+        blueLimit: b,
+        yellowLimit: y,
+        orangeLimit: o
       };
-      storageService.saveOrderTimeLimits(next);
+
+      if (typeof g === 'number' && typeof b === 'number' && typeof y === 'number' && typeof o === 'number') {
+        storageService.saveOrderTimeLimits(next);
+      }
       return next;
     });
-    setHasUnsavedChanges(true);
   };
 
   const handleBlurOrderTimeLimits = () => {
     setOrderTimeLimits(prev => {
-      const green = Math.max(1, parseInt(prev.greenLimit, 10) || 3);
-      const blue = Math.max(green + 1, parseInt(prev.blueLimit, 10) || (green + 3));
-      const yellow = Math.max(blue + 1, parseInt(prev.yellowLimit, 10) || (blue + 4));
-      const orange = Math.max(yellow + 1, parseInt(prev.orangeLimit, 10) || (yellow + 5));
-      const safe = { greenLimit: green, blueLimit: blue, yellowLimit: yellow, orangeLimit: orange };
+      let g = Math.max(1, parseInt(prev.greenLimit, 10) || 1);
+      let b = Math.max(g + 1, parseInt(prev.blueLimit, 10) || (g + 1));
+      let y = Math.max(b + 1, parseInt(prev.yellowLimit, 10) || (b + 1));
+      let o = Math.max(y + 1, parseInt(prev.orangeLimit, 10) || (y + 1));
+
+      const safe = { greenLimit: g, blueLimit: b, yellowLimit: y, orangeLimit: o };
       storageService.saveOrderTimeLimits(safe);
       return safe;
     });
@@ -3697,7 +3702,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
-                        min={Number(orderTimeLimits.greenLimit) + 1}
+                        min="1"
                         max="180"
                         value={orderTimeLimits.blueLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
@@ -3721,7 +3726,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
-                        min={Number(orderTimeLimits.blueLimit) + 1}
+                        min="1"
                         max="240"
                         value={orderTimeLimits.yellowLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
@@ -3745,7 +3750,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <span className="text-[9px] text-slate-400 font-bold">Até</span>
                       <input
                         type="number"
-                        min={Number(orderTimeLimits.yellowLimit) + 1}
+                        min="1"
                         max="360"
                         value={orderTimeLimits.orangeLimit}
                         onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
@@ -4110,49 +4115,17 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           {activeTab === 'system' && (
             <div className="space-y-3">
 
-              {/* PAINEL: SÍMBOLO DA MOEDA (R$) NOS VALORES */}
-              <div className="bg-slate-900/95 rounded-xl border border-slate-800 p-2.5 sm:p-3 shadow-xl flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 shrink-0">
-                    <DollarSign className="w-4 h-4" />
-                  </span>
-                  <div>
-                    <h3 className="font-black text-white text-xs sm:text-sm tracking-wide flex items-center gap-2">
-                      EXIBIÇÃO DE MOEDA (R$)
-                    </h3>
-                    <p className="text-[11px] text-slate-400">
-                      Exibir o prefixo 'R$' antes de todos os valores no sistema (cards de venda, comandas, cozinha, telão e relatórios).
-                    </p>
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-2 cursor-pointer bg-slate-950 hover:bg-slate-850 border border-slate-700 hover:border-emerald-500/60 px-3 py-1.5 rounded-lg transition-all select-none shadow-sm shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={showCurrencySymbol}
-                    onChange={(e) => handleToggleCurrencySymbol(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-800 border-slate-600 cursor-pointer accent-emerald-500"
-                  />
-                  <span className="text-xs font-black text-white">Exibir R$ nos valores</span>
-                </label>
-              </div>
-
-              {/* PAINEL 1: FUNDO DA SEÇÃO DOS CARDS (CAIXA) - NOVO LAYOUT 2 COLUNAS */}
+              {/* PAINEL 1: BACKGROUND SEÇÃO CARDS */}
               <div className="bg-slate-900/95 rounded-2xl border border-amber-500/30 p-3.5 sm:p-4 shadow-xl space-y-3.5 relative overflow-hidden">
-                {/* CABEÇALHO: TÍTULO, BADGE E RESTAURAR */}
+                {/* CABEÇALHO: TÍTULO */}
                 <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
                       <Palette className="w-4 h-4" />
                     </span>
-                    <div className="flex items-center gap-2 flex-wrap min-w-0">
-                      <h3 className="font-black text-white text-sm tracking-wide truncate">
-                        FUNDO DA SEÇÃO DOS CARDS (CAIXA)
-                      </h3>
-                      <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                        {BACKGROUND_PRESETS.find(p => p.id === bgSettings.theme)?.name || (bgSettings.theme === 'upload' ? 'Upload Próprio' : 'Personalizado')}
-                      </span>
-                    </div>
+                    <h3 className="font-black text-white text-sm tracking-wide truncate">
+                      BACKGROUND SEÇÃO CARDS
+                    </h3>
                   </div>
                 </div>
 
@@ -4440,22 +4413,19 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </span>
                       </div>
 
-                      {/* Cards de Exemplo no Preview */}
-                      <div className="relative z-10 py-2.5 space-y-2">
-                        <div className="rounded-xl bg-slate-900/95 border border-emerald-400/80 p-2 shadow-lg flex items-center justify-between gap-2">
+                      {/* Card de Exemplo no Preview: 1 Card Formato 16x9, à esquerda e centralizado verticalmente */}
+                      <div className="relative z-10 flex-1 flex items-center justify-start py-2.5">
+                        <div className="aspect-[16/9] w-48 max-w-[85%] rounded-xl bg-slate-900/95 border border-emerald-500/70 p-2.5 shadow-xl flex flex-col justify-between my-auto select-none">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <Pizza className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                            <span className="text-xs font-black text-white truncate">Pizza Calabresa</span>
+                            <span className="p-1 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+                              <Pizza className="w-3.5 h-3.5" />
+                            </span>
+                            <span className="text-[11px] font-black text-white truncate">Pizza Calabresa</span>
                           </div>
-                          <span className="text-xs font-mono font-bold text-emerald-400 shrink-0">R$ 15,00</span>
-                        </div>
-
-                        <div className="rounded-xl bg-slate-900/90 border border-slate-700/80 p-2 shadow-lg flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <IceCream className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                            <span className="text-xs font-black text-white truncate">Açaí 300ml</span>
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-800">
+                            <span className="text-[9px] text-slate-400 font-bold">16:9 Exemplo</span>
+                            <span className="text-xs font-mono font-black text-emerald-400">{formatPrice(15, showCurrencySymbol)}</span>
                           </div>
-                          <span className="text-xs font-mono font-bold text-emerald-400 shrink-0">R$ 12,00</span>
                         </div>
                       </div>
 
@@ -4575,7 +4545,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="text-[10px] text-slate-400">Até</span>
                         <input
                           type="number"
-                          min={Number(orderTimeLimits.greenLimit) + 1}
+                          min="1"
                           max="180"
                           value={orderTimeLimits.blueLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('blueLimit', e.target.value)}
@@ -4593,7 +4563,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="text-[10px] text-slate-400">Até</span>
                         <input
                           type="number"
-                          min={Number(orderTimeLimits.blueLimit) + 1}
+                          min="1"
                           max="240"
                           value={orderTimeLimits.yellowLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('yellowLimit', e.target.value)}
@@ -4611,7 +4581,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="text-[10px] text-slate-400">Até</span>
                         <input
                           type="number"
-                          min={Number(orderTimeLimits.yellowLimit) + 1}
+                          min="1"
                           max="360"
                           value={orderTimeLimits.orangeLimit}
                           onChange={(e) => handleUpdateOrderTimeLimits('orangeLimit', e.target.value)}
@@ -4933,7 +4903,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </h3>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                       {/* Efeito Pulsante */}
                       <div className="bg-slate-950/70 p-1.5 px-2 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5">
                         <div className="min-w-0">
@@ -4941,7 +4911,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             <Sparkles className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
                             <span className="truncate">Cards Pulsantes</span>
                           </h4>
-                          <p className="text-[9px] text-slate-400 truncate">Borda nos pedidos em preparo</p>
+                          <p className="text-[9px] text-slate-400 truncate">Borda nos preparos</p>
                         </div>
                         <button
                           type="button"
@@ -4963,7 +4933,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             <Volume2 className="w-2.5 h-2.5 text-amber-400 shrink-0" />
                             <span className="truncate">Sons e Alertas</span>
                           </h4>
-                          <p className="text-[9px] text-slate-400 truncate">Sino de senha e novo pedido</p>
+                          <p className="text-[9px] text-slate-400 truncate">Sino e novos pedidos</p>
                         </div>
                         <button
                           type="button"
@@ -4975,6 +4945,28 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           }`}
                         >
                           {systemSettings.cardSoundEnabled !== false ? '✓ Ativado' : '✕ Desativado'}
+                        </button>
+                      </div>
+
+                      {/* Exibir Moeda R$ */}
+                      <div className="bg-slate-950/70 p-1.5 px-2 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5">
+                        <div className="min-w-0">
+                          <h4 className="text-[11px] font-bold text-white flex items-center gap-1 truncate">
+                            <DollarSign className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                            <span className="truncate">Exibir R$</span>
+                          </h4>
+                          <p className="text-[9px] text-slate-400 truncate">Símbolo nos preços</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCurrencySymbol(!showCurrencySymbol)}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-black transition-all border shrink-0 cursor-pointer ${
+                            showCurrencySymbol
+                              ? 'bg-slate-900/90 text-emerald-400 border-2 border-emerald-500 shadow-xs'
+                              : 'bg-slate-800 text-slate-400 border-slate-700'
+                          }`}
+                        >
+                          {showCurrencySymbol ? '✓ Ativado' : '✕ Desativado'}
                         </button>
                       </div>
                     </div>
