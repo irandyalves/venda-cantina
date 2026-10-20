@@ -1504,11 +1504,30 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
           <button 
             onClick={() => onOpenConfig()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-sm active:scale-95 border border-amber-500 cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1 text-xs font-black bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-sm active:scale-95 border border-amber-500 cursor-pointer select-none"
             title="Configurações, Cadastro de Produtos, Preços e Fechamento de Caixa"
           >
-            <Settings className="w-3.5 h-3.5 animate-spin-slow" />
-            <span className="hidden sm:inline">CONFIGURAÇÕES ⚙️</span>
+            <Settings className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">CONFIGURAÇÕES</span>
+            {/* Engrenagem 2 vezes maior que a da esquerda (w-7 h-7 / 28px vs w-3.5 h-3.5 / 14px), centro vermelho e dentes azul, sem fundo */}
+            <svg 
+              viewBox="0 0 24 24" 
+              className="w-7 h-7 shrink-0 drop-shadow-sm" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* Dentes da engrenagem em Azul */}
+              <path 
+                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" 
+                fill="#2563eb"
+                stroke="#1d4ed8"
+                strokeWidth="0.75"
+              />
+              {/* Centro da engrenagem em Vermelho */}
+              <circle cx="12" cy="12" r="5" fill="#ef4444" stroke="#dc2626" strokeWidth="0.75" />
+              {/* Furo central do eixo */}
+              <circle cx="12" cy="12" r="2.2" fill="#991b1b" />
+            </svg>
           </button>
         </div>
       </header>
