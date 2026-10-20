@@ -51,7 +51,9 @@ import {
   Sliders,
   Sun,
   Moon,
-  LayoutGrid
+  LayoutGrid,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { storageService, formatPrice, BACKGROUND_PRESETS, getSectionBackgroundStyle, resolveSpacingPx, resolveHeightPx } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -386,6 +388,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
   // Estado Geral do Sistema (Fundo, Efeitos, Tempos, Fontes, Distância de Cards)
   const [systemSettings, setSystemSettings] = useState(() => storageService.getSystemSettings());
+  const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
+  const [currentTime, setCurrentTime] = useState(() => new Date().toLocaleTimeString('pt-BR', { hour12: false }));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('pt-BR', { hour12: false }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleToggleScreensLock = async () => {
+    const nextState = !screensLocked;
+    await storageService.setScreensLocked(nextState);
+  };
 
   const handleUpdateSystemSetting = (key, val) => {
     const nextSettings = {
@@ -437,6 +453,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const handleSystemChange = (e) => {
       setSystemSettings(e.detail || storageService.getSystemSettings());
     };
+    const handleScreensLockChange = (e) => {
+      setScreensLocked(!!e.detail);
+    };
 
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
     window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
@@ -447,6 +466,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     window.addEventListener('cantina_order_time_limits_changed', handleLimitsChange);
     window.addEventListener('cantina_background_settings_changed', handleBgChange);
     window.addEventListener('cantina_system_settings_changed', handleSystemChange);
+    window.addEventListener('cantina_screens_locked_changed', handleScreensLockChange);
 
     return () => {
       unsubOrders();
@@ -459,6 +479,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       window.removeEventListener('cantina_order_time_limits_changed', handleLimitsChange);
       window.removeEventListener('cantina_background_settings_changed', handleBgChange);
       window.removeEventListener('cantina_system_settings_changed', handleSystemChange);
+      window.removeEventListener('cantina_screens_locked_changed', handleScreensLockChange);
     };
   }, []);
 
@@ -582,6 +603,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setOrderTimeLimits(storageService.getOrderTimeLimits());
     setSystemSettings(storageService.getSystemSettings());
     setBgSettings(storageService.getBackgroundSettings());
+    setScreensLocked(storageService.isScreensLocked());
   };
 
   if (!isOpen) return null;
@@ -2046,7 +2068,43 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             </button>
           </div>
 
+          {/* HORA LOCAL NO CENTRO (FUNDO PRETO, FONTE BRANCA) */}
+          <div className="flex-1 flex justify-center items-center px-4">
+            <div className="bg-black text-white px-3.5 py-1 rounded-xl font-mono font-black text-xs sm:text-sm tracking-widest border border-slate-800 shadow-inner flex items-center gap-2 select-none">
+              <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>{currentTime}</span>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2.5">
+            {/* BOTÃO REMOTO DE TRAVA DE MONITORES E TABLETS (SEMPRE EXIBIDO, INCLUSIVE EM CONFIGS) */}
+            <button
+              type="button"
+              onClick={handleToggleScreensLock}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 border cursor-pointer shrink-0 ${
+                screensLocked
+                  ? 'bg-rose-950/90 hover:bg-rose-900 border-rose-500/80 text-rose-300 ring-1 ring-rose-500/40 animate-pulse'
+                  : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/90 text-slate-300'
+              }`}
+              title={
+                screensLocked
+                  ? 'Monitores e tablets (Cozinha e Telão) estão TRAVADOS contra alterações mal-intencionadas. Clique para destravar.'
+                  : 'Monitores e tablets estão destravados. Clique para travar remotamente.'
+              }
+            >
+              {screensLocked ? (
+                <>
+                  <Lock className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Telas Travadas 🔒</span>
+                </>
+              ) : (
+                <>
+                  <Unlock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Travar Telas 🔓</span>
+                </>
+              )}
+            </button>
+
             {/* BOTÃO SALVAR PRINCIPAL SEMPRE VISÍVEL: VERDE BRILHO SE HOUVER ALTERAÇÕES, CASO CONTRÁRIO ESMAECIDO */}
             <button
               type="button"
@@ -4001,20 +4059,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </span>
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const def = { theme: 'cream', textureOpacity: 100, textureDepth: 100, textureSize: 100, darkness: 0, customColor: '#eace9a', customImage: '' };
-                      setBgSettings(def);
-                      storageService.saveBackgroundSettings(def);
-                    }}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-lg text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-                    title="Restaurar padrão clássico (Creme Texturado)"
-                  >
-                    <RotateCcw className="w-3 h-3 text-amber-400" />
-                    <span><span className="hidden sm:inline">Restaurar</span> Padrão</span>
-                  </button>
                 </div>
 
                 {/* CORPO PRINCIPAL EM 2 COLUNAS: À ESQUERDA (TIPOS + EFEITOS), À DIREITA (PREVIEW REDUZIDO EM LARGURA E MAIS ALTO) */}
@@ -4408,14 +4452,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <RotateCcw className="w-2.5 h-2.5 text-amber-400" />
                         <span>Padrão</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={handleSaveOrderTimeLimits}
-                        className="px-2.5 py-0.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] rounded-lg transition-all shadow flex items-center gap-1 cursor-pointer"
-                      >
-                        <Save className="w-2.5 h-2.5" />
-                        <span>Salvar</span>
-                      </button>
                     </div>
                   </div>
 
@@ -4520,28 +4556,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </p>
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const def = {
-                        ...systemSettings,
-                        kitchenCardHeight: 52,
-                        displayCardHeight: 64,
-                        cashierCardHeight: 42,
-                        kitchenCardSpacing: 6,
-                        displayCardSpacing: 6,
-                        cashierCardSpacing: 6
-                      };
-                      setSystemSettings(def);
-                      storageService.saveSystemSettings(def);
-                    }}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-lg text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-                    title="Restaurar dimensões e distâncias padrão"
-                  >
-                    <RotateCcw className="w-3 h-3 text-emerald-400" />
-                    <span><span className="hidden sm:inline">Restaurar</span> Padrão</span>
-                  </button>
                 </div>
 
                 {/* CONTROLES UNIFICADOS: ALTURA E DISTÂNCIA DOS CARDS (SEM SEÇÕES SEPARADAS) */}
@@ -4814,7 +4828,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     </h3>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {/* Efeito Pulsante */}
                     <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800 flex items-center justify-between gap-2">
                       <div>

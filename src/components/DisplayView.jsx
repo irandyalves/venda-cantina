@@ -21,6 +21,14 @@ export default function DisplayView({ environment, onNavigate }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [deliveredModalOrder, setDeliveredModalOrder] = useState(null);
   const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
+  const [currentTime, setCurrentTime] = useState(() => new Date().toLocaleTimeString('pt-BR', { hour12: false }));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('pt-BR', { hour12: false }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
   
   // Configurações da TV vindas do Storage (definidas pelo Caixa)
   const [tvSettings, setTvSettings] = useState(storageService.getTVSettings());
@@ -334,8 +342,16 @@ export default function DisplayView({ environment, onNavigate }) {
           </div>
         </div>
 
+        {/* HORA LOCAL NO CENTRO (FUNDO PRETO, FONTE BRANCA) */}
+        <div className="flex-1 flex justify-center items-center px-2">
+          <div className="bg-black text-white px-3.5 py-1 rounded-xl font-mono font-black text-xs sm:text-sm tracking-widest border border-slate-800 shadow-inner flex items-center gap-2 select-none">
+            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>{currentTime}</span>
+          </div>
+        </div>
+
         {/* CONTROLES À DIREITA: TELA CHEIA */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
 
           <button
             onClick={toggleFullscreen}

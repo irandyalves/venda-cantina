@@ -430,8 +430,16 @@ export default function KitchenView({ environment, onNavigate }) {
           />
         </div>
 
+        {/* HORA LOCAL NO CENTRO (FUNDO PRETO, FONTE BRANCA) */}
+        <div className="flex-1 flex justify-center items-center px-2">
+          <div className="bg-black text-white px-3.5 py-1 rounded-xl font-mono font-black text-xs sm:text-sm tracking-widest border border-slate-800 shadow-inner flex items-center gap-2 select-none">
+            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>{new Date(currentTime).toLocaleTimeString('pt-BR', { hour12: false })}</span>
+          </div>
+        </div>
+
         {/* LADO DIREITO: ESPERA E ENTREGUES + BOTÃO TELA CHEIA */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
 
           <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
             <button

@@ -183,6 +183,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   // Trava de telas dos monitores e tablets (Cozinha e Telão)
   const [screensLocked, setScreensLocked] = useState(() => storageService.isScreensLocked());
+  const [currentTime, setCurrentTime] = useState(() => new Date().toLocaleTimeString('pt-BR', { hour12: false }));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('pt-BR', { hour12: false }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Configuração do Fundo da Seção dos Cards
   const [bgSettings, setBgSettings] = useState(() => storageService.getBackgroundSettings());
@@ -1442,16 +1450,24 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           />
         </div>
 
+        {/* HORA LOCAL NO CENTRO (FUNDO PRETO, FONTE BRANCA) */}
+        <div className="flex-1 flex justify-center items-center px-2">
+          <div className="bg-black text-white px-3.5 py-1 rounded-xl font-mono font-black text-xs sm:text-sm tracking-widest border border-slate-800 shadow-inner flex items-center gap-2 select-none">
+            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>{currentTime}</span>
+          </div>
+        </div>
+
         {/* CONTROLES SUPERIORES À DIREITA */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center justify-center px-1" title={isFirebaseOnline ? 'Conexão Nuvem Online' : 'Modo Local'}>
             <span className={`w-2.5 h-2.5 rounded-full ${isFirebaseOnline ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
           </div>
 
-          {/* BOTÃO REMOTO DE TRAVA DE MONITORES E TABLETS */}
+          {/* BOTÃO REMOTO DE TRAVA DE MONITORES E TABLETS (SEMPRE EXIBIDO) */}
           <button
             onClick={handleToggleScreensLock}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 border cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 border cursor-pointer shrink-0 ${
               screensLocked
                 ? 'bg-rose-950/90 hover:bg-rose-900 border-rose-500/80 text-rose-300 ring-1 ring-rose-500/40 animate-pulse'
                 : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/90 text-slate-300'
@@ -1465,12 +1481,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             {screensLocked ? (
               <>
                 <Lock className="w-3.5 h-3.5 text-rose-400" />
-                <span className="hidden sm:inline">Telas Travadas 🔒</span>
+                <span>Telas Travadas 🔒</span>
               </>
             ) : (
               <>
                 <Unlock className="w-3.5 h-3.5 text-slate-400" />
-                <span className="hidden sm:inline">Travar Telas 🔓</span>
+                <span>Travar Telas 🔓</span>
               </>
             )}
           </button>
