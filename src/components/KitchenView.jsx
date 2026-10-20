@@ -113,10 +113,16 @@ export default function KitchenView({ environment, onNavigate }) {
       return it.targetEnvironment === currentEnvId;
     }
 
-    // 2. Destino no productionRouting por id do item ou variação
-    const targetId = it.variationId || it.itemId || it.id;
-    if (targetId && productionRouting?.destinationEnv?.[targetId]) {
-      const dest = productionRouting.destinationEnv[targetId];
+    // 2. Destino no productionRouting por id específico do item ou variação
+    const specificId = it.itemId || it.id;
+    if (specificId && productionRouting?.destinationEnv?.[specificId]) {
+      const dest = productionRouting.destinationEnv[specificId];
+      if (dest === 'none') return false;
+      return dest === currentEnvId;
+    }
+    const varId = it.variationId;
+    if (varId && productionRouting?.destinationEnv?.[varId]) {
+      const dest = productionRouting.destinationEnv[varId];
       if (dest === 'none') return false;
       return dest === currentEnvId;
     }

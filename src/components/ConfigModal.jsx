@@ -3829,27 +3829,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       </p>
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={handleResetProductionRouting}
-                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-auto"
-                    title="Restaura o padrão de envio"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Restaurar Padrão</span>
-                  </button>
                 </div>
 
-                {/* CABEÇALHO DAS COLUNAS: ITEM | ENVIAR PARA O PREPARO | OCULTAR / EXIBIR */}
-                <div className="hidden md:grid md:grid-cols-12 gap-3 px-4 py-2 bg-slate-950/70 rounded-xl border border-slate-800 text-[11px] font-black uppercase tracking-wider text-slate-400">
-                  <div className="md:col-span-5">ITEM</div>
-                  <div className="md:col-span-4">ENVIAR PARA O PREPARO</div>
-                  <div className="md:col-span-3 text-right">OCULTAR / EXIBIR (CORTE RÁPIDO)</div>
-                </div>
-
-                {/* LISTAGEM DOS ITENS EM 3 COLUNAS */}
-                <div className="space-y-2 pt-1">
+                {/* LISTAGEM DOS ITENS EM 2 COLUNAS (ALTURA REDUZIDA EM 25%, GAP COMPACTADO, SEM 'PREPARO EM: XXX') */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
                   {allSaleItems.map((item) => {
                     const targetId = item.isVariation ? item.variationId : item.id;
                     const catId = item.categoryId;
@@ -3869,7 +3852,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       : (productionRouting.showOnTV?.[catId] !== undefined ? productionRouting.showOnTV[catId] : (catId === 'pizza'));
 
                     // Filtra apenas ambientes de preparo (Cozinhas, fogões)
-                    // NUNCA exibe telas de público, admin ou itens legados no destino de preparo
                     const kitchenEnvironments = environments.filter(env => 
                       env.type === 'kitchen' && 
                       env.id !== 'PUBLICO' && 
@@ -3880,17 +3862,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       !(env.id === 'COZINHA_2' && (env.description || '').toLowerCase().includes('fogões adicionais'))
                     );
 
-                    const destEnvObj = environments.find(e => e.id === currentDest);
-                    const destDisplayName = destEnvObj ? destEnvObj.name : (currentDest !== 'none' ? currentDest : 'Balcão (Sem Preparo)');
-
                     return (
                       <div 
                         key={`routing_${catId}_${targetId}`}
-                        className="bg-slate-900 p-3 sm:px-4 sm:py-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors grid grid-cols-1 md:grid-cols-12 gap-3 items-center"
+                        className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors flex items-center justify-between gap-2 shadow-xs"
                       >
-                        {/* COLUNA 1: ITEM (Ícone + Nome, SEM A SENHA) */}
-                        <div className="md:col-span-5 flex items-center gap-3 min-w-0">
-                          <span className={`p-2 rounded-xl border text-xs shrink-0 ${
+                        {/* ITEM: ÍCONE + NOME (SEM 'PREPARO EM: XXX') */}
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className={`w-8 h-8 rounded-lg border text-xs shrink-0 flex items-center justify-center ${
                             catId === 'pizza' 
                               ? 'bg-red-500/20 text-red-400 border-red-500/30' 
                               : catId === 'acai'
@@ -3899,88 +3878,84 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                   ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                                   : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                           }`}>
-                            {catId === 'pizza' ? <Pizza className="w-4 h-4" /> : catId === 'acai' ? <IceCream className="w-4 h-4" /> : <UtensilsCrossed className="w-4 h-4" />}
+                            {catId === 'pizza' ? <Pizza className="w-3.5 h-3.5" /> : catId === 'acai' ? <IceCream className="w-3.5 h-3.5" /> : <UtensilsCrossed className="w-3.5 h-3.5" />}
                           </span>
 
-                          <div className="min-w-0">
-                            <h4 className="font-extrabold text-sm text-white truncate">{item.name}</h4>
-                            <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                              {currentDest !== 'none' 
-                                ? `Preparo em: ${destDisplayName}` 
-                                : 'Venda direta no caixa (sem envio para preparo)'}
-                            </p>
-                          </div>
+                          <h4 className="font-extrabold text-xs sm:text-[13px] text-white truncate min-w-0" title={item.name}>
+                            {item.name}
+                          </h4>
                         </div>
 
-                        {/* COLUNA 2: ENVIAR PARA O PREPARO (Listbox com Ambientes de Cozinha/Preparo, SEM PÚBLICO) */}
-                        <div className="md:col-span-4 min-w-0">
-                          <div className="relative">
-                            <select
-                              value={currentDest}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '__NEW_ENV__') {
-                                  setShowAddEnvModal(true);
-                                } else {
-                                  handleChangeItemDestination(targetId, val, item.name);
-                                }
-                              }}
-                              className={`w-full h-10 px-3 pr-8 rounded-xl text-xs font-black transition-all border-2 outline-none cursor-pointer appearance-none shadow-md truncate ${
-                                currentDest !== 'none'
-                                  ? 'bg-blue-950 text-blue-100 border-blue-500 hover:border-blue-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-400/50'
-                                  : 'bg-slate-950 text-emerald-300 border-emerald-500/80 hover:border-emerald-400 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-400/50'
-                              }`}
-                              title="Selecione o ambiente de preparo para onde a comanda deste item será enviada"
-                            >
-                              <optgroup label="🍳 Fogões / Telas de Preparo" className="bg-slate-950 text-slate-300 font-bold">
-                                {kitchenEnvironments.map((env) => (
-                                  <option key={env.id} value={env.id} className="bg-slate-900 text-white font-bold py-1.5">
-                                    🍳 {env.name}
-                                  </option>
-                                ))}
-                              </optgroup>
-                              <optgroup label="📦 Direto sem Cozinha" className="bg-slate-950 text-emerald-400 font-bold">
-                                <option value="none" className="bg-slate-900 text-emerald-300 font-bold py-1.5">
-                                  📦 Balcão (Sem Preparo / Entrega Direta)
-                                </option>
-                              </optgroup>
-                              <optgroup label="✨ Novo" className="bg-slate-950 text-amber-400 font-bold">
-                                <option value="__NEW_ENV__" className="bg-slate-900 text-amber-300 font-black py-1.5">
-                                  ✨ + Cadastrar Novo Espaço...
-                                </option>
-                              </optgroup>
-                            </select>
-                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-blue-300">
-                              <ChevronDown className="w-4 h-4 stroke-[2.5]" />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* COLUNA 3: OCULTAR / EXIBIR (CORTE RÁPIDO: CLICOU NÃO MOSTRA) */}
-                        <div className="md:col-span-3 flex items-center justify-end">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleItemTV(targetId, !isToTV)}
-                            className={`w-full md:w-auto min-w-[125px] h-9 px-3.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95 ${
-                              isToTV
-                                ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/50 hover:border-emerald-400'
-                                : 'bg-rose-950/40 hover:bg-rose-950/60 text-rose-300 border-rose-800/60 hover:border-rose-600'
+                        {/* SELETOR DE PREPARO / COZINHA */}
+                        <div className="relative shrink-0">
+                          <select
+                            value={currentDest}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '__NEW_ENV__') {
+                                setShowAddEnvModal(true);
+                              } else {
+                                handleChangeItemDestination(targetId, val, item.name);
+                              }
+                            }}
+                            className={`w-36 sm:w-44 h-8 px-2.5 pr-7 rounded-lg text-[11px] font-bold transition-all border outline-none cursor-pointer appearance-none shadow-xs truncate ${
+                              currentDest !== 'none'
+                                ? 'bg-blue-950 text-blue-100 border-blue-500 hover:border-blue-400 focus:border-blue-300'
+                                : 'bg-slate-950 text-emerald-300 border-emerald-500/80 hover:border-emerald-400 focus:border-emerald-300'
                             }`}
-                            title="Corte rápido: Clicou não mostra no painel TV"
+                            title="Selecione o ambiente de preparo"
                           >
-                            {isToTV ? (
-                              <>
-                                <Eye className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                                <span>✓ Exibindo</span>
-                              </>
-                            ) : (
-                              <>
-                                <EyeOff className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                                <span>✕ Oculto</span>
-                              </>
+                            <optgroup label="🍳 Fogões / Telas de Preparo" className="bg-slate-950 text-slate-300 font-bold">
+                              {kitchenEnvironments.map((env) => (
+                                <option key={env.id} value={env.id} className="bg-slate-900 text-white font-bold py-1">
+                                  🍳 {env.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                            {currentDest !== 'none' && !kitchenEnvironments.some(e => e.id === currentDest) && (
+                              <option value={currentDest} className="bg-slate-900 text-white font-bold py-1">
+                                🍳 {currentDest}
+                              </option>
                             )}
-                          </button>
+                            <optgroup label="📦 Direto sem Cozinha" className="bg-slate-950 text-emerald-400 font-bold">
+                              <option value="none" className="bg-slate-900 text-emerald-300 font-bold py-1">
+                                📦 Balcão (Sem Preparo)
+                              </option>
+                            </optgroup>
+                            <optgroup label="✨ Novo" className="bg-slate-950 text-amber-400 font-bold">
+                              <option value="__NEW_ENV__" className="bg-slate-900 text-amber-300 font-black py-1">
+                                ✨ + Novo Espaço...
+                              </option>
+                            </optgroup>
+                          </select>
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-blue-300">
+                            <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </div>
                         </div>
+
+                        {/* BOTÃO OCULTAR / EXIBIR (CORTE RÁPIDO) */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleItemTV(targetId, !isToTV)}
+                          className={`h-8 px-2.5 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0 active:scale-95 ${
+                            isToTV
+                              ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/50 hover:border-emerald-400'
+                              : 'bg-rose-950/40 hover:bg-rose-950/60 text-rose-300 border-rose-800/60 hover:border-rose-600'
+                          }`}
+                          title="Corte rápido: Clicou não mostra no painel TV"
+                        >
+                          {isToTV ? (
+                            <>
+                              <Eye className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <span className="hidden sm:inline">✓ Exibindo</span>
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                              <span className="hidden sm:inline">✕ Oculto</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     );
                   })}

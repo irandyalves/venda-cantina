@@ -953,11 +953,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         let sendToKitchen = true;
         let targetEnvironment = 'COZINHA';
 
-        // Roteamento inteligente: prioridade para a configuração individual do item ou de sua categoria
+        // Roteamento inteligente: prioridade para item específico (ex: Margueritta) -> variação (ex: Inteira) -> categoria
         let itemExplicitEnv = null;
         let itemExplicitSend = null;
 
-        if (routing.destinationEnv?.[targetId] !== undefined) {
+        if (item?.id && routing.destinationEnv?.[item.id] !== undefined) {
+          itemExplicitEnv = routing.destinationEnv[item.id];
+          itemExplicitSend = routing.sendToKitchen?.[item.id] !== false;
+        } else if (targetId && routing.destinationEnv?.[targetId] !== undefined) {
           itemExplicitEnv = routing.destinationEnv[targetId];
           itemExplicitSend = routing.sendToKitchen?.[targetId] !== false;
         } else if (routing.destinationEnv?.[catId] !== undefined) {
