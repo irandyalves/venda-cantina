@@ -4168,7 +4168,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-1.5">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                         {BACKGROUND_PRESETS.map((preset) => {
                           const isSelected = bgSettings.theme === preset.id;
                           return (
@@ -4313,12 +4313,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </div>
                       </div>
 
-                      {/* EFEITO 2: PROFUNDIDADE DA TEXTURA (RELEVO / CONTRASTE) */}
+                      {/* EFEITO 2: RELEVO */}
                       <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
                         <div className="flex items-center justify-between">
                           <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
                             <Layers className="w-3 h-3 text-cyan-400" />
-                            <span className="truncate">Profundidade</span>
+                            <span className="truncate">Relevo</span>
                           </label>
                           <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                             {bgSettings.textureDepth ?? 100}%
@@ -4339,7 +4339,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </div>
                       </div>
 
-                      {/* EFEITO 3: TAMANHO DA TEXTURA (ESCALA / REDUZIR OU AUMENTAR) */}
+                      {/* EFEITO 3: TAMANHO */}
                       <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
                         <div className="flex items-center justify-between">
                           <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
@@ -4365,12 +4365,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         </div>
                       </div>
 
-                      {/* EFEITO 4: CLARIDADE / ESCURECIMENTO */}
+                      {/* EFEITO 4: BRILHO */}
                       <div className="bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800 space-y-1">
                         <div className="flex items-center justify-between">
                           <label className="text-[10px] sm:text-[11px] font-bold text-slate-200 flex items-center gap-1">
                             <Sun className="w-3 h-3 text-amber-400" />
-                            <span className="truncate">Claridade/Escuro</span>
+                            <span className="truncate">Brilho</span>
                           </label>
                           <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                             {bgSettings.darkness ?? 0}%

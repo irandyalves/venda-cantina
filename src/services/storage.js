@@ -1681,6 +1681,12 @@ const SVG_METAL = `url("data:image/svg+xml,%3Csvg width='120' height='24' viewBo
 
 const SVG_CARBON = `url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='8' height='8' fill='%23ffffff' fill-opacity='0.05'/%3E%3Crect x='8' y='8' width='8' height='8' fill='%23ffffff' fill-opacity='0.05'/%3E%3Crect x='8' width='8' height='8' fill='%23000000' fill-opacity='0.18'/%3E%3Crect y='8' width='8' height='8' fill='%23000000' fill-opacity='0.18'/%3E%3C/svg%3E")`;
 
+const SVG_MOSAIC = `url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 0L48 24L24 48L0 24Z' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.12'/%3E%3Ccircle cx='24' cy='24' r='6' fill='%23ffffff' fill-opacity='0.08'/%3E%3Cpath d='M0 0h48v48H0z' fill='none' stroke='%23000000' stroke-width='1' stroke-opacity='0.25'/%3E%3C/svg%3E"), url('cream-texture.png')`;
+
+const SVG_CONCRETE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0 0 0 0.22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)'/%3E%3C/svg%3E"), url('cream-texture.png')`;
+
+const SVG_CHALKBOARD = `url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='18' r='1' fill='%23ffffff' fill-opacity='0.15'/%3E%3Ccircle cx='48' cy='42' r='1.2' fill='%23ffffff' fill-opacity='0.12'/%3E%3Ccircle cx='32' cy='52' r='0.8' fill='%23ffffff' fill-opacity='0.18'/%3E%3Ccircle cx='54' cy='12' r='1' fill='%23ffffff' fill-opacity='0.15'/%3E%3Cpath d='M0 0h64v64H0z' fill='none' stroke='%23ffffff' stroke-width='0.5' stroke-opacity='0.05'/%3E%3C/svg%3E"), url('cream-texture.png')`;
+
 export const BACKGROUND_PRESETS = [
   {
     id: 'cream',
@@ -1727,7 +1733,7 @@ export const BACKGROUND_PRESETS = [
     baseSize: 460,
     previewColor: '#1e293b'
   },
-  // NOVOS 6 PRESETS RICOS:
+  // NOVOS 9 PRESETS RICOS:
   {
     id: 'brick',
     name: 'Tijolo / Forno à Lenha',
@@ -1781,6 +1787,33 @@ export const BACKGROUND_PRESETS = [
     bgImage: SVG_CARBON,
     baseSize: 260,
     previewColor: '#090d16'
+  },
+  {
+    id: 'mosaic',
+    name: 'Mosaico / Azulejo',
+    desc: 'Cerâmica geométrica gourmet tradicional',
+    bgColor: '#162b47',
+    bgImage: SVG_MOSAIC,
+    baseSize: 280,
+    previewColor: '#1e3a5f'
+  },
+  {
+    id: 'concrete',
+    name: 'Cimento Queimado',
+    desc: 'Concreto industrial moderno e elegante',
+    bgColor: '#262626',
+    bgImage: SVG_CONCRETE,
+    baseSize: 400,
+    previewColor: '#404040'
+  },
+  {
+    id: 'chalkboard',
+    name: 'Lousa de Giz Bistrô',
+    desc: 'Quadro negro clássico de cardápio',
+    bgColor: '#18181b',
+    bgImage: SVG_CHALKBOARD,
+    baseSize: 340,
+    previewColor: '#27272a'
   },
   {
     id: 'custom',

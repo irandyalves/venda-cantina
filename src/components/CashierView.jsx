@@ -43,6 +43,7 @@ import {
 import { storageService, formatPrice, getSectionBackgroundStyle, resolveSpacingPx, resolveHeightPx } from '../services/storage';
 import { authService } from '../services/auth';
 import ProfileSelector from './ProfileSelector';
+import AnalogClock from './AnalogClock';
 import AutoToast from './AutoToast';
 import ProductIcon2D, { PRODUCT_2D_PRESETS } from './ProductIcon2D';
 import { ITEM_COLOR_PALETTE } from './ConfigModal';
@@ -1450,11 +1451,18 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           />
         </div>
 
-        {/* HORA LOCAL NO CENTRO (FUNDO PRETO, FONTE BRANCA) */}
+        {/* HORA LOCAL NO CENTRO: RELÓGIO ANALÓGICO À ESQ + HORA DIGITAL (+50%) */}
         <div className="flex-1 flex justify-center items-center px-2">
-          <div className="bg-black text-white px-3.5 py-1 rounded-xl font-mono font-black text-xs sm:text-sm tracking-widest border border-slate-800 shadow-inner flex items-center gap-2 select-none">
-            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span>{currentTime}</span>
+          <div className="flex items-center gap-2.5 select-none">
+            {/* RELÓGIO ANALÓGICO COM FUNDO BRANCO E SEGUNDO VERMELHO */}
+            <div className="shrink-0 drop-shadow-md hover:scale-105 transition-transform" title="Relógio analógico em tempo real">
+              <AnalogClock size={32} />
+            </div>
+
+            {/* CAIXA HORA DIGITAL (FUNDO PRETO, FONTE BRANCA AUMENTADA EM 50%) */}
+            <div className="bg-black text-white px-3.5 py-1 rounded-xl font-mono font-black text-base sm:text-lg tracking-widest border border-slate-800 shadow-inner flex items-center">
+              <span>{currentTime}</span>
+            </div>
           </div>
         </div>
 
