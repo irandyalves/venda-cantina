@@ -53,7 +53,8 @@ import {
   Moon,
   LayoutGrid,
   Lock,
-  Unlock
+  Unlock,
+  MapPin
 } from 'lucide-react';
 import { storageService, formatPrice, BACKGROUND_PRESETS, getSectionBackgroundStyle, resolveSpacingPx, resolveHeightPx } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -2623,24 +2624,26 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       key={`${item.categoryId}_${item.id}`} 
                       className="bg-slate-900/95 hover:bg-slate-900 p-3.5 rounded-2xl border border-slate-700/80 hover:border-slate-600 space-y-3 transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between relative group"
                     >
-                      {/* TOPO: ÍCONE 2D GRANDE, NOME, CATEGORIA E BOTÕES DE AÇÃO */}
+                      {/* TOPO: ÍCONE 2D SEM FUNDO (+30% MAIOR), NOME, CATEGORIA, LOCALIZADOR E BOTÕES VERTICAIS À DIREITA */}
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0 pr-1">
-                          {/* ÍCONE 2D EM CONTAINER DESTACADO */}
-                          <div className="w-12 h-12 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-center shrink-0 p-1 group-hover:scale-105 transition-transform">
-                            <ProductIcon2D item={item} category={{ id: item.categoryId }} className="w-10 h-10 object-contain" />
+                        {/* LADO ESQUERDO: ÍCONE + TEXTOS */}
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          {/* ÍCONE 2D SEM FUNDO (+30% MAIOR) */}
+                          <div className="shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
+                            <ProductIcon2D item={item} category={{ id: item.categoryId }} className="w-13 h-13 sm:w-14 sm:h-14 object-contain drop-shadow-md" />
                           </div>
 
-                          <div className="min-w-0">
-                            {/* BADGE DA CATEGORIA COM COR DINÂMICA E DESTINO DA COZINHA */}
+                          <div className="min-w-0 flex-1">
+                            {/* LINHA 1: CATEGORIA (À ESQ TRUNCADA COM ...) + LOCALIZADOR VERMELHO COZINHA */}
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span 
-                                className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border font-mono inline-block truncate max-w-full"
+                                className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border font-mono inline-block truncate max-w-[85px]"
                                 style={{ 
                                   color: item.color || '#f59e0b', 
                                   borderColor: `${item.color || '#f59e0b'}50`, 
                                   backgroundColor: `${item.color || '#f59e0b'}18` 
                                 }}
+                                title={item.categoryName}
                               >
                                 {item.categoryName}
                               </span>
@@ -2658,30 +2661,45 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                 const destName = destEnvObj ? destEnvObj.name : (currentDest !== 'none' ? currentDest : 'Balcão');
                                 return (
                                   <span 
-                                    className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border inline-flex items-center gap-0.5 ${
+                                    className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border inline-flex items-center gap-1 truncate max-w-[125px] ${
                                       currentDest !== 'none'
-                                        ? 'bg-blue-950/80 text-blue-300 border-blue-500/40'
+                                        ? 'bg-red-950/80 text-red-300 border-red-500/50'
                                         : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
                                     }`}
                                     title={currentDest !== 'none' ? `Enviado para preparo em: ${destName}` : 'Entrega direta no balcão'}
                                   >
-                                    {currentDest !== 'none' ? `🍳 ${destName}` : '📦 Balcão'}
+                                    <MapPin className={`w-2.5 h-2.5 shrink-0 ${currentDest !== 'none' ? 'text-red-400 fill-red-400/20' : 'text-emerald-400'}`} />
+                                    <span className="truncate">{destName}</span>
                                   </span>
                                 );
                               })()}
                             </div>
-                            <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wide truncate block mt-0.5" title={item.name}>
+
+                            {/* NOME DO ITEM (FONTE REDUZIDA, TRUNCADO COM ...) */}
+                            <h4 className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-wide truncate block mt-1" title={item.name}>
                               {item.name}
                             </h4>
-                            <p className="text-[10px] text-slate-400 truncate block mt-0.5">
+
+                            {/* DESCRIÇÃO DO ITEM */}
+                            <p className="text-[9px] text-slate-400 truncate block mt-0.5">
                               {item.description || 'Disponível no caixa'}
                             </p>
                           </div>
                         </div>
 
-                        {/* BOTÕES DE AÇÃO: COR, EDITAR E EXCLUIR */}
-                        <div className="flex items-center gap-1 shrink-0 pt-0.5 relative">
-                          {/* BOTÃO DE COR: BOLINHA COLORIDA */}
+                        {/* LADO DIREITO: BOTÕES DE AÇÃO VERTICAL (EDITAR, COR E EXCLUIR UM EMBAIXO DO OUTRO) */}
+                        <div className="flex flex-col gap-1 items-center shrink-0 relative pt-0.5">
+                          {/* 1. LÁPIS VERDE (EDITAR) */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenGearModal(item)}
+                            className="w-6.5 h-6.5 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 border border-slate-700 hover:border-emerald-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950 shadow-xs"
+                            title="Editar nome, foto ou ícone deste item"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+
+                          {/* 2. BOTÃO DE COR: BOLINHA COLORIDA */}
                           <div className="relative">
                             <button
                               type="button"
@@ -2689,11 +2707,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                 e.stopPropagation();
                                 setColorPickerItemId(colorPickerItemId === item.id ? null : item.id);
                               }}
-                              className="w-7 h-7 rounded-lg border border-slate-700 hover:border-slate-500 flex items-center justify-center transition-all cursor-pointer p-0.5 hover:scale-110 bg-slate-950"
+                              className="w-6.5 h-6.5 rounded-lg border border-slate-700 hover:border-slate-500 flex items-center justify-center transition-all cursor-pointer p-0.5 hover:scale-110 bg-slate-950 shadow-xs"
                               title="Alterar cor deste item"
                             >
                               <span 
-                                className="w-4 h-4 rounded-full shadow-xs border border-white/40 block shrink-0" 
+                                className="w-3.5 h-3.5 rounded-full shadow-xs border border-white/40 block shrink-0" 
                                 style={{ backgroundColor: item.color || '#eab308' }}
                               />
                             </button>
@@ -2701,7 +2719,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             {/* POPOVER COM AS 24 CORES */}
                             {colorPickerItemId === item.id && (
                               <div 
-                                className="absolute right-0 top-full mt-1.5 z-50 bg-slate-950/98 backdrop-blur-md border border-slate-700 rounded-2xl p-2.5 shadow-2xl w-60 animate-fadeIn"
+                                className="absolute right-full mr-2 top-0 z-50 bg-slate-950/98 backdrop-blur-md border border-slate-700 rounded-2xl p-2.5 shadow-2xl w-60 animate-fadeIn"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-300 mb-2 flex items-center justify-between border-b border-slate-800 pb-1">
@@ -2745,48 +2763,38 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             )}
                           </div>
 
-                          {/* LÁPIS VERDE (EDIÇÃO AVANÇADA / ÍCONE 2D / PRESETS) */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenGearModal(item)}
-                            className="w-7 h-7 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 border border-slate-700 hover:border-emerald-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950"
-                            title="Editar nome, foto ou ícone deste item"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* LIXEIRINHA COM CONFIRMAÇÃO */}
+                          {/* 3. LIXEIRINHA (EXCLUIR) */}
                           <button
                             type="button"
                             onClick={() => handleOpenDeleteItemConfirm(item)}
-                            className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950"
+                            className="w-6.5 h-6.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/40 flex items-center justify-center transition-all cursor-pointer bg-slate-950 shadow-xs"
                             title="Excluir item do cardápio"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                       </div>
 
-                      {/* EMBAIXO: INPUTS ELEGANTES DE SENHA E VALOR */}
+                      {/* EMBAIXO: INPUTS ELEGANTES DE SENHA E VALOR NA MESMA LINHA (CAMPO NA FRENTE DO LABEL) */}
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
-                        {/* PREFIXO SENHA */}
-                        <div className="bg-slate-950/80 p-2 rounded-xl border border-slate-800 focus-within:border-amber-500/60 transition-colors">
-                          <label className="text-[9px] text-slate-400 font-black uppercase tracking-wider block mb-1">
-                            Senha (Prefixo)
+                        {/* SENHA */}
+                        <div className="bg-slate-950/80 px-2 py-1.5 rounded-xl border border-slate-800 focus-within:border-amber-500/60 flex items-center justify-between gap-1.5 transition-colors">
+                          <label className="text-[10px] text-slate-400 font-black uppercase tracking-wider shrink-0 select-none">
+                            Senha
                           </label>
                           <input
                             type="text"
                             value={item.prefix || ''}
                             onChange={(e) => handleUpdateItemPrefix(e.target.value, item)}
                             placeholder="Pp-"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-black text-amber-300 outline-none focus:border-amber-400 transition-colors"
+                            className="w-16 sm:w-20 bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-0.5 text-xs font-mono font-black text-amber-300 outline-none focus:border-amber-400 text-center transition-colors"
                           />
                         </div>
 
                         {/* VALOR */}
-                        <div className="bg-slate-950/80 p-2 rounded-xl border border-slate-800 focus-within:border-emerald-500/60 transition-colors">
-                          <label className="text-[9px] text-slate-400 font-black uppercase tracking-wider block mb-1 text-right">
-                            {showCurrencySymbol ? 'Valor (R$)' : 'Valor'}
+                        <div className="bg-slate-950/80 px-2 py-1.5 rounded-xl border border-slate-800 focus-within:border-emerald-500/60 flex items-center justify-between gap-1.5 transition-colors">
+                          <label className="text-[10px] text-slate-400 font-black uppercase tracking-wider shrink-0 select-none">
+                            Valor
                           </label>
                           <input
                             type="text"
@@ -2794,7 +2802,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             value={formatCurrencyMask(item.price)}
                             onChange={(e) => handleUpdateItemPrice(e.target.value, item)}
                             placeholder="0,00"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-black text-emerald-400 outline-none focus:border-emerald-400 text-right transition-colors"
+                            className="w-16 sm:w-20 bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-0.5 text-xs font-mono font-black text-emerald-400 outline-none focus:border-emerald-400 text-right transition-colors"
                           />
                         </div>
                       </div>
