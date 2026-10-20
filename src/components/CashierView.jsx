@@ -1457,8 +1457,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         {/* HORA LOCAL NO CENTRO: RELÓGIO ANALÓGICO À ESQ + HORA DIGITAL (+50%) */}
         <div className="flex-1 flex justify-center items-center px-2">
           <div className="flex items-center gap-2.5 select-none">
-            {/* RELÓGIO ANALÓGICO COM FUNDO BRANCO E SEGUNDO VERMELHO */}
-            <div className="shrink-0 drop-shadow-md hover:scale-105 transition-transform" title="Relógio analógico em tempo real">
+            {/* RELÓGIO ANALÓGICO COM FUNDO BRANCO E SEGUNDO VERMELHO (CÍRCULO PERFEITO) */}
+            <div className="w-8 h-8 shrink-0 aspect-square flex items-center justify-center drop-shadow-md hover:scale-105 transition-transform" title="Relógio analógico em tempo real">
               <AnalogClock size={32} />
             </div>
 

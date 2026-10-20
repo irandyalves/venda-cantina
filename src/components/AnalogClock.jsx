@@ -46,14 +46,33 @@ export default function AnalogClock({ size = 32, className = '' }) {
 
   return (
     <div 
-      className={`inline-flex items-center justify-center shrink-0 ${className}`} 
-      style={{ width: `${size}px`, height: `${size}px` }}
+      className={`inline-flex items-center justify-center shrink-0 aspect-square rounded-full ${className}`} 
+      style={{ 
+        width: `${size}px`, 
+        height: `${size}px`, 
+        minWidth: `${size}px`, 
+        minHeight: `${size}px`, 
+        maxWidth: `${size}px`, 
+        maxHeight: `${size}px`, 
+        aspectRatio: '1 / 1' 
+      }}
       aria-label="Relógio analógico"
     >
       <svg
         width={size}
         height={size}
         viewBox="0 0 32 32"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ 
+          width: `${size}px`, 
+          height: `${size}px`, 
+          minWidth: `${size}px`, 
+          minHeight: `${size}px`, 
+          maxWidth: `${size}px`, 
+          maxHeight: `${size}px`, 
+          aspectRatio: '1 / 1',
+          display: 'block'
+        }}
         className="overflow-visible drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]"
       >
         {/* Mostrador circular com fundo branco e aro fino preto */}
