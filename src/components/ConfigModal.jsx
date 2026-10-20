@@ -4652,24 +4652,23 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                 </div>
 
-                {/* CONTROLES UNIFICADOS: ALTURA E DISTÂNCIA DOS CARDS (SEM SEÇÕES SEPARADAS) */}
-                <div className="space-y-2">
+                {/* CONTROLES UNIFICADOS: ALTURA E DISTÂNCIA DOS CARDS (TUDO EM 1 LINHA / 3 COLUNAS ESMAGADAS) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   
-                  {/* 1. COZINHA */}
-                  <div className="bg-slate-950/70 hover:bg-slate-950/90 px-3.5 py-2 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center gap-3 transition-colors">
-                    <div className="flex items-center gap-2 md:w-48 shrink-0">
-                      <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg shrink-0">
-                        <ChefHat className="w-4 h-4" />
+                  {/* 1. COZINHAS */}
+                  <div className="bg-slate-950/70 hover:bg-slate-950/90 p-2 rounded-xl border border-slate-800 space-y-1.5 transition-colors min-w-0">
+                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-800/80">
+                      <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg shrink-0">
+                        <ChefHat className="w-3.5 h-3.5" />
                       </span>
-                      <span className="text-xs font-bold text-slate-100 whitespace-nowrap">
-                        Cozinha (Comandas)
+                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wide truncate">
+                        Cozinhas
                       </span>
                     </div>
 
-                    {/* SLIDE ALTURA */}
-                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
-                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Altura:</span>
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">36</span>
+                    {/* SLIDE ALTURA (TRIÂNGULO PRA CIMA) */}
+                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
+                      <span className="text-[11px] font-black text-amber-400 select-none shrink-0" title="Altura do Card">▲</span>
                       <input
                         type="range"
                         min="36"
@@ -4678,18 +4677,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         value={resolveHeightPx(systemSettings.kitchenCardHeight, 52)}
                         onInput={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('kitchenCardHeight', Number(e.target.value))}
-                        className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                        className="flex-1 accent-amber-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">110</span>
-                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[50px] text-center">
+                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[38px] text-center">
                         {resolveHeightPx(systemSettings.kitchenCardHeight, 52)}px
                       </span>
                     </div>
 
-                    {/* SLIDE DISTÂNCIA */}
-                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
-                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Distância:</span>
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">2</span>
+                    {/* SLIDE DISTÂNCIA (ÍCONE DE DISTÂNCIA VERTICAL) */}
+                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className="shrink-0 text-amber-400 select-none" title="Distância / Espaçamento vertical entre os cards">
+                        <line x1="2" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        <line x1="7" y1="3.5" x2="7" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        <polyline points="4.5,5 7,2.5 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points="4.5,9 7,11.5 9.5,9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1="2" y1="12.5" x2="12" y2="12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
                       <input
                         type="range"
                         min="2"
@@ -4698,30 +4701,28 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         value={resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}
                         onInput={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('kitchenCardSpacing', Number(e.target.value))}
-                        className="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                        className="flex-1 accent-amber-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">32</span>
-                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[46px] text-center">
+                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 min-w-[38px] text-center">
                         {resolveSpacingPx(systemSettings.kitchenCardSpacing, 6)}px
                       </span>
                     </div>
                   </div>
 
-                  {/* 2. TELÃO / TV */}
-                  <div className="bg-slate-950/70 hover:bg-slate-950/90 px-3.5 py-2 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center gap-3 transition-colors">
-                    <div className="flex items-center gap-2 md:w-48 shrink-0">
-                      <span className="p-1.5 bg-indigo-500/20 text-indigo-400 rounded-lg shrink-0">
-                        <Tv className="w-4 h-4" />
+                  {/* 2. PÚBLICO */}
+                  <div className="bg-slate-950/70 hover:bg-slate-950/90 p-2 rounded-xl border border-slate-800 space-y-1.5 transition-colors min-w-0">
+                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-800/80">
+                      <span className="p-1 bg-indigo-500/20 text-indigo-400 rounded-lg shrink-0">
+                        <Tv className="w-3.5 h-3.5" />
                       </span>
-                      <span className="text-xs font-bold text-slate-100 whitespace-nowrap">
-                        Telão / TV (Público)
+                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wide truncate">
+                        Público
                       </span>
                     </div>
 
-                    {/* SLIDE ALTURA */}
-                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
-                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Altura:</span>
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">44</span>
+                    {/* SLIDE ALTURA (TRIÂNGULO PRA CIMA) */}
+                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
+                      <span className="text-[11px] font-black text-indigo-400 select-none shrink-0" title="Altura do Card">▲</span>
                       <input
                         type="range"
                         min="44"
@@ -4730,18 +4731,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         value={resolveHeightPx(systemSettings.displayCardHeight, 64)}
                         onInput={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('displayCardHeight', Number(e.target.value))}
-                        className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                        className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">130</span>
-                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[50px] text-center">
+                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[38px] text-center">
                         {resolveHeightPx(systemSettings.displayCardHeight, 64)}px
                       </span>
                     </div>
 
-                    {/* SLIDE DISTÂNCIA */}
-                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
-                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Distância:</span>
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">2</span>
+                    {/* SLIDE DISTÂNCIA (ÍCONE DE DISTÂNCIA VERTICAL) */}
+                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className="shrink-0 text-indigo-400 select-none" title="Distância / Espaçamento vertical entre os cards">
+                        <line x1="2" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        <line x1="7" y1="3.5" x2="7" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        <polyline points="4.5,5 7,2.5 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points="4.5,9 7,11.5 9.5,9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1="2" y1="12.5" x2="12" y2="12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
                       <input
                         type="range"
                         min="2"
@@ -4750,30 +4755,28 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         value={resolveSpacingPx(systemSettings.displayCardSpacing, 6)}
                         onInput={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('displayCardSpacing', Number(e.target.value))}
-                        className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                        className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">32</span>
-                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[46px] text-center">
+                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 min-w-[38px] text-center">
                         {resolveSpacingPx(systemSettings.displayCardSpacing, 6)}px
                       </span>
                     </div>
                   </div>
 
-                  {/* 3. CAIXA */}
-                  <div className="bg-slate-950/70 hover:bg-slate-950/90 px-3.5 py-2 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center gap-3 transition-colors">
-                    <div className="flex items-center gap-2 md:w-48 shrink-0">
-                      <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
-                        <Monitor className="w-4 h-4" />
+                  {/* 3. RODAPÉ */}
+                  <div className="bg-slate-950/70 hover:bg-slate-950/90 p-2 rounded-xl border border-slate-800 space-y-1.5 transition-colors min-w-0">
+                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-800/80">
+                      <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
+                        <Monitor className="w-3.5 h-3.5" />
                       </span>
-                      <span className="text-xs font-bold text-slate-100 whitespace-nowrap">
-                        Caixa (Rodapé)
+                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wide truncate">
+                        Rodapé
                       </span>
                     </div>
 
-                    {/* SLIDE ALTURA */}
-                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
-                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Altura:</span>
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">28</span>
+                    {/* SLIDE ALTURA (TRIÂNGULO PRA CIMA) */}
+                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
+                      <span className="text-[11px] font-black text-emerald-400 select-none shrink-0" title="Altura do Card">▲</span>
                       <input
                         type="range"
                         min="28"
@@ -4782,18 +4785,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         value={resolveHeightPx(systemSettings.cashierCardHeight, 42)}
                         onInput={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('cashierCardHeight', Number(e.target.value))}
-                        className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                        className="flex-1 accent-emerald-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">90</span>
-                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[50px] text-center">
+                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[38px] text-center">
                         {resolveHeightPx(systemSettings.cashierCardHeight, 42)}px
                       </span>
                     </div>
 
-                    {/* SLIDE DISTÂNCIA */}
-                    <div className="flex-1 flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 min-w-0">
-                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">Distância:</span>
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">2</span>
+                    {/* SLIDE DISTÂNCIA (ÍCONE DE DISTÂNCIA VERTICAL) */}
+                    <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 min-w-0">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className="shrink-0 text-emerald-400 select-none" title="Distância / Espaçamento vertical entre os cards">
+                        <line x1="2" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        <line x1="7" y1="3.5" x2="7" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        <polyline points="4.5,5 7,2.5 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points="4.5,9 7,11.5 9.5,9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1="2" y1="12.5" x2="12" y2="12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
                       <input
                         type="range"
                         min="2"
@@ -4802,14 +4809,14 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         value={resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}
                         onInput={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
                         onChange={(e) => handleUpdateSystemSetting('cashierCardSpacing', Number(e.target.value))}
-                        className="flex-1 accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer min-w-0"
+                        className="flex-1 accent-emerald-500 h-1 bg-slate-800 rounded-lg cursor-pointer min-w-0"
                       />
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0">32</span>
-                      <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[46px] text-center">
+                      <span className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 min-w-[38px] text-center">
                         {resolveSpacingPx(systemSettings.cashierCardSpacing, 6)}px
                       </span>
                     </div>
                   </div>
+
                 </div>
 
               </div>
