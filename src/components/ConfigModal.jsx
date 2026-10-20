@@ -4406,7 +4406,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <div className="relative z-10 flex items-center justify-between gap-1.5 border-b border-black/20 pb-2">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-white drop-shadow">
                           <Eye className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Prévia no Caixa</span>
+                          <span>Prévia do background</span>
                         </div>
                         <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                           Ao Vivo
@@ -4427,13 +4427,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             <span className="text-xs font-mono font-black text-emerald-400">{formatPrice(15, showCurrencySymbol)}</span>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Rodapé do Preview com Métricas */}
-                      <div className="relative z-10 text-[9px] font-mono text-slate-200 drop-shadow flex items-center justify-between gap-1 pt-1.5 border-t border-black/20">
-                        <span>Tam: {bgSettings.textureSize ?? 100}%</span>
-                        <span>Prof: {bgSettings.textureDepth ?? 100}%</span>
-                        <span>Opac: {bgSettings.textureOpacity ?? 100}%</span>
                       </div>
                     </div>
                   </div>
