@@ -1613,10 +1613,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   showNameError
                     ? 'border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.35)]'
                     : customerName.trim()
-                      ? 'border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
+                      ? 'border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.35)]'
                       : isNameFocused || cart.length > 0
                         ? 'border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)]'
-                        : 'border-amber-500/40 group-hover:border-amber-500/70'
+                        : 'border-amber-400/80 group-hover:border-amber-300'
                 }`}
                 style={{
                   maskImage: 'linear-gradient(to right, black 0%, black 50%, transparent 100%)',
@@ -1709,10 +1709,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         }}
       >
         {/* FAIXA ESCURA COM RECUO DA BORDA ESQUERDA E CANTO ARREDONDADO (rounded-bl-3xl) */}
-        <div className="ml-3 sm:ml-5 bg-slate-950/95 border-b border-l border-slate-800/80 rounded-bl-3xl shadow-2xl overflow-hidden">
+        <div className="ml-4 bg-slate-950/95 border-b border-l border-slate-800/80 rounded-bl-3xl shadow-2xl overflow-hidden">
           
           {/* LINHA DO CARRINHO (ÁREA ONDE OS ITENS DA COMANDA NASCEM COM EFEITO FLUÍDO) */}
-          <div className="h-10 border-b border-slate-800/70 px-3.5 sm:px-4 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0">
+          <div className="h-10 border-b border-dashed border-slate-700/60 pl-6 pr-4 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0">
             {cart.length === 0 ? (
               <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold pr-1">
                 <span className="p-0.5 text-slate-500 flex items-center justify-center">
@@ -1796,7 +1796,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </div>
 
           {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO */}
-          <nav className="w-full px-3.5 sm:px-4 pt-1 pb-0 flex items-center justify-between gap-2 flex-wrap relative">
+          <nav className="w-full pl-6 pr-4 pt-1 pb-0 flex items-center justify-between gap-2 flex-wrap relative">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1 py-1.5">
                 <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
@@ -1879,7 +1879,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           backgroundColor: bgStyle.bgColor
         }}
       >
-        <div className="relative min-h-full px-3 sm:px-4 py-2.5 sm:py-3 space-y-3.5">
+        <div className="relative min-h-full pl-10 pr-4 py-2.5 sm:py-3 space-y-3.5">
           {/* Camada de Textura com Opacidade, Tamanho e Profundidade Configuráveis */}
           {bgStyle.bgImage && (
             <div 
