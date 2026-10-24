@@ -1539,10 +1539,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           BARRA DE ATENDIMENTO AO CLIENTE (FLUXO PEDIDO MULTI-ITENS)
           LINHA 1 (SUPERIOR FULL-WIDTH): NOME DO CLIENTE, PAGAMENTO E FINALIZAR
          ======================================================== */}
-      <section className="bg-slate-950/95 border-b border-slate-800/80 pl-0 pr-3 sm:pr-4 shrink-0 shadow-md z-20 py-2 select-none">
+      <section className="bg-slate-950/95 border-b border-dashed border-slate-700/80 pl-0 pr-3 sm:pr-4 shrink-0 shadow-md z-20 py-2.5 select-none">
         
         {/* LINHA 1 (SUPERIOR): NOME DO CLIENTE, PAGAMENTO E FINALIZAR */}
-        <div className="flex items-center justify-between gap-2 h-11 shrink-0">
+        <div className="flex items-center justify-between gap-2 h-12 shrink-0">
           
           {/* NOME DO CLIENTE & FORMA DE PAGAMENTO */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -1594,7 +1594,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     }
                   }
                 }}
-                className={`w-full h-11 text-white text-xs sm:text-sm font-black uppercase ${
+                className={`w-full h-12 text-white text-xs sm:text-sm font-black uppercase ${
                   !isNameFocused && !customerName ? 'pl-9' : 'pl-3'
                 } pr-8 rounded-r-xl rounded-l-none outline-none transition-all placeholder:font-bold placeholder:text-[11px] sm:placeholder:text-xs focus:placeholder:text-transparent border-0 relative z-0 ${
                   showNameError
@@ -1652,7 +1652,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     key={pm.id}
                     type="button"
                     onClick={() => setPaymentMethod(pm.id)}
-                    className={`h-11 px-2.5 sm:px-3 rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 border-2 ${
+                    className={`h-12 px-2.5 sm:px-3 rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 border-2 ${
                       isSelected
                         ? 'bg-[#06090e] text-emerald-300 border-emerald-400 animate-soft-green-pulse shadow-[0_0_12px_rgba(16,185,129,0.35)]'
                         : 'bg-slate-950/80 hover:bg-slate-900 text-slate-400 hover:text-white border-slate-800 hover:border-slate-700'
@@ -1673,7 +1673,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               type="button"
               onClick={handleFinalizeCart}
               disabled={isSubmittingCart || cart.length === 0}
-              className={`h-11 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-between overflow-hidden transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
+              className={`h-12 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-between overflow-hidden transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
                 cart.length > 0
                   ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 border-emerald-300 shadow-emerald-950/80 pl-4 pr-0'
                   : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-60 px-5'
@@ -1736,7 +1736,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <div className="ml-4 bg-slate-950/95 border-b border-l border-slate-800/80 rounded-bl-3xl shadow-2xl overflow-hidden">
             
             {/* LINHA DO CARRINHO (ÁREA ONDE OS ITENS DA COMANDA NASCEM COM EFEITO FLUÍDO) */}
-            <div className="h-10 border-b border-dashed border-slate-700/60 pl-6 pr-4 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0">
+            <div className="h-12 border-b border-dashed border-slate-700/80 pl-6 pr-4 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0">
               {cart.length === 0 ? (
                 <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold pr-1">
                   <span className="p-0.5 text-slate-500 flex items-center justify-center">
@@ -1757,7 +1757,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <button
                     type="button"
                     onClick={() => setCart([])}
-                    className="h-7 w-7 bg-rose-950/70 hover:bg-rose-900 text-rose-300 hover:text-white rounded-lg border border-rose-800/80 transition-all flex items-center justify-center text-xs font-black cursor-pointer shrink-0 animate-cart-item-birth active:scale-95 shadow-sm"
+                    className="h-8 w-8 bg-rose-950/70 hover:bg-rose-900 text-rose-300 hover:text-white rounded-lg border border-rose-800/80 transition-all flex items-center justify-center text-xs font-black cursor-pointer shrink-0 animate-cart-item-birth active:scale-95 shadow-sm"
                     title="Limpar todos os itens da comanda atual"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1769,7 +1769,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       <div
                         key={cItem.cartItemId}
                         style={itemStyle.style}
-                        className={`animate-cart-item-birth border pl-2.5 pr-0.5 py-0.5 rounded-xl flex items-center gap-1.5 shrink-0 shadow-sm transition-all text-xs ${itemStyle.chip || ''}`}
+                        className={`animate-cart-item-birth border pl-2.5 pr-0.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow-sm transition-all text-xs h-8 ${itemStyle.chip || ''}`}
                       >
                         <span 
                           style={{ fontSize: '9.6px' }}
@@ -1820,9 +1820,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             </div>
 
             {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO */}
-            <nav className="w-full pl-6 pr-4 pt-1 pb-0 flex items-center justify-between gap-2 flex-wrap relative">
+            <nav className="w-full pl-6 pr-4 min-h-[46px] py-1.5 flex items-center justify-between gap-2 flex-wrap relative">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1 py-1.5">
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1 py-2">
                   <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
                   Tipo:
                 </span>
@@ -1831,14 +1831,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <button
                   type="button"
                   onClick={() => setSelectedTypeFilter('all')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
                     selectedTypeFilter === 'all'
                       ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
                       : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
                   }`}
                 >
                   <span>TODOS</span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${
                     selectedTypeFilter === 'all'
                       ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
                       : 'bg-slate-950 text-slate-400 border-slate-800'
@@ -1856,7 +1856,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       key={c.id}
                       type="button"
                       onClick={() => setSelectedTypeFilter(c.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
                         isSelected
                           ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
                           : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
@@ -1865,7 +1865,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       <span className="uppercase text-[11px] font-black">
                         {c.name}
                       </span>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${
                         isSelected
                           ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
                         : 'bg-slate-950 text-slate-400 border-slate-800'
@@ -1878,14 +1878,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               </div>
 
               {/* BOTÃO RÁPIDO PARA ADICIONAR NOVO ITEM */}
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     const targetCat = (selectedTypeFilter !== 'all' && categories.find(c => c.id === selectedTypeFilter)) || categories[0];
                     handleOpenQuickAdd(targetCat);
                   }}
-                  className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
                   title="Adicionar novo item ao cardápio"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
