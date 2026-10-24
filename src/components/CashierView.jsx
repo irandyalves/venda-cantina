@@ -1420,7 +1420,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden text-xs">
       
       {/* BARRA SUPERIOR DO CAIXA (ALTURA AUMENTADA EM 15%) */}
-      <header className="bg-slate-800/90 border-b border-slate-700/80 pl-0 pr-3 sm:pr-4 py-2.5 min-h-[52px] flex items-center justify-between shrink-0 shadow-sm gap-2">
+      <header 
+        style={{ paddingLeft: '3ch' }}
+        className="bg-slate-800/90 border-b border-slate-700/80 pr-3 sm:pr-4 py-2.5 min-h-[52px] flex items-center justify-between shrink-0 shadow-sm gap-2"
+      >
         {/* LADO ESQUERDO: TERMINAL + ADMIN (MENOR) + ENVIA PEDIDOS PARA + COZINHA DESTINO */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="bg-gradient-to-tr from-amber-500 to-red-600 p-2 rounded-lg shadow shrink-0">
@@ -1540,7 +1543,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           SEÇÃO FIXA COM ALTURA 70% MAIOR (122px) E SEM LINHA LARANJA
           OS PEDIDOS NASCEM NA PARTE INFERIOR FIXA COM EFEITO FLUÍDO
          ======================================================== */}
-      <section className="bg-slate-950/95 border-b border-slate-800/80 pl-0 pr-3 sm:pr-4 shrink-0 shadow-xl z-20 h-[122px] max-h-[122px] flex flex-col justify-between py-2 overflow-hidden select-none">
+      <section 
+        style={{ paddingLeft: '3ch' }}
+        className="bg-slate-950/95 border-b border-slate-800/80 pr-3 sm:pr-4 shrink-0 shadow-xl z-20 h-[122px] max-h-[122px] flex flex-col justify-between py-2 overflow-hidden select-none"
+      >
         
         {/* LINHA 1 (SUPERIOR): NOME DO CLIENTE, PAGAMENTO, LIMPAR E FINALIZAR */}
         <div className="flex items-center justify-between gap-2 h-11 shrink-0">
@@ -1679,7 +1685,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         {/* LINHA 2 (INFERIOR FIXA): ÁREA PERMANENTE ONDE OS PEDIDOS NASCEM COM EFEITO FLUÍDO */}
         <div className="h-11 border-t border-slate-800/80 pt-1 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0">
           {cart.length === 0 ? (
-            <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold pl-1 pr-1">
+            <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold pr-1">
               <span className="p-0.5 text-slate-500 flex items-center justify-center">
                 <ShoppingCart className="w-5 h-5" />
               </span>
@@ -1690,7 +1696,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           ) : (
             <>
               {/* ÍCONE DO CARRINHO (SEM BORDA E 20% MAIOR) */}
-              <div className="shrink-0 p-0.5 pl-1 text-amber-400 flex items-center justify-center" title="Carrinho de Compras">
+              <div className="shrink-0 p-0.5 text-amber-400 flex items-center justify-center" title="Carrinho de Compras">
                 <ShoppingCart className="w-5 h-5 stroke-[2.5]" />
               </div>
 
@@ -1762,7 +1768,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       </section>
 
       {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (ESTILO DE ABAS DO PRINT 2) */}
-      <nav className="w-full bg-slate-950 px-3 sm:px-4 pt-2 pb-0 border-t border-dashed border-slate-700/80 shrink-0 relative z-20 flex items-center justify-between gap-2 flex-wrap shadow-[0_12px_28px_rgba(0,0,0,0.85),0_4px_10px_rgba(0,0,0,0.6)] border-b border-slate-800">
+      <nav 
+        style={{ paddingLeft: '3ch' }}
+        className="w-full bg-slate-950 pr-3 sm:pr-4 pt-2 pb-0 border-t border-dashed border-slate-700/80 shrink-0 relative z-20 flex items-center justify-between gap-2 flex-wrap shadow-[0_12px_28px_rgba(0,0,0,0.85),0_4px_10px_rgba(0,0,0,0.6)] border-b border-slate-800"
+      >
         {/* LINHA DE BASE NO RODAPÉ DO CABEÇALHO */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-800 pointer-events-none" />
 
@@ -1846,7 +1855,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           backgroundColor: bgStyle.bgColor
         }}
       >
-        <div className="relative min-h-full p-2.5 sm:p-3 space-y-3.5">
+        <div 
+          style={{ paddingLeft: '3ch' }}
+          className="relative min-h-full pr-2.5 sm:pr-3 py-2.5 sm:py-3 space-y-3.5"
+        >
           {/* Camada de Textura com Opacidade, Tamanho e Profundidade Configuráveis */}
           {bgStyle.bgImage && (
             <div 
