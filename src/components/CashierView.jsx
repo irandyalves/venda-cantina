@@ -1694,222 +1694,213 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       </section>
 
       {/* ========================================================
-          WRAPPER COM TEXTURA DE FUNDO E FAIXA ESCURA (CARRINHO + TIPO)
-          CONFORME MOCKUP: INICIA RECUADA DA BORDA ESQUERDA COM CANTO
-          INFERIOR ESQUERDO ARREDONDADO (rounded-bl-3xl)
+          WRAPPER UNIFICADO COM O FUNDO ESCOLHIDO (TEXTURA + ESCURECIMENTO)
+          CONTÉM A FAIXA ESCURA (CARRINHO + TIPO) E OS CARDS DE PRODUTOS
          ======================================================== */}
       <div 
-        className="relative z-20 shrink-0 select-none shadow-lg"
-        style={{
-          backgroundColor: bgStyle.bgColor,
-          backgroundImage: bgStyle.bgImage ? bgStyle.bgImage : undefined,
-          backgroundRepeat: bgStyle.bgRepeat || 'repeat',
-          backgroundPosition: bgStyle.bgPosition || '0 0',
-          backgroundSize: bgStyle.bgSize || '460px auto'
-        }}
-      >
-        {/* FAIXA ESCURA COM RECUO DA BORDA ESQUERDA E CANTO ARREDONDADO (rounded-bl-3xl) */}
-        <div className="ml-4 bg-slate-950/95 border-b border-l border-slate-800/80 rounded-bl-3xl shadow-2xl overflow-hidden">
-          
-          {/* LINHA DO CARRINHO (ÁREA ONDE OS ITENS DA COMANDA NASCEM COM EFEITO FLUÍDO) */}
-          <div className="h-10 border-b border-dashed border-slate-700/60 pl-6 pr-4 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0">
-            {cart.length === 0 ? (
-              <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold pr-1">
-                <span className="p-0.5 text-slate-500 flex items-center justify-center">
-                  <ShoppingCart className="w-5 h-5" />
-                </span>
-                <span className="text-[11px] sm:text-xs">
-                  Comanda vazia — selecione os produtos abaixo para incluir na comanda
-                </span>
-              </div>
-            ) : (
-              <>
-                {/* ÍCONE DO CARRINHO */}
-                <div className="shrink-0 p-0.5 text-amber-400 flex items-center justify-center" title="Carrinho de Compras">
-                  <ShoppingCart className="w-5 h-5 stroke-[2.5]" />
-                </div>
-
-                {/* BOTÃO LIMPAR */}
-                <button
-                  type="button"
-                  onClick={() => setCart([])}
-                  className="h-7 w-7 bg-rose-950/70 hover:bg-rose-900 text-rose-300 hover:text-white rounded-lg border border-rose-800/80 transition-all flex items-center justify-center text-xs font-black cursor-pointer shrink-0 animate-cart-item-birth active:scale-95 shadow-sm"
-                  title="Limpar todos os itens da comanda atual"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-
-                {cart.map((cItem) => {
-                  const itemStyle = getCartItemStyle(cItem);
-                  return (
-                    <div
-                      key={cItem.cartItemId}
-                      style={itemStyle.style}
-                      className={`animate-cart-item-birth border pl-2.5 pr-0.5 py-0.5 rounded-xl flex items-center gap-1.5 shrink-0 shadow-sm transition-all text-xs ${itemStyle.chip || ''}`}
-                    >
-                      <span 
-                        style={{ fontSize: '9.6px' }}
-                        className="font-bold text-white whitespace-nowrap text-[9.6px] leading-tight"
-                      >
-                        {cItem.description}
-                      </span>
-                      <span 
-                        style={itemStyle.priceStyle}
-                        className={`font-black font-mono ${itemStyle.price || ''}`}
-                      >
-                        {formatPrice(cItem.unitPrice * cItem.quantity, showCurrencySymbol)}
-                      </span>
-
-                      <div className="flex items-center gap-1 bg-black/40 px-1 py-0.5 rounded-lg border border-white/10">
-                        <button
-                          type="button"
-                          onClick={() => updateCartQuantity(cItem.cartItemId, -1)}
-                          className="w-4 h-4 bg-white/10 hover:bg-white/20 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
-                        >
-                          -
-                        </button>
-                        <span className="text-xs font-mono font-black text-white px-1">
-                          {cItem.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => updateCartQuantity(cItem.cartItemId, 1)}
-                          className="w-4 h-4 bg-white/10 hover:bg-white/20 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => removeFromCart(cItem.cartItemId)}
-                        className="text-white/60 hover:text-rose-400 p-0.5 -mr-0.5 rounded transition-colors cursor-pointer"
-                        title="Remover item da comanda"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </>
-            )}
-          </div>
-
-          {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO */}
-          <nav className="w-full pl-6 pr-4 pt-1 pb-0 flex items-center justify-between gap-2 flex-wrap relative">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1 py-1.5">
-                <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
-                Tipo:
-              </span>
-
-              {/* BOTÃO TODOS */}
-              <button
-                type="button"
-                onClick={() => setSelectedTypeFilter('all')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-                  selectedTypeFilter === 'all'
-                    ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
-                    : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
-                }`}
-              >
-                <span>TODOS</span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
-                  selectedTypeFilter === 'all'
-                    ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
-                    : 'bg-slate-950 text-slate-400 border-slate-800'
-                }`}>
-                  {totalItemsCount}
-                </span>
-              </button>
-
-              {/* BOTÕES DE CADA TIPO / CATEGORIA */}
-              {categories.map((c) => {
-                const count = c.items?.length || 0;
-                const isSelected = selectedTypeFilter === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setSelectedTypeFilter(c.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-                      isSelected
-                        ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
-                        : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
-                    }`}
-                  >
-                    <span className="uppercase text-[11px] font-black">
-                      {c.name}
-                    </span>
-                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
-                      isSelected
-                        ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
-                        : 'bg-slate-950 text-slate-400 border-slate-800'
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* BOTÃO RÁPIDO PARA ADICIONAR NOVO ITEM */}
-            <div className="flex items-center gap-2 mb-1">
-              <button
-                type="button"
-                onClick={() => {
-                  const targetCat = (selectedTypeFilter !== 'all' && categories.find(c => c.id === selectedTypeFilter)) || categories[0];
-                  handleOpenQuickAdd(targetCat);
-                }}
-                className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-                title="Adicionar novo item ao cardápio"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                <span>Novo Item</span>
-              </button>
-            </div>
-          </nav>
-        </div>
-      </div>
-
-      {/* CORPO PRINCIPAL COM OS PRODUTOS (SELEÇÃO DIRETA COM ORGANIZAÇÃO POR TIPO) */}
-      <main 
-        className="flex-1 overflow-y-auto relative shadow-inner"
+        className="flex-1 flex flex-col min-h-0 relative select-none overflow-hidden"
         style={{
           backgroundColor: bgStyle.bgColor
         }}
       >
-        <div className="relative min-h-full pl-10 pr-4 py-2.5 sm:py-3 space-y-3.5">
-          {/* Camada de Textura com Opacidade, Tamanho e Profundidade Configuráveis */}
-          {bgStyle.bgImage && (
-            <div 
-              aria-hidden="true"
-              className="absolute inset-0 pointer-events-none transition-all duration-200"
-              style={{
-                backgroundImage: bgStyle.bgImage,
-                backgroundRepeat: bgStyle.bgRepeat || 'repeat',
-                backgroundPosition: bgStyle.bgPosition || '0 0',
-                backgroundSize: bgStyle.bgSize || '460px auto',
-                opacity: (bgSettings.textureOpacity ?? 100) / 100,
-                filter: `contrast(${(bgSettings.textureDepth ?? 100)}%) saturate(${Math.min(140, Math.max(60, (bgSettings.textureDepth ?? 100)))}%)`,
-                transform: 'translateZ(0)'
-              }}
-            />
-          )}
+        {/* Camada de Textura do Fundo Escolhido */}
+        {bgStyle.bgImage && (
+          <div 
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none transition-all duration-200 z-0"
+            style={{
+              backgroundImage: bgStyle.bgImage,
+              backgroundRepeat: bgStyle.bgRepeat || 'repeat',
+              backgroundPosition: bgStyle.bgPosition || '0 0',
+              backgroundSize: bgStyle.bgSize || '460px auto',
+              opacity: (bgSettings.textureOpacity ?? 100) / 100,
+              filter: `contrast(${(bgSettings.textureDepth ?? 100)}%) saturate(${Math.min(140, Math.max(60, (bgSettings.textureDepth ?? 100)))}%)`,
+              transform: 'translateZ(0)'
+            }}
+          />
+        )}
 
-          {/* Camada de Escurecimento / Clareamento */}
-          {Number(bgSettings.darkness || 0) > 0 && (
-            <div 
-              aria-hidden="true"
-              className="absolute inset-0 pointer-events-none bg-black transition-opacity duration-300"
-              style={{
-                opacity: (Number(bgSettings.darkness || 0)) / 100
-              }}
-            />
-          )}
+        {/* Camada de Escurecimento do Fundo Escolhido */}
+        {Number(bgSettings.darkness || 0) > 0 && (
+          <div 
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none bg-black transition-opacity duration-300 z-0"
+            style={{
+              opacity: (Number(bgSettings.darkness || 0)) / 100
+            }}
+          />
+        )}
 
-          {/* Conteúdo Real dos Produtos */}
-          <div className="relative z-10">
+        {/* FAIXA ESCURA COM RECUO DA BORDA ESQUERDA E CANTO ARREDONDADO (rounded-bl-3xl) */}
+        <div className="relative z-20 shrink-0">
+          <div className="ml-4 bg-slate-950/95 border-b border-l border-slate-800/80 rounded-bl-3xl shadow-2xl overflow-hidden">
+            
+            {/* LINHA DO CARRINHO (ÁREA ONDE OS ITENS DA COMANDA NASCEM COM EFEITO FLUÍDO) */}
+            <div className="h-10 border-b border-dashed border-slate-700/60 pl-6 pr-4 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0">
+              {cart.length === 0 ? (
+                <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold pr-1">
+                  <span className="p-0.5 text-slate-500 flex items-center justify-center">
+                    <ShoppingCart className="w-5 h-5" />
+                  </span>
+                  <span className="text-[11px] sm:text-xs">
+                    Comanda vazia — selecione os produtos abaixo para incluir na comanda
+                  </span>
+                </div>
+              ) : (
+                <>
+                  {/* ÍCONE DO CARRINHO */}
+                  <div className="shrink-0 p-0.5 text-amber-400 flex items-center justify-center" title="Carrinho de Compras">
+                    <ShoppingCart className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+
+                  {/* BOTÃO LIMPAR */}
+                  <button
+                    type="button"
+                    onClick={() => setCart([])}
+                    className="h-7 w-7 bg-rose-950/70 hover:bg-rose-900 text-rose-300 hover:text-white rounded-lg border border-rose-800/80 transition-all flex items-center justify-center text-xs font-black cursor-pointer shrink-0 animate-cart-item-birth active:scale-95 shadow-sm"
+                    title="Limpar todos os itens da comanda atual"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  {cart.map((cItem) => {
+                    const itemStyle = getCartItemStyle(cItem);
+                    return (
+                      <div
+                        key={cItem.cartItemId}
+                        style={itemStyle.style}
+                        className={`animate-cart-item-birth border pl-2.5 pr-0.5 py-0.5 rounded-xl flex items-center gap-1.5 shrink-0 shadow-sm transition-all text-xs ${itemStyle.chip || ''}`}
+                      >
+                        <span 
+                          style={{ fontSize: '9.6px' }}
+                          className="font-bold text-white whitespace-nowrap text-[9.6px] leading-tight"
+                        >
+                          {cItem.description}
+                        </span>
+                        <span 
+                          style={itemStyle.priceStyle}
+                          className={`font-black font-mono ${itemStyle.price || ''}`}
+                        >
+                          {formatPrice(cItem.unitPrice * cItem.quantity, showCurrencySymbol)}
+                        </span>
+
+                        <div className="flex items-center gap-1 bg-black/40 px-1 py-0.5 rounded-lg border border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => updateCartQuantity(cItem.cartItemId, -1)}
+                            className="w-4 h-4 bg-white/10 hover:bg-white/20 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="text-xs font-mono font-black text-white px-1">
+                            {cItem.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => updateCartQuantity(cItem.cartItemId, 1)}
+                            className="w-4 h-4 bg-white/10 hover:bg-white/20 text-white rounded flex items-center justify-center font-bold text-xs cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(cItem.cartItemId)}
+                          className="text-white/60 hover:text-rose-400 p-0.5 -mr-0.5 rounded transition-colors cursor-pointer"
+                          title="Remover item da comanda"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO */}
+            <nav className="w-full pl-6 pr-4 pt-1 pb-0 flex items-center justify-between gap-2 flex-wrap relative">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1 py-1.5">
+                  <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
+                  Tipo:
+                </span>
+
+                {/* BOTÃO TODOS */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedTypeFilter('all')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
+                    selectedTypeFilter === 'all'
+                      ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
+                      : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
+                  }`}
+                >
+                  <span>TODOS</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
+                    selectedTypeFilter === 'all'
+                      ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
+                      : 'bg-slate-950 text-slate-400 border-slate-800'
+                  }`}>
+                    {totalItemsCount}
+                  </span>
+                </button>
+
+                {/* BOTÕES DE CADA TIPO / CATEGORIA */}
+                {categories.map((c) => {
+                  const count = c.items?.length || 0;
+                  const isSelected = selectedTypeFilter === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedTypeFilter(c.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 font-bold text-xs rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
+                        isSelected
+                          ? 'bg-slate-800 text-amber-400 border-amber-400 font-black shadow-sm'
+                          : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
+                      }`}
+                    >
+                      <span className="uppercase text-[11px] font-black">
+                        {c.name}
+                      </span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
+                        isSelected
+                          ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
+                        : 'bg-slate-950 text-slate-400 border-slate-800'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* BOTÃO RÁPIDO PARA ADICIONAR NOVO ITEM */}
+              <div className="flex items-center gap-2 mb-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetCat = (selectedTypeFilter !== 'all' && categories.find(c => c.id === selectedTypeFilter)) || categories[0];
+                    handleOpenQuickAdd(targetCat);
+                  }}
+                  className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  title="Adicionar novo item ao cardápio"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>Novo Item</span>
+                </button>
+              </div>
+            </nav>
+          </div>
+        </div>
+
+        {/* CORPO PRINCIPAL COM OS PRODUTOS (SCROLL) */}
+        <main className="flex-1 overflow-y-auto relative z-10 shadow-inner">
+          <div className="relative min-h-full pl-10 pr-4 py-2.5 sm:py-3 space-y-3.5">
+            {/* Conteúdo Real dos Produtos */}
+            <div className="relative z-10">
             {/* DASHBOARD INTELIGENTE DE CARDS: ZERO ESPAÇO LIVRE DESPERDIÇADO */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
           {displayedItems.map(({ item, category }) => {
@@ -2122,6 +2113,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           </div>
         </div>
       </main>
+      </div>
 
       {/* ========================================================
           RODAPÉ DO CAIXA: 3 COLUNAS REDIMENSIONÁVEIS (ARRASTAR LINHA SUPERIOR)
