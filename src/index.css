@@ -195,15 +195,15 @@ input[type="number"] {
     transform: scale(0.3);
     opacity: 0;
   }
-  18% {
+  15% {
     transform: scale(1.06);
     opacity: 1;
   }
-  28% {
+  25% {
     transform: scale(1);
     opacity: 1;
   }
-  85% {
+  88% {
     transform: scale(1);
     opacity: 1;
   }
@@ -234,7 +234,7 @@ input[type="number"] {
 }
 
 .animate-order-circle-pop {
-  animation: order-circle-pop 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: order-circle-pop 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-order-ring-spin {

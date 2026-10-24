@@ -1532,8 +1532,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
       </header>
 
-      {/* NOVO RENDER CÍRCULO / BOLA GIRANDO E PULSANDO (1.5 SEGUNDOS) EXCLUSIVO PARA PEDIDOS */}
-      <AutoToast toast={toast} onClose={() => setToast(null)} duration={1500} />
+      {/* NOVO RENDER CÍRCULO / BOLA GIRANDO E PULSANDO (2 SEGUNDOS) EXCLUSIVO PARA PEDIDOS */}
+      <AutoToast toast={toast} onClose={() => setToast(null)} duration={2000} />
 
       {/* ========================================================
           BARRA DE ATENDIMENTO AO CLIENTE (FLUXO PEDIDO MULTI-ITENS)

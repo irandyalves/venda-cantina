@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Check, AlertCircle, Sparkles } from 'lucide-react';
 
-export default function AutoToast({ toast, onClose, duration = 1500 }) {
+export default function AutoToast({ toast, onClose, duration = 2000 }) {
   useEffect(() => {
     if (!toast) return;
 
@@ -25,7 +25,7 @@ export default function AutoToast({ toast, onClose, duration = 1500 }) {
         onClick={onClose}
       />
 
-      {/* CÍRCULO / BOLA COM EFEITO BONITO GIRANDO E PULSANDO (1.5 SEG) */}
+      {/* CÍRCULO / BOLA COM EFEITO BONITO GIRANDO E PULSANDO (2 SEG) */}
       <div className="pointer-events-auto relative flex flex-col items-center justify-center animate-order-circle-pop select-none">
         
         {/* A BOLA / CÍRCULO CENTRAL */}
