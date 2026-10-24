@@ -278,7 +278,7 @@ input[type="number"] {
   color: #ffffff !important;
 }
 
-/* Efeito de clique no card com bordas brilhantes que somem aos poucos (3x mais lento: 2.25s) */
+/* Efeito de clique no card com bordas brilhantes que somem aos poucos (dobrado para 4.5s, permanece ativo e vai sumindo) */
 @keyframes card-border-glow-fade {
   0% {
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.95), 0 0 35px rgba(16, 185, 129, 0.85), inset 0 0 20px rgba(16, 185, 129, 0.25);
@@ -286,9 +286,14 @@ input[type="number"] {
     transform: scale(0.975);
   }
   15% {
-    box-shadow: 0 0 0 3.5px rgba(52, 211, 153, 0.9), 0 0 40px rgba(16, 185, 129, 0.75), inset 0 0 15px rgba(52, 211, 153, 0.2);
+    box-shadow: 0 0 0 3.5px rgba(52, 211, 153, 0.95), 0 0 42px rgba(16, 185, 129, 0.8), inset 0 0 16px rgba(52, 211, 153, 0.25);
     border-color: #a7f3d0;
     transform: scale(1.01);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.85), 0 0 35px rgba(16, 185, 129, 0.7), inset 0 0 14px rgba(52, 211, 153, 0.2);
+    border-color: #34d399;
+    transform: scale(1);
   }
   100% {
     box-shadow: 0 0 0 0px rgba(16, 185, 129, 0), 0 0 0px rgba(16, 185, 129, 0), inset 0 0 0px rgba(16, 185, 129, 0);
@@ -298,16 +303,21 @@ input[type="number"] {
 }
 
 .animate-card-click-glow {
-  animation: card-border-glow-fade 2.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+  animation: card-border-glow-fade 4.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
   z-index: 20;
 }
 
-/* Efeito de sumir aos poucos do modalzinho ao tirar o mouse (2.25s, mesmo tempo do card, verde) */
+/* Efeito de sumir aos poucos do modalzinho ao tirar o mouse (4.5s, mesmo tempo do card, verde) */
 @keyframes modal-fade-out-glow {
   0% {
     opacity: 1;
     transform: scale(1);
     box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+    border-color: #10b981;
+  }
+  45% {
+    opacity: 1;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
     border-color: #10b981;
   }
   100% {
@@ -319,7 +329,7 @@ input[type="number"] {
 }
 
 .animate-modal-fade-out {
-  animation: modal-fade-out-glow 2.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+  animation: modal-fade-out-glow 4.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
   pointer-events: none;
 }
 

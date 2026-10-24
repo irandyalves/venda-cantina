@@ -278,7 +278,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     if (clickFeedbackTimerRef.current) clearTimeout(clickFeedbackTimerRef.current);
     clickFeedbackTimerRef.current = setTimeout(() => {
       setClickedCardId(null);
-    }, 2250);
+    }, 4500);
   };
 
   const handleOptionCardMouseEnter = (cardKey) => {
@@ -299,7 +299,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       closeOptionTimerRef.current = setTimeout(() => {
         setActiveOptionCardId((curr) => (curr === cardKey ? null : curr));
         setClosingOptionCardId((curr) => (curr === cardKey ? null : curr));
-      }, 2250);
+      }, 4500);
     }
   };
 
