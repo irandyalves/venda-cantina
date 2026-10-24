@@ -1599,15 +1599,15 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   !isNameFocused && !customerName ? 'pl-9' : 'pl-3'
                 } pr-8 rounded-r-xl rounded-l-none outline-none transition-all placeholder:font-bold placeholder:text-[11px] sm:placeholder:text-xs focus:placeholder:text-transparent border-0 relative z-0 ${
                   showNameError
-                    ? 'bg-gradient-to-r from-transparent via-transparent via-50% to-rose-950/40 text-rose-200 placeholder:text-rose-400'
+                    ? 'bg-gradient-to-r from-rose-950/40 via-rose-950/40 via-50% to-transparent text-rose-200 placeholder:text-rose-400'
                     : customerName.trim()
-                      ? 'bg-gradient-to-r from-transparent via-transparent via-50% to-emerald-950/30 placeholder:text-white'
+                      ? 'bg-gradient-to-r from-emerald-950/30 via-emerald-950/30 via-50% to-transparent placeholder:text-white'
                       : isNameFocused || cart.length > 0
-                        ? 'bg-gradient-to-r from-transparent via-transparent via-50% to-amber-950/20 placeholder:text-white'
-                        : 'bg-gradient-to-r from-transparent via-transparent via-50% to-slate-900/80 placeholder:text-slate-400'
+                        ? 'bg-gradient-to-r from-amber-950/20 via-amber-950/20 via-50% to-transparent placeholder:text-white'
+                        : 'bg-gradient-to-r from-slate-900 via-slate-900 via-50% to-transparent placeholder:text-slate-400'
                 }`}
               />
-              {/* BORDA COM DEGRADÊ: SEM BORDA ESQUERDA, FADE INICIANDO EM 50% DA ESQ PARA DIREITA */}
+              {/* BORDA COM DEGRADÊ: SEM BORDA ESQUERDA, SÓLIDA ATÉ 50%, E FADE PARA TRANSPARÊNCIA A PARTIR DE 50% DA ESQ PARA DIREITA */}
               <div 
                 aria-hidden="true"
                 className={`absolute inset-0 pointer-events-none rounded-r-xl rounded-l-none border-t-2 border-b-2 border-r-2 border-l-0 transition-all z-10 ${
@@ -1620,8 +1620,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                         : 'border-amber-500/40 group-hover:border-amber-500/70'
                 }`}
                 style={{
-                  maskImage: 'linear-gradient(to right, transparent 0%, transparent 50%, black 100%)',
-                  WebkitMaskImage: 'linear-gradient(to right, transparent 0%, transparent 50%, black 100%)'
+                  maskImage: 'linear-gradient(to right, black 0%, black 50%, transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to right, black 0%, black 50%, transparent 100%)'
                 }}
               />
               {customerName && (
@@ -1694,10 +1694,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         </div>
 
         {/* LINHA 2 (INFERIOR FIXA): ÁREA PERMANENTE ONDE OS PEDIDOS NASCEM COM EFEITO FLUÍDO */}
-        <div 
-          style={{ paddingLeft: '10px' }}
-          className="h-11 border-t border-slate-800/80 pt-1 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0"
-        >
+        <div className="h-11 border-t border-slate-800/80 pt-1 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0 px-3 sm:px-4">
           {cart.length === 0 ? (
             <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold pr-1">
               <span className="p-0.5 text-slate-500 flex items-center justify-center">
@@ -1782,10 +1779,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
       </section>
 
       {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO (ESTILO DE ABAS DO PRINT 2) */}
-      <nav 
-        style={{ paddingLeft: '10px' }}
-        className="w-full bg-slate-950 pr-3 sm:pr-4 pt-2 pb-0 border-t border-dashed border-slate-700/80 shrink-0 relative z-20 flex items-center justify-between gap-2 flex-wrap shadow-[0_12px_28px_rgba(0,0,0,0.85),0_4px_10px_rgba(0,0,0,0.6)] border-b border-slate-800"
-      >
+      <nav className="w-full bg-slate-950 px-3 sm:px-4 pt-2 pb-0 border-t border-dashed border-slate-700/80 shrink-0 relative z-20 flex items-center justify-between gap-2 flex-wrap shadow-[0_12px_28px_rgba(0,0,0,0.85),0_4px_10px_rgba(0,0,0,0.6)] border-b border-slate-800">
         {/* LINHA DE BASE NO RODAPÉ DO CABEÇALHO */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-800 pointer-events-none" />
 
@@ -1869,10 +1863,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           backgroundColor: bgStyle.bgColor
         }}
       >
-        <div 
-          style={{ paddingLeft: '10px' }}
-          className="relative min-h-full pr-2.5 sm:pr-3 py-2.5 sm:py-3 space-y-3.5"
-        >
+        <div className="relative min-h-full px-3 sm:px-4 py-2.5 sm:py-3 space-y-3.5">
           {/* Camada de Textura com Opacidade, Tamanho e Profundidade Configuráveis */}
           {bgStyle.bgImage && (
             <div 
