@@ -1420,7 +1420,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden text-xs">
       
       {/* BARRA SUPERIOR DO CAIXA (ALTURA AUMENTADA EM 15%) */}
-      <header className="bg-slate-800/90 border-b border-slate-700/80 px-3 py-2.5 min-h-[52px] flex items-center justify-between shrink-0 shadow-sm gap-2">
+      <header className="bg-slate-800/90 border-b border-slate-700/80 pl-0 pr-3 sm:pr-4 py-2.5 min-h-[52px] flex items-center justify-between shrink-0 shadow-sm gap-2">
         {/* LADO ESQUERDO: TERMINAL + ADMIN (MENOR) + ENVIA PEDIDOS PARA + COZINHA DESTINO */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="bg-gradient-to-tr from-amber-500 to-red-600 p-2 rounded-lg shadow shrink-0">
@@ -1540,7 +1540,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           SEÇÃO FIXA COM ALTURA 70% MAIOR (122px) E SEM LINHA LARANJA
           OS PEDIDOS NASCEM NA PARTE INFERIOR FIXA COM EFEITO FLUÍDO
          ======================================================== */}
-      <section className="bg-slate-950/95 border-b border-slate-800/80 px-3 sm:px-4 shrink-0 shadow-xl z-20 h-[122px] max-h-[122px] flex flex-col justify-between py-2 overflow-hidden select-none">
+      <section className="bg-slate-950/95 border-b border-slate-800/80 pl-0 pr-3 sm:pr-4 shrink-0 shadow-xl z-20 h-[122px] max-h-[122px] flex flex-col justify-between py-2 overflow-hidden select-none">
         
         {/* LINHA 1 (SUPERIOR): NOME DO CLIENTE, PAGAMENTO, LIMPAR E FINALIZAR */}
         <div className="flex items-center justify-between gap-2 h-11 shrink-0">
@@ -1679,7 +1679,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         {/* LINHA 2 (INFERIOR FIXA): ÁREA PERMANENTE ONDE OS PEDIDOS NASCEM COM EFEITO FLUÍDO */}
         <div className="h-11 border-t border-slate-800/80 pt-1 flex items-center gap-2 overflow-x-auto scrollbar-thin shrink-0">
           {cart.length === 0 ? (
-            <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold px-1">
+            <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold pl-1 pr-1">
               <span className="p-0.5 text-slate-500 flex items-center justify-center">
                 <ShoppingCart className="w-5 h-5" />
               </span>
@@ -1690,7 +1690,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           ) : (
             <>
               {/* ÍCONE DO CARRINHO (SEM BORDA E 20% MAIOR) */}
-              <div className="shrink-0 p-0.5 text-amber-400 flex items-center justify-center" title="Carrinho de Compras">
+              <div className="shrink-0 p-0.5 pl-1 text-amber-400 flex items-center justify-center" title="Carrinho de Compras">
                 <ShoppingCart className="w-5 h-5 stroke-[2.5]" />
               </div>
 
@@ -1698,11 +1698,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               <button
                 type="button"
                 onClick={() => setCart([])}
-                className="h-8 px-2.5 bg-rose-950/70 hover:bg-rose-900 text-rose-300 hover:text-white rounded-lg border border-rose-800/80 transition-all flex items-center justify-center gap-1.5 text-xs font-black cursor-pointer shrink-0 animate-cart-item-birth active:scale-95 shadow-sm"
+                className="h-8 w-8 bg-rose-950/70 hover:bg-rose-900 text-rose-300 hover:text-white rounded-lg border border-rose-800/80 transition-all flex items-center justify-center text-xs font-black cursor-pointer shrink-0 animate-cart-item-birth active:scale-95 shadow-sm"
                 title="Limpar todos os itens da comanda atual"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Limpar</span>
+                <Trash2 className="w-4 h-4" />
               </button>
 
               {cart.map((cItem) => {
@@ -1711,9 +1710,12 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <div
                     key={cItem.cartItemId}
                     style={itemStyle.style}
-                    className={`animate-cart-item-birth border px-2.5 py-1 rounded-xl flex items-center gap-2 shrink-0 shadow-sm transition-all text-xs ${itemStyle.chip || ''}`}
+                    className={`animate-cart-item-birth border pl-2.5 pr-0.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow-sm transition-all text-xs ${itemStyle.chip || ''}`}
                   >
-                    <span className="font-bold text-white whitespace-nowrap">
+                    <span 
+                      style={{ fontSize: '9.6px' }}
+                      className="font-bold text-white whitespace-nowrap text-[9.6px] leading-tight"
+                    >
                       {cItem.description}
                     </span>
                     <span 
@@ -1732,7 +1734,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                         -
                       </button>
                       <span className="text-xs font-mono font-black text-white px-1">
-                        {cItem.quantity}x
+                        {cItem.quantity}
                       </span>
                       <button
                         type="button"
@@ -1746,7 +1748,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     <button
                       type="button"
                       onClick={() => removeFromCart(cItem.cartItemId)}
-                      className="text-white/60 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
+                      className="text-white/60 hover:text-rose-400 p-0.5 -mr-0.5 rounded transition-colors cursor-pointer"
                       title="Remover item da comanda"
                     >
                       <X className="w-3.5 h-3.5" />
