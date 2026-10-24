@@ -1553,9 +1553,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           
           {/* NOME DO CLIENTE & FORMA DE PAGAMENTO */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div className={`relative flex-1 min-w-[180px] max-w-xl ${nameShake ? 'animate-shake' : ''}`}>
+            <div className={`relative flex-1 min-w-[180px] max-w-xl group ${nameShake ? 'animate-shake' : ''}`}>
               {!isNameFocused && !customerName && (
-                <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors ${
+                <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors z-10 ${
                   cart.length > 0 ? 'text-amber-400' : 'text-slate-400'
                 }`}>
                   {showNameError ? (
@@ -1601,17 +1601,34 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     }
                   }
                 }}
-                className={`w-full h-11 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase ${
+                className={`w-full h-11 text-white text-xs sm:text-sm font-black uppercase ${
                   !isNameFocused && !customerName ? 'pl-9' : 'pl-3'
-                } pr-8 rounded-xl outline-none transition-all placeholder:font-bold placeholder:text-[11px] sm:placeholder:text-xs focus:placeholder:text-transparent border-2 ${
+                } pr-8 rounded-r-xl rounded-l-none outline-none transition-all placeholder:font-bold placeholder:text-[11px] sm:placeholder:text-xs focus:placeholder:text-transparent border-0 relative z-0 ${
                   showNameError
-                    ? 'border-rose-500 ring-2 ring-rose-500/50 bg-rose-950/40 text-rose-200 placeholder:text-rose-400 glow-required-name'
+                    ? 'bg-gradient-to-r from-transparent via-rose-950/20 to-rose-950/40 text-rose-200 placeholder:text-rose-400'
                     : customerName.trim()
-                      ? 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-950/20 placeholder:text-white'
+                      ? 'bg-gradient-to-r from-transparent via-emerald-950/10 to-emerald-950/30 placeholder:text-white'
                       : isNameFocused || cart.length > 0
-                        ? 'border-amber-400 ring-2 ring-amber-400/50 bg-amber-950/10 placeholder:text-white shadow-[0_0_12px_rgba(251,191,36,0.25)]'
-                        : 'border-amber-500/40 hover:border-amber-500/60 placeholder:text-slate-400'
+                        ? 'bg-gradient-to-r from-transparent via-amber-950/10 to-amber-950/20 placeholder:text-white'
+                        : 'bg-gradient-to-r from-transparent via-slate-900/30 to-slate-900/80 placeholder:text-slate-400'
                 }`}
+              />
+              {/* BORDA COM DEGRADÊ: SEM BORDA ESQUERDA, FADE INICIANDO EM 30% DA ESQ PARA DIREITA */}
+              <div 
+                aria-hidden="true"
+                className={`absolute inset-0 pointer-events-none rounded-r-xl rounded-l-none border-t-2 border-b-2 border-r-2 border-l-0 transition-all z-10 ${
+                  showNameError
+                    ? 'border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.35)]'
+                    : customerName.trim()
+                      ? 'border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
+                      : isNameFocused || cart.length > 0
+                        ? 'border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)]'
+                        : 'border-amber-500/40 group-hover:border-amber-500/70'
+                }`}
+                style={{
+                  maskImage: 'linear-gradient(to right, transparent 0%, transparent 30%, black 100%)',
+                  WebkitMaskImage: 'linear-gradient(to right, transparent 0%, transparent 30%, black 100%)'
+                }}
               />
               {customerName && (
                 <button
@@ -1620,7 +1637,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     setCustomerName('');
                     nameInputRef.current?.focus();
                   }}
-                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white"
+                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white z-20 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
