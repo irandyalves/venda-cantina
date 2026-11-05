@@ -974,30 +974,30 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           itemExplicitSend = routing.sendToKitchen?.[catId] !== false;
         }
 
-        if (itemExplicitEnv !== null) {
+        const catLower = String(catId || '').toLowerCase();
+        const nameLower = String(item?.name || '').toLowerCase();
+
+        // Encontra ambiente correspondente entre os cadastrados
+        const findKitchen = (keyword) => {
+          return environments.find(e => 
+            e.type === 'kitchen' && (
+              e.id.toLowerCase().includes(keyword) || 
+              e.name.toLowerCase().includes(keyword) || 
+              (e.shortName && e.shortName.toLowerCase().includes(keyword))
+            )
+          );
+        };
+
+        const pizzaKitchen = findKitchen('pizza') || environments.find(e => e.id === 'COZINHA') || environments.find(e => e.type === 'kitchen');
+        const pastelKitchen = findKitchen('pastel') || environments.find(e => e.id === 'COZINHA_2') || environments.find(e => e.type === 'kitchen');
+        const acaiKitchen = findKitchen('açaí') || findKitchen('acai') || environments.find(e => e.id === 'COZINHA_2') || environments.find(e => e.type === 'kitchen');
+        const batataKitchen = findKitchen('batata') || environments.find(e => e.id === 'COZINHA_2') || environments.find(e => e.type === 'kitchen');
+
+        if (itemExplicitEnv !== null && itemExplicitEnv !== 'none') {
           targetEnvironment = itemExplicitEnv;
-          sendToKitchen = itemExplicitEnv !== 'none' && itemExplicitSend !== false;
+          sendToKitchen = itemExplicitSend !== false;
         } else {
-          // Roteamento padrão inteligente:
-          const catLower = String(catId || '').toLowerCase();
-          const nameLower = String(item?.name || '').toLowerCase();
-
-          // Encontra ambiente correspondente entre os cadastrados
-          const findKitchen = (keyword) => {
-            return environments.find(e => 
-              e.type === 'kitchen' && (
-                e.id.toLowerCase().includes(keyword) || 
-                e.name.toLowerCase().includes(keyword) || 
-                (e.shortName && e.shortName.toLowerCase().includes(keyword))
-              )
-            );
-          };
-
-          const pizzaKitchen = findKitchen('pizza') || environments.find(e => e.id === 'COZINHA') || environments.find(e => e.type === 'kitchen');
-          const pastelKitchen = findKitchen('pastel') || environments.find(e => e.id === 'COZINHA_2') || environments.find(e => e.type === 'kitchen');
-          const acaiKitchen = findKitchen('açaí') || findKitchen('acai') || environments.find(e => e.id === 'COZINHA_2') || environments.find(e => e.type === 'kitchen');
-          const batataKitchen = findKitchen('batata') || environments.find(e => e.id === 'COZINHA_2') || environments.find(e => e.type === 'kitchen');
-
+          // Roteamento padrão inteligente para alimentos vs bebidas:
           if (catLower.includes('pizza') || nameLower.includes('pizza')) {
             sendToKitchen = true;
             targetEnvironment = pizzaKitchen?.id || 'COZINHA';

@@ -104,8 +104,11 @@ export default function KitchenView({ environment, onNavigate }) {
 
   // Helper para verificar se um item individual pertence a esta cozinha/ambiente
   const isItemForThisKitchen = (it) => {
-    // Se o item foi explicitamente marcado como balcão sem preparo
-    if (it.targetEnvironment === 'none' || it.sendToKitchen === false) {
+    const desc = String(it.description || it.name || it.itemName || '').toLowerCase();
+    const cat = String(it.categoryId || it.category || it.categoryName || '').toLowerCase();
+
+    // Se o item for explicitamente apenas bebida/balcão sem preparo
+    if ((cat.includes('bebida') || cat.includes('refrigerante') || cat.includes('agua') || cat.includes('água') || cat.includes('suco') || desc.includes('lata') || desc.includes('garrafa')) && (it.sendToKitchen === false || it.targetEnvironment === 'none')) {
       return false;
     }
 
@@ -124,12 +127,12 @@ export default function KitchenView({ environment, onNavigate }) {
         t === currentEnvName.toLowerCase() ||
         t === currentEnvShort.toLowerCase() ||
         (currentEnvId === 'COZINHA' && (t === 'cozinha' || t === 'cozinha 1' || t === 'cozinha pizza' || t === 'cozinha_pizza')) ||
-        (currentEnvId === 'COZINHA_2' && (t === 'cozinha 2' || t === 'cozinha_2' || t === 'cozinha pastel' || t === 'cozinha_pastel'))
+        (currentEnvId === 'COZINHA_2' && (t === 'cozinha 2' || t === 'cozinha_2' || t === 'cozinha pastel' || t === 'cozinha_pastel' || t === 'acai' || t === 'açaí'))
       );
     };
 
     // 1. Destino explícito no item
-    if (it.targetEnvironment && matchesCurrent(it.targetEnvironment)) {
+    if (it.targetEnvironment && it.targetEnvironment !== 'none' && matchesCurrent(it.targetEnvironment)) {
       return true;
     }
 
@@ -137,35 +140,29 @@ export default function KitchenView({ environment, onNavigate }) {
     const specificId = it.itemId || it.id;
     if (specificId && productionRouting?.destinationEnv?.[specificId]) {
       const dest = productionRouting.destinationEnv[specificId];
-      if (dest === 'none') return false;
-      if (matchesCurrent(dest)) return true;
+      if (dest !== 'none' && matchesCurrent(dest)) return true;
     }
     const varId = it.variationId;
     if (varId && productionRouting?.destinationEnv?.[varId]) {
       const dest = productionRouting.destinationEnv[varId];
-      if (dest === 'none') return false;
-      if (matchesCurrent(dest)) return true;
+      if (dest !== 'none' && matchesCurrent(dest)) return true;
     }
 
     // 3. Destino no productionRouting por categoria
-    const cat = String(it.categoryId || it.category || it.categoryName || '').toLowerCase();
     if (cat && productionRouting?.destinationEnv?.[cat]) {
       const dest = productionRouting.destinationEnv[cat];
-      if (dest === 'none') return false;
-      if (matchesCurrent(dest)) return true;
+      if (dest !== 'none' && matchesCurrent(dest)) return true;
     }
 
     // 4. Mapeamento padrão por palavras-chave de categoria e ambiente
-    const desc = String(it.description || it.name || it.itemName || '').toLowerCase();
-    
-    // Se o ambiente for Pizza ou Cozinha 1
+    // Se o ambiente for Pizza ou Cozinha 1 (COZINHA)
     if (envUpper.includes('PIZZA') || envNameUpper.includes('PIZZA') || currentEnvId === 'COZINHA') {
       return cat.includes('pizza') || desc.includes('pizza') || desc.includes('fatia') || desc.includes('inteira') || desc.includes('margueritta') || desc.includes('calabresa');
     }
 
-    // Se o ambiente for Pastel ou Cozinha 2
+    // Se o ambiente for Pastel ou Cozinha 2 (COZINHA_2)
     if (envUpper.includes('PASTEL') || envNameUpper.includes('PASTEL') || currentEnvId === 'COZINHA_2') {
-      return cat.includes('pastel') || desc.includes('pastel') || desc.includes('queijo') || desc.includes('carne') || desc.includes('frango');
+      return cat.includes('pastel') || desc.includes('pastel') || desc.includes('queijo') || desc.includes('carne') || desc.includes('frango') || cat.includes('acai') || cat.includes('açaí') || desc.includes('açaí') || desc.includes('acai') || cat.includes('batata') || desc.includes('batata');
     }
 
     // Se o ambiente for Açaí
@@ -200,7 +197,7 @@ export default function KitchenView({ environment, onNavigate }) {
         t === currentEnvName.toLowerCase() ||
         t === currentEnvShort.toLowerCase() ||
         (currentEnvId === 'COZINHA' && (t === 'cozinha' || t === 'cozinha 1' || t === 'cozinha pizza' || t === 'cozinha_pizza')) ||
-        (currentEnvId === 'COZINHA_2' && (t === 'cozinha 2' || t === 'cozinha_2' || t === 'cozinha pastel' || t === 'cozinha_pastel'))
+        (currentEnvId === 'COZINHA_2' && (t === 'cozinha 2' || t === 'cozinha_2' || t === 'cozinha pastel' || t === 'cozinha_pastel' || t === 'acai' || t === 'açaí'))
       );
     };
 
@@ -221,6 +218,13 @@ export default function KitchenView({ environment, onNavigate }) {
 
   // Escutar pedidos em tempo real
   useEffect(() => {
+    const handleInternalSync = (e) => {
+      if (Array.isArray(e.detail)) {
+        setOrders(e.detail);
+      }
+    };
+    window.addEventListener('cantina_orders_internal_sync', handleInternalSync);
+
     const unsubscribeOrders = storageService.subscribeOrders((allOrders) => {
       // Identificar novos pedidos para tocar o som e ativar o efeito de 10 segundos
       if (!isFirstLoadRef.current) {
@@ -258,6 +262,7 @@ export default function KitchenView({ environment, onNavigate }) {
     return () => {
       unsubscribeOrders();
       unsubscribeStatus();
+      window.removeEventListener('cantina_orders_internal_sync', handleInternalSync);
       if (newestTimerRef.current) clearTimeout(newestTimerRef.current);
     };
   }, [soundEnabled, productionRouting, environment]);
@@ -622,10 +627,15 @@ export default function KitchenView({ environment, onNavigate }) {
                       const thisKitchenItems = itemsList.filter(it => isItemForThisKitchen(it));
                       const otherKitchenItems = itemsList.filter(it => !isItemForThisKitchen(it));
 
+                      // Se nenhum item caiu especificamente em thisKitchenItems (ex: cardápio personalizado),
+                      // destaca todos os itens para que a cozinha nunca fique sem ver o pedido!
+                      const primaryItems = thisKitchenItems.length > 0 ? thisKitchenItems : itemsList;
+                      const secondaryItems = thisKitchenItems.length > 0 ? otherKitchenItems : [];
+
                       return (
                         <>
                           {/* 1. ITENS DESTA COZINHA (1º LUGAR, DESTACADOS COM CORES VIVAS) */}
-                          {thisKitchenItems.map((it, idx) => (
+                          {primaryItems.map((it, idx) => (
                             <span
                               key={`mine_${idx}`}
                               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] sm:text-[10.5px] font-bold leading-tight shadow-sm border ${getItemBadgeStyle(it.categoryId || it.category, it.description || it.name)}`}
@@ -640,7 +650,7 @@ export default function KitchenView({ environment, onNavigate }) {
                           ))}
 
                           {/* 2. DEMAIS ITENS DE OUTRAS COZINHAS (ESMAECIDOS E EM ITÁLICO PARA PRESERVAR HISTÓRICO) */}
-                          {otherKitchenItems.map((it, idx) => (
+                          {secondaryItems.map((it, idx) => (
                             <span
                               key={`other_${idx}`}
                               className="inline-flex items-center gap-1 px-1 py-0.2 rounded text-[8.5px] font-normal italic leading-tight bg-slate-900/50 border border-slate-800/60 text-slate-400 opacity-40 hover:opacity-75 transition-opacity select-none"

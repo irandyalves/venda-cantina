@@ -37,13 +37,14 @@ const FIREBASE_ENABLED_KEY = 'cantina_firebase_enabled';
 const LOCAL_FIRESTORE_METRICS_KEY = 'cantina_firestore_metrics';
 
 // Configuração padrão lida a partir das variáveis de ambiente (.env)
+// Banco Cloud Firestore hospedado no projeto Firebase carga-patrimonio (onde os dados estão ativos)
 export const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyC3Kaas0J2aoVjE-8CLUP7bFDd1xYCNtEk",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "cantina-express-32161.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "cantina-express-32161",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "cantina-express-32161.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "863820186259",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:863820186259:web:03fab2dcfc369e386b8366"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAujmh1TuWRCS53zz1BZXIQvgHbXVibKwo",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "carga-patrimonio.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "carga-patrimonio",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "carga-patrimonio.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "478068393511",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:478068393511:web:d61f883ee1c1506887b002"
 };
 
 // BroadcastChannel para sincronização instantânea entre abas no mesmo navegador
@@ -110,7 +111,9 @@ class StorageService {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && (parsed.projectId === 'carga-patrimonio' || (parsed.authDomain && parsed.authDomain.includes('carga-patrimonio')))) {
+        // Se a configuração salva apontava para cantina-express-32161 (onde o Firestore não está habilitado no GCP gerando PERMISSION_DENIED),
+        // descarta e utiliza o banco funcional em carga-patrimonio
+        if (parsed && (parsed.projectId === 'cantina-express-32161' || (parsed.authDomain && parsed.authDomain.includes('cantina-express-32161')))) {
           localStorage.removeItem(FIREBASE_CONFIG_KEY);
         } else if (parsed && parsed.projectId && parsed.apiKey) {
           return parsed;
@@ -118,10 +121,9 @@ class StorageService {
       } catch (e) {
         console.error('Erro ao ler configuração salva do Firebase', e);
       }
-      localStorage.removeItem(FIREBASE_CONFIG_KEY);
     }
 
-    if (import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_API_KEY.length > 10) {
+    if (import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_API_KEY.length > 10 && import.meta.env.VITE_FIREBASE_PROJECT_ID !== 'cantina-express-32161') {
       return {
         apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
         authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -203,8 +205,8 @@ class StorageService {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.date === today) {
           const rawReads = Number(parsed.readsToday) || 0;
-          // Limpa qualquer valor inflado artificialmente por snapshots ociosos
-          const cleanReads = rawReads > 2000 ? 0 : rawReads;
+          // Zera qualquer valor resquicial ou inflado artificialmente do contador
+          const cleanReads = rawReads > 300 ? 0 : rawReads;
           return {
             date: today,
             readsToday: cleanReads,
@@ -819,6 +821,9 @@ class StorageService {
           this.orderSubscribers.forEach(cb => {
             try { cb(local); } catch (_) {}
           });
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('cantina_orders_internal_sync', { detail: local }));
+          }
         }
         if (event.data?.type === 'EVENT_CHANGED') {
           window.dispatchEvent(new CustomEvent('cantina_event_changed', { detail: event.data.payload }));
@@ -902,6 +907,7 @@ class StorageService {
           this.orderSubscribers.forEach(cb => {
             try { cb(local); } catch (_) {}
           });
+          window.dispatchEvent(new CustomEvent('cantina_orders_internal_sync', { detail: local }));
         }
         if (e.key === LOCAL_CURRENT_EVENT_KEY) {
           try {
@@ -1379,41 +1385,72 @@ class StorageService {
       const raw = localStorage.getItem('cantina_production_routing');
       if (raw) {
         const parsed = JSON.parse(raw);
+        const sendToKitchen = {
+          'pizza': true,
+          'pedaco': true,
+          'inteira': true,
+          'pastel': true,
+          'acai': true,
+          'batata': true,
+          'outros': true,
+          ...(parsed.sendToKitchen || {})
+        };
+        const destinationEnv = {
+          'pizza': 'COZINHA',
+          'pedaco': 'COZINHA',
+          'inteira': 'COZINHA',
+          'pastel': 'COZINHA_2',
+          'acai': 'COZINHA_2',
+          'batata': 'COZINHA_2',
+          'outros': 'COZINHA_2',
+          ...(parsed.destinationEnv || {})
+        };
+        // Se no passado acai, batata ou pastel foram gravados com 'none' pelo padrão antigo, restaura para COZINHA_2
+        if (destinationEnv['acai'] === 'none') destinationEnv['acai'] = 'COZINHA_2';
+        if (destinationEnv['batata'] === 'none') destinationEnv['batata'] = 'COZINHA_2';
+        if (destinationEnv['pastel'] === 'none') destinationEnv['pastel'] = 'COZINHA_2';
+        if (sendToKitchen['acai'] === false && !parsed.sendToKitchen?.['acai']) sendToKitchen['acai'] = true;
+        if (sendToKitchen['batata'] === false && !parsed.sendToKitchen?.['batata']) sendToKitchen['batata'] = true;
+        if (sendToKitchen['pastel'] === false && !parsed.sendToKitchen?.['pastel']) sendToKitchen['pastel'] = true;
+
         return {
-          sendToKitchen: parsed.sendToKitchen || {},
-          showOnTV: parsed.showOnTV || {},
-          destinationEnv: parsed.destinationEnv || {},
+          sendToKitchen,
+          showOnTV: parsed.showOnTV || { 'pizza': true, 'pedaco': true, 'inteira': true, 'pastel': true, 'acai': true, 'batata': true },
+          destinationEnv,
           cashierDestinations: parsed.cashierDestinations || {}
         };
       }
     } catch (e) {
       console.error('Erro ao ler roteamento de produção:', e);
     }
-    // Padrão: Apenas Pizza vai para a cozinha e TV. Açaí, Batata e outros ficam na tenda/balcão
+    // Padrão: Pizza vai para COZINHA (Cozinha Pizza); Pastel, Açaí e Batata vão para COZINHA_2 (Cozinha 2)
     return {
       sendToKitchen: {
         'pizza': true,
         'pedaco': true,
         'inteira': true,
-        'acai': false,
-        'batata': false,
-        'outros': false
+        'pastel': true,
+        'acai': true,
+        'batata': true,
+        'outros': true
       },
       showOnTV: {
         'pizza': true,
         'pedaco': true,
         'inteira': true,
-        'acai': false,
-        'batata': false,
-        'outros': false
+        'pastel': true,
+        'acai': true,
+        'batata': true,
+        'outros': true
       },
       destinationEnv: {
         'pizza': 'COZINHA',
         'pedaco': 'COZINHA',
         'inteira': 'COZINHA',
-        'acai': 'none',
-        'batata': 'none',
-        'outros': 'none'
+        'pastel': 'COZINHA_2',
+        'acai': 'COZINHA_2',
+        'batata': 'COZINHA_2',
+        'outros': 'COZINHA_2'
       },
       cashierDestinations: {}
     };
