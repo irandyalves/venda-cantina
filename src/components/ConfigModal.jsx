@@ -3254,7 +3254,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <p className="font-bold text-amber-300">Status dos Serviços:</p>
                   <p className="text-slate-400">
                     • <strong>Hospedagem Web:</strong> <span className="text-white font-mono">cantina-express-32161.web.app</span><br/>
-                    • <strong>Banco Cloud Firestore:</strong> <span className="text-emerald-400 font-mono font-bold">{firebaseConfig.projectId || 'carga-patrimonio'}</span> {isCloudDbEnabled ? '(Ativo na nuvem)' : '(Desligado temporariamente)'}
+                    • <strong>Banco Cloud Firestore:</strong> <span className="text-emerald-400 font-mono font-bold">{firebaseConfig.projectId || 'cantina-express-32161'}</span> {isCloudDbEnabled ? '(Ativo na nuvem)' : '(Desligado temporariamente)'}
                   </p>
                 </div>
 

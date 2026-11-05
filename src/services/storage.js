@@ -37,12 +37,12 @@ const FIREBASE_ENABLED_KEY = 'cantina_firebase_enabled';
 
 // Configuração padrão lida a partir das variáveis de ambiente (.env)
 export const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAujmh1TuWRCS53zz1BZXIQvgHbXVibKwo",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "carga-patrimonio.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "carga-patrimonio",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "carga-patrimonio.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "478068393511",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:478068393511:web:d61f883ee1c1506887b002"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyC3Kaas0J2aoVjE-8CLUP7bFDd1xYCNtEk",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "cantina-express-32161.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "cantina-express-32161",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "cantina-express-32161.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "863820186259",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:863820186259:web:03fab2dcfc369e386b8366"
 };
 
 // BroadcastChannel para sincronização instantânea entre abas no mesmo navegador
@@ -109,9 +109,7 @@ class StorageService {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Se o projectId for o do hosting (cantina-express-32161) que não tem o Cloud Firestore habilitado,
-        // descarta e usa automaticamente o DEFAULT_FIREBASE_CONFIG (carga-patrimonio) onde o Firestore está 100% ativo!
-        if (parsed && parsed.projectId && parsed.projectId !== 'cantina-express-32161' && parsed.apiKey) {
+        if (parsed && parsed.projectId && parsed.apiKey) {
           return parsed;
         }
       } catch (e) {
