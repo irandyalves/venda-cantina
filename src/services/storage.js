@@ -109,7 +109,9 @@ class StorageService {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.projectId && parsed.apiKey) {
+        if (parsed && (parsed.projectId === 'carga-patrimonio' || (parsed.authDomain && parsed.authDomain.includes('carga-patrimonio')))) {
+          localStorage.removeItem(FIREBASE_CONFIG_KEY);
+        } else if (parsed && parsed.projectId && parsed.apiKey) {
           return parsed;
         }
       } catch (e) {

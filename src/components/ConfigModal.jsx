@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import QRCode from 'qrcode';
 import { 
   X, 
   Settings, 
@@ -38,6 +39,11 @@ import {
   Monitor,
   FolderPlus,
   ExternalLink,
+  QrCode,
+  Smartphone,
+  Tablet,
+  Copy,
+  Printer,
   ChevronDown,
   Eye,
   EyeOff,
@@ -215,6 +221,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   });
   const [firebaseStatus, setFirebaseStatus] = useState(null);
   const [isCloudDbEnabled, setIsCloudDbEnabled] = useState(() => storageService.isFirebaseEnabled());
+
+  // Estado Conexão de Dispositivos por QR Code
+  const [qrTargetEnv, setQrTargetEnv] = useState('ask');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [copiedQrLink, setCopiedQrLink] = useState(false);
 
   // Estado Ambientes e Perfis
   const [environments, setEnvironments] = useState(() => authService.getEnvironments());
@@ -600,7 +611,12 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
     const savedFb = storageService.getFirebaseConfig();
     setIsCloudDbEnabled(storageService.isFirebaseEnabled());
-    if (savedFb) {
+    if (savedFb && (savedFb.projectId === 'carga-patrimonio' || (savedFb.authDomain && savedFb.authDomain.includes('carga-patrimonio')))) {
+      localStorage.removeItem('cantina_firebase_config');
+      const cleanFb = storageService.getFirebaseConfig();
+      setFirebaseConfig(cleanFb);
+      setFirebaseStatus({ success: true, message: 'Configuração conectada ao Firebase da Cantina.' });
+    } else if (savedFb) {
       setFirebaseConfig(savedFb);
       setFirebaseStatus({ success: true, message: 'Configuração conectada ao Firebase.' });
     }
@@ -1611,6 +1627,122 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   };
 
 
+
+  // --- CONEXÃO DE DISPOSITIVOS POR QR CODE ---
+  const getQrUrl = () => {
+    const baseUrl = typeof window !== 'undefined' && window.location.origin 
+      ? window.location.origin 
+      : 'https://cantina-express-32161.web.app';
+    
+    if (qrTargetEnv === 'ask') {
+      return `${baseUrl}/?connect=terminal`;
+    }
+    return `${baseUrl}/?env=${encodeURIComponent(qrTargetEnv)}`;
+  };
+
+  useEffect(() => {
+    if (activeTab === 'firebase') {
+      const url = getQrUrl();
+      QRCode.toDataURL(url, {
+        width: 280,
+        margin: 2,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff'
+        }
+      }).then(dataUrl => {
+        setQrCodeDataUrl(dataUrl);
+      }).catch(err => {
+        console.error('Erro ao gerar QR Code:', err);
+      });
+    }
+  }, [activeTab, qrTargetEnv, environments]);
+
+  const handleCopyQrLink = () => {
+    const url = getQrUrl();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedQrLink(true);
+      showToast('Link do QR Code copiado com sucesso!', 'Link Copiado');
+      setTimeout(() => setCopiedQrLink(false), 2500);
+    }
+  };
+
+  const handlePrintAllQrCodes = async () => {
+    const baseUrl = typeof window !== 'undefined' && window.location.origin 
+      ? window.location.origin 
+      : 'https://cantina-express-32161.web.app';
+    
+    const itemsToPrint = [
+      {
+        title: 'Auto-Configuração (Geral)',
+        subtitle: 'Pergunta onde o aparelho ficará ao escanear',
+        url: `${baseUrl}/?connect=terminal`
+      },
+      ...environments.map(e => ({
+        title: e.name,
+        subtitle: e.description || (e.type === 'kitchen' ? 'Cozinha / Produção' : e.type === 'display' ? 'Painel TV' : 'Caixa PDV'),
+        url: `${baseUrl}/?env=${encodeURIComponent(e.id)}`
+      }))
+    ];
+
+    try {
+      const qrPromises = itemsToPrint.map(async (item) => {
+        const dataUrl = await QRCode.toDataURL(item.url, { width: 220, margin: 1 });
+        return { ...item, dataUrl };
+      });
+
+      const renderedItems = await Promise.all(qrPromises);
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showToast('Permita pop-ups no navegador para imprimir os QR Codes.', 'Atenção', 'warning');
+        return;
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>QR Codes - Conexão de Dispositivos (Cantina Express)</title>
+            <style>
+              @page { size: A4 portrait; margin: 15mm; }
+              body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 10px; color: #1e293b; }
+              h1 { text-align: center; font-size: 20px; margin-bottom: 4px; }
+              p.lead { text-align: center; font-size: 12px; color: #64748b; margin-top: 0; margin-bottom: 20px; }
+              .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+              .card { border: 2px dashed #94a3b8; border-radius: 12px; padding: 14px; text-align: center; page-break-inside: avoid; }
+              .title { font-size: 15px; font-weight: bold; color: #0f172a; margin-top: 8px; }
+              .subtitle { font-size: 12px; color: #64748b; margin-top: 2px; }
+              .badge { display: inline-block; background: #e2e8f0; font-size: 10px; font-weight: bold; padding: 3px 10px; border-radius: 999px; margin-top: 8px; }
+              img { width: 140px; height: 140px; display: block; margin: 0 auto; }
+            </style>
+          </head>
+          <body>
+            <h1>🍽️ Cantina Express - QR Codes das Bancadas & Cozinhas</h1>
+            <p class="lead">Recorte e cole na bancada de cada cozinha/estação. O operador aponta a câmera do tablet para conectar instantaneamente.</p>
+            <div class="grid">
+              ${renderedItems.map(item => `
+                <div class="card">
+                  <img src="${item.dataUrl}" alt="${item.title}" />
+                  <div class="title">${item.title}</div>
+                  <div class="subtitle">${item.subtitle}</div>
+                  <div class="badge">Escanear para Conectar</div>
+                </div>
+              `).join('')}
+            </div>
+            <script>
+              window.onload = function() { window.print(); }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (err) {
+      console.error('Erro ao gerar impressão de QR codes:', err);
+      showToast('Falha ao gerar impressão dos QR Codes.', 'Erro', 'error');
+    }
+  };
 
   // --- AÇÕES DO FIREBASE (LIGA / DESLIGA E CONFIGURAÇÃO) ---
   const handleToggleCloudDb = () => {
@@ -3240,6 +3372,149 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <div className="pt-3 border-t border-slate-800 text-xs text-slate-400 leading-relaxed bg-slate-950/50 p-3 rounded-xl border border-slate-800/80">
                   <span className="text-amber-300 font-bold">💡 Por que desligar o banco? </span>
                   O Google Firebase oferece uma cota gratuita diária de aproximadamente <strong>50.000 leituras</strong> e <strong>20.000 gravações</strong>. Desligar o banco é ideal para realizar testes, simular pedidos e treinar novos operadores sem gastar essa cota e sem risco de travamento por limite excedido.
+                </div>
+              </div>
+
+              {/* =========================================================
+                  QR CODE PARA CONECTAR TABLETS E CELULARES DIRETOS
+                 ========================================================= */}
+              <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 p-6 rounded-2xl border-2 border-emerald-500/50 shadow-2xl space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                      <QrCode className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-white text-base sm:text-lg flex items-center gap-2">
+                        <span>Conectar Tablets e Celulares</span>
+                        <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/50 px-2 py-0.5 rounded-full font-bold font-mono">
+                          QR CODE DIRETO
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-300">
+                        Aponte a câmera do tablet ou celular para o QR Code abaixo para conectar e operar em tempo real.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handlePrintAllQrCodes}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-amber-300 hover:text-amber-200 border border-amber-500/40 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
+                    title="Imprimir todos os QR Codes em folha A4 para colar nas bancadas"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Imprimir Etiquetas (A4)</span>
+                  </button>
+                </div>
+
+                {/* SELETOR DE MODO DO QR CODE */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-200 block">
+                    Escolha como deseja que o aparelho se conecte:
+                  </label>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQrTargetEnv('ask')}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border ${
+                        qrTargetEnv === 'ask'
+                          ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md font-black ring-2 ring-emerald-400/30'
+                          : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Perguntar no Aparelho (Recomendado)</span>
+                    </button>
+
+                    {environments.map(env => (
+                      <button
+                        key={env.id}
+                        type="button"
+                        onClick={() => setQrTargetEnv(env.id)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                          qrTargetEnv === env.id
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-black ring-2 ring-amber-400/30'
+                            : 'bg-slate-950/80 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <span>{env.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CONTEÚDO DO QR CODE E DETALHES */}
+                <div className="flex flex-col md:flex-row items-center gap-6 bg-slate-950/80 p-5 rounded-2xl border border-slate-800">
+                  {/* IMAGEM DO QR CODE */}
+                  <div className="bg-white p-3 rounded-2xl shadow-xl flex flex-col items-center justify-center shrink-0 border-4 border-slate-700">
+                    {qrCodeDataUrl ? (
+                      <img 
+                        src={qrCodeDataUrl} 
+                        alt="QR Code de Conexão" 
+                        className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
+                      />
+                    ) : (
+                      <div className="w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center bg-slate-100 text-slate-400 text-xs">
+                        Gerando QR Code...
+                      </div>
+                    )}
+                    <span className="text-[10px] font-black text-slate-800 mt-1 uppercase tracking-wider">
+                      {qrTargetEnv === 'ask' ? 'Auto-Seleção' : environments.find(e => e.id === qrTargetEnv)?.name || 'Ambiente'}
+                    </span>
+                  </div>
+
+                  {/* INSTRUÇÕES E BOTÕES DE AÇÃO */}
+                  <div className="space-y-4 flex-1 text-left">
+                    <div className="space-y-1.5">
+                      <h4 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                        <span>Como funciona o acesso:</span>
+                      </h4>
+                      {qrTargetEnv === 'ask' ? (
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          Ao escanear este QR Code com o tablet ou celular, o sistema abrirá perguntando: <strong className="text-amber-300">"Onde este dispositivo ficará?"</strong> (Cozinha Pizza, Pastel, Açaí, etc.). Basta o operador tocar no seu local e levar o aparelho para a bancada!
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          Este QR Code abre <strong className="text-amber-300">diretamente</strong> na tela de <strong className="text-emerald-400">{environments.find(e => e.id === qrTargetEnv)?.name}</strong> sem precisar escolher nada. Ideal para imprimir e colar fixo na bancada deste setor.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* URL DIRETA */}
+                    <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                      <span className="text-[11px] font-mono text-emerald-400 truncate flex-1 select-all">
+                        {getQrUrl()}
+                      </span>
+                    </div>
+
+                    {/* BOTÕES DE COPIAR E TESTAR */}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={handleCopyQrLink}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-xs active:scale-95 border ${
+                          copiedQrLink
+                            ? 'bg-emerald-600 text-white border-emerald-400'
+                            : 'bg-slate-800 hover:bg-slate-750 text-slate-200 border-slate-700'
+                        }`}
+                      >
+                        {copiedQrLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                        <span>{copiedQrLink ? 'Copiado!' : 'Copiar Link'}</span>
+                      </button>
+
+                      <a
+                        href={getQrUrl()}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all flex items-center gap-2 shadow-xs active:scale-95"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span>Testar no Computador (Abrir)</span>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
 

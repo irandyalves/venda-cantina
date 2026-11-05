@@ -3,16 +3,49 @@ import CashierView from './components/CashierView';
 import KitchenView from './components/KitchenView';
 import DisplayView from './components/DisplayView';
 import ConfigModal from './components/ConfigModal';
+import TerminalSetupModal from './components/TerminalSetupModal';
 import { authService, PERFIS } from './services/auth';
 import { storageService } from './services/storage';
 
 export default function App() {
-  // Encontra o ambiente inicial pela hash (#caixa, #cozinha, #cozinha-2, #tv) ou pelo perfil ativo
+  // Verifica se o usuário abriu pelo QR code com ?connect=terminal ou #conectar
+  const isConnectTerminalUrl = () => {
+    if (typeof window === 'undefined') return false;
+    const urlParams = new URLSearchParams(window.location.search);
+    return (
+      urlParams.get('connect') === 'terminal' || 
+      urlParams.get('setup') === 'true' || 
+      window.location.hash === '#conectar'
+    );
+  };
+
+  // Encontra o ambiente inicial pela hash (#caixa, #cozinha, #cozinha-2, #tv), query params ou perfil ativo
   const resolveEnvironmentFromHashOrActive = () => {
-    const rawHash = window.location.hash.toLowerCase().replace('#', '').trim();
     const envs = authService.getEnvironments();
 
-    if (rawHash) {
+    // 0. Verifica se veio com parâmetro direto de QR Code específico (?env=COZINHA ou ?profile=COZINHA_2)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramProfile = urlParams.get('env') || urlParams.get('profile');
+      if (paramProfile) {
+        const matchParam = envs.find(e => 
+          e.id.toLowerCase() === paramProfile.toLowerCase() ||
+          (e.shortName && e.shortName.toLowerCase() === paramProfile.toLowerCase()) ||
+          (e.name && e.name.toLowerCase() === paramProfile.toLowerCase())
+        );
+        if (matchParam) {
+          authService.setActiveProfile(matchParam.id);
+          const slug = (matchParam.shortName || matchParam.name).toLowerCase().replace(/[\s_]+/g, '-');
+          try {
+            window.history.replaceState({}, document.title, window.location.pathname + '#' + slug);
+          } catch (_) {}
+          return matchParam;
+        }
+      }
+    }
+
+    const rawHash = window.location.hash.toLowerCase().replace('#', '').trim();
+    if (rawHash && rawHash !== 'conectar') {
       // 1. Busca correspondência exata de ID ou shortName
       const exactMatch = envs.find(e => 
         e.id.toLowerCase() === rawHash || 
@@ -40,6 +73,7 @@ export default function App() {
   };
 
   const [activeEnvironment, setActiveEnvironment] = useState(resolveEnvironmentFromHashOrActive);
+  const [showTerminalSetup, setShowTerminalSetup] = useState(isConnectTerminalUrl);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [configInitialTab, setConfigInitialTab] = useState('products');
 
@@ -124,6 +158,19 @@ export default function App() {
     setIsConfigOpen(true);
   };
 
+  const handleTerminalSetupSelected = (env) => {
+    setShowTerminalSetup(false);
+    authService.setActiveProfile(env.id);
+    setActiveEnvironment(env);
+    const slug = (env.shortName || env.name).toLowerCase().replace(/[\s_]+/g, '-');
+    window.location.hash = slug;
+
+    try {
+      const cleanUrl = window.location.pathname + '#' + slug;
+      window.history.replaceState({}, document.title, cleanUrl);
+    } catch (_) {}
+  };
+
   return (
     <div className="w-full h-full min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {activeEnvironment.type === 'cashier' && (
@@ -153,6 +200,13 @@ export default function App() {
         isOpen={isConfigOpen} 
         initialTab={configInitialTab}
         onClose={() => setIsConfigOpen(false)} 
+      />
+
+      {/* Assistente de Configuração do Dispositivo via QR Code */}
+      <TerminalSetupModal
+        isOpen={showTerminalSetup}
+        onSelectEnvironment={handleTerminalSetupSelected}
+        onClose={() => setShowTerminalSetup(false)}
       />
     </div>
   );
