@@ -17,7 +17,7 @@ dist-ssr
 
 # Firebase
 .firebase
-firestore.rules
+
 
 # Editor directories and files
 .vscode/*
