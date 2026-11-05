@@ -565,6 +565,129 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, cancelConfirmModal.isOpen, deleteItemConfirmModal.isOpen, deleteEnvConfirmModal.isOpen, showAddEnvModal, showEditEnvModal, showAddCategoryModal, showAddItemModal, showGearModal, showResetModal, showClearQueueModal, editingItemId, onClose, hasUnsavedChanges, categories, productionRouting, orderTimeLimits, kitchenSettings, tvSettings, bgSettings, systemSettings]);
 
+  // --- CONEXÃO DE DISPOSITIVOS POR QR CODE ---
+  const getQrUrl = () => {
+    const baseUrl = typeof window !== 'undefined' && window.location.origin 
+      ? window.location.origin 
+      : 'https://cantina-express-32161.web.app';
+    
+    if (qrTargetEnv === 'ask') {
+      return `${baseUrl}/?connect=terminal`;
+    }
+    return `${baseUrl}/?env=${encodeURIComponent(qrTargetEnv)}`;
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'firebase') {
+      const url = getQrUrl();
+      if (QRCode && typeof QRCode.toDataURL === 'function') {
+        QRCode.toDataURL(url, {
+          width: 280,
+          margin: 2,
+          color: {
+            dark: '#0f172a',
+            light: '#ffffff'
+          }
+        }).then(dataUrl => {
+          setQrCodeDataUrl(dataUrl);
+        }).catch(err => {
+          console.error('Erro ao gerar QR Code:', err);
+        });
+      }
+    }
+  }, [isOpen, activeTab, qrTargetEnv, environments]);
+
+  const handleCopyQrLink = () => {
+    const url = getQrUrl();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedQrLink(true);
+      showToast('Link do QR Code copiado com sucesso!', 'Link Copiado');
+      setTimeout(() => setCopiedQrLink(false), 2500);
+    }
+  };
+
+  const handlePrintAllQrCodes = async () => {
+    const baseUrl = typeof window !== 'undefined' && window.location.origin 
+      ? window.location.origin 
+      : 'https://cantina-express-32161.web.app';
+    
+    const itemsToPrint = [
+      {
+        title: 'Auto-Configuração (Geral)',
+        subtitle: 'Pergunta onde o aparelho ficará ao escanear',
+        url: `${baseUrl}/?connect=terminal`
+      },
+      ...environments.map(e => ({
+        title: e.name,
+        subtitle: e.description || (e.type === 'kitchen' ? 'Cozinha / Produção' : e.type === 'display' ? 'Painel TV' : 'Caixa PDV'),
+        url: `${baseUrl}/?env=${encodeURIComponent(e.id)}`
+      }))
+    ];
+
+    try {
+      if (!QRCode || typeof QRCode.toDataURL !== 'function') {
+        showToast('Biblioteca de QR Code indisponível para impressão.', 'Atenção', 'warning');
+        return;
+      }
+
+      const qrPromises = itemsToPrint.map(async (item) => {
+        const dataUrl = await QRCode.toDataURL(item.url, { width: 220, margin: 1 });
+        return { ...item, dataUrl };
+      });
+
+      const renderedItems = await Promise.all(qrPromises);
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showToast('Permita pop-ups no navegador para imprimir os QR Codes.', 'Atenção', 'warning');
+        return;
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>QR Codes - Conexão de Dispositivos (Cantina Express)</title>
+            <style>
+              @page { size: A4 portrait; margin: 15mm; }
+              body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 10px; color: #1e293b; }
+              h1 { text-align: center; font-size: 20px; margin-bottom: 4px; }
+              p.lead { text-align: center; font-size: 12px; color: #64748b; margin-top: 0; margin-bottom: 20px; }
+              .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+              .card { border: 2px dashed #94a3b8; border-radius: 12px; padding: 14px; text-align: center; page-break-inside: avoid; }
+              .title { font-size: 15px; font-weight: bold; color: #0f172a; margin-top: 8px; }
+              .subtitle { font-size: 12px; color: #64748b; margin-top: 2px; }
+              .badge { display: inline-block; background: #e2e8f0; font-size: 10px; font-weight: bold; padding: 3px 10px; border-radius: 999px; margin-top: 8px; }
+              img { width: 140px; height: 140px; display: block; margin: 0 auto; }
+            </style>
+          </head>
+          <body>
+            <h1>🍽️ Cantina Express - QR Codes das Bancadas & Cozinhas</h1>
+            <p class="lead">Recorte e cole na bancada de cada cozinha/estação. O operador aponta a câmera do tablet para conectar instantaneamente.</p>
+            <div class="grid">
+              ${renderedItems.map(item => `
+                <div class="card">
+                  <img src="${item.dataUrl}" alt="${item.title}" />
+                  <div class="title">${item.title}</div>
+                  <div class="subtitle">${item.subtitle}</div>
+                  <div class="badge">Escanear para Conectar</div>
+                </div>
+              `).join('')}
+            </div>
+            <script>
+              window.onload = function() { window.print(); }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (err) {
+      console.error('Erro ao gerar impressão de QR codes:', err);
+      showToast('Falha ao gerar impressão dos QR Codes.', 'Erro', 'error');
+    }
+  };
+
   function loadData() {
     const cats = storageService.getProducts();
     // Normalizar caso o banco local tenha o antigo 'PP-' ou 'PI-' em maiúsculo
@@ -1627,122 +1750,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   };
 
 
-
-  // --- CONEXÃO DE DISPOSITIVOS POR QR CODE ---
-  const getQrUrl = () => {
-    const baseUrl = typeof window !== 'undefined' && window.location.origin 
-      ? window.location.origin 
-      : 'https://cantina-express-32161.web.app';
-    
-    if (qrTargetEnv === 'ask') {
-      return `${baseUrl}/?connect=terminal`;
-    }
-    return `${baseUrl}/?env=${encodeURIComponent(qrTargetEnv)}`;
-  };
-
-  useEffect(() => {
-    if (activeTab === 'firebase') {
-      const url = getQrUrl();
-      QRCode.toDataURL(url, {
-        width: 280,
-        margin: 2,
-        color: {
-          dark: '#0f172a',
-          light: '#ffffff'
-        }
-      }).then(dataUrl => {
-        setQrCodeDataUrl(dataUrl);
-      }).catch(err => {
-        console.error('Erro ao gerar QR Code:', err);
-      });
-    }
-  }, [activeTab, qrTargetEnv, environments]);
-
-  const handleCopyQrLink = () => {
-    const url = getQrUrl();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
-      setCopiedQrLink(true);
-      showToast('Link do QR Code copiado com sucesso!', 'Link Copiado');
-      setTimeout(() => setCopiedQrLink(false), 2500);
-    }
-  };
-
-  const handlePrintAllQrCodes = async () => {
-    const baseUrl = typeof window !== 'undefined' && window.location.origin 
-      ? window.location.origin 
-      : 'https://cantina-express-32161.web.app';
-    
-    const itemsToPrint = [
-      {
-        title: 'Auto-Configuração (Geral)',
-        subtitle: 'Pergunta onde o aparelho ficará ao escanear',
-        url: `${baseUrl}/?connect=terminal`
-      },
-      ...environments.map(e => ({
-        title: e.name,
-        subtitle: e.description || (e.type === 'kitchen' ? 'Cozinha / Produção' : e.type === 'display' ? 'Painel TV' : 'Caixa PDV'),
-        url: `${baseUrl}/?env=${encodeURIComponent(e.id)}`
-      }))
-    ];
-
-    try {
-      const qrPromises = itemsToPrint.map(async (item) => {
-        const dataUrl = await QRCode.toDataURL(item.url, { width: 220, margin: 1 });
-        return { ...item, dataUrl };
-      });
-
-      const renderedItems = await Promise.all(qrPromises);
-
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        showToast('Permita pop-ups no navegador para imprimir os QR Codes.', 'Atenção', 'warning');
-        return;
-      }
-
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>QR Codes - Conexão de Dispositivos (Cantina Express)</title>
-            <style>
-              @page { size: A4 portrait; margin: 15mm; }
-              body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 10px; color: #1e293b; }
-              h1 { text-align: center; font-size: 20px; margin-bottom: 4px; }
-              p.lead { text-align: center; font-size: 12px; color: #64748b; margin-top: 0; margin-bottom: 20px; }
-              .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-              .card { border: 2px dashed #94a3b8; border-radius: 12px; padding: 14px; text-align: center; page-break-inside: avoid; }
-              .title { font-size: 15px; font-weight: bold; color: #0f172a; margin-top: 8px; }
-              .subtitle { font-size: 12px; color: #64748b; margin-top: 2px; }
-              .badge { display: inline-block; background: #e2e8f0; font-size: 10px; font-weight: bold; padding: 3px 10px; border-radius: 999px; margin-top: 8px; }
-              img { width: 140px; height: 140px; display: block; margin: 0 auto; }
-            </style>
-          </head>
-          <body>
-            <h1>🍽️ Cantina Express - QR Codes das Bancadas & Cozinhas</h1>
-            <p class="lead">Recorte e cole na bancada de cada cozinha/estação. O operador aponta a câmera do tablet para conectar instantaneamente.</p>
-            <div class="grid">
-              ${renderedItems.map(item => `
-                <div class="card">
-                  <img src="${item.dataUrl}" alt="${item.title}" />
-                  <div class="title">${item.title}</div>
-                  <div class="subtitle">${item.subtitle}</div>
-                  <div class="badge">Escanear para Conectar</div>
-                </div>
-              `).join('')}
-            </div>
-            <script>
-              window.onload = function() { window.print(); }
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    } catch (err) {
-      console.error('Erro ao gerar impressão de QR codes:', err);
-      showToast('Falha ao gerar impressão dos QR Codes.', 'Erro', 'error');
-    }
-  };
 
   // --- AÇÕES DO FIREBASE (LIGA / DESLIGA E CONFIGURAÇÃO) ---
   const handleToggleCloudDb = () => {

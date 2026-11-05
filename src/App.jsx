@@ -196,11 +196,13 @@ export default function App() {
       )}
 
       {/* Modal de Configurações, Cardápio e Ambientes */}
-      <ConfigModal 
-        isOpen={isConfigOpen} 
-        initialTab={configInitialTab}
-        onClose={() => setIsConfigOpen(false)} 
-      />
+      {isConfigOpen && (
+        <ConfigModal 
+          isOpen={isConfigOpen} 
+          initialTab={configInitialTab}
+          onClose={() => setIsConfigOpen(false)} 
+        />
+      )}
 
       {/* Assistente de Configuração do Dispositivo via QR Code */}
       <TerminalSetupModal
