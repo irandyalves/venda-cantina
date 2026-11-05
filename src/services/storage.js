@@ -55,9 +55,7 @@ export function normalizeCasing(str) {
   if (str.length >= 2 && str === str.toUpperCase() && /[A-ZÀ-Ú]/.test(str)) {
     return str
       .toLowerCase()
-      .split(' ')
-      .map(w => w ? w.charAt(0).toUpperCase() + w.slice(1) : '')
-      .join(' ');
+      .replace(/(?:^|[\s/(-])([a-zà-ú])/g, (match, letter) => match.replace(letter, letter.toUpperCase()));
   }
   return str;
 }
@@ -502,11 +500,24 @@ class StorageService {
 
       const updated = cleaned.map(env => {
         const defaultMatch = DEFAULT_ENVIRONMENTS.find(d => d.id === env.id);
-        let finalName = env.name || defaultMatch?.name || env.id;
-        let finalShortName = env.shortName || finalName;
-        if (defaultMatch && (finalName === 'ADMIN' || finalName.toUpperCase() === 'COZINHA PIZZA' || finalName === 'COZINHA' || finalName === 'COZINHA_2' || finalName === 'PUBLICO')) {
+        let finalName = normalizeCasing(env.name || defaultMatch?.name || env.id);
+        let finalShortName = normalizeCasing(env.shortName || finalName);
+        if (defaultMatch && (finalName.toUpperCase() === 'ADMIN' || finalName.toUpperCase() === 'ADMIN (CAIXA & GESTÃO)')) {
           finalName = defaultMatch.name;
           finalShortName = defaultMatch.shortName;
+          hadChanges = true;
+        }
+        if (env.id === 'COZINHA' && (finalName.toUpperCase().includes('COZINHA 1') || finalName.toUpperCase() === 'COZINHA' || finalName.toUpperCase() === 'COZINHA PIZZA')) {
+          finalName = 'Cozinha Pizza';
+          finalShortName = 'Cozinha Pizza';
+          hadChanges = true;
+        }
+        if (env.id === 'COZINHA_2' && (finalName.toUpperCase() === 'COZINHA 2' || finalName.toUpperCase() === 'COZINHA_2')) {
+          finalName = 'Cozinha 2';
+          finalShortName = 'Cozinha 2';
+          hadChanges = true;
+        }
+        if (finalName !== env.name || finalShortName !== env.shortName) {
           hadChanges = true;
         }
         return {

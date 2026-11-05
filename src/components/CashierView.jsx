@@ -2546,11 +2546,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </span>
                 <div>
                   <h3 className="font-black text-sm sm:text-base text-white tracking-wide">
-                    Editar Item / Preço / Ícone / Cor
+                    Editar
                   </h3>
-                  <p className="text-[11px] text-amber-400 font-bold tracking-wider">
-                    {quickEditModal.category.name}
-                  </p>
                 </div>
               </div>
               <button 

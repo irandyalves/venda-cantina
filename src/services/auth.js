@@ -7,7 +7,7 @@ import {
   signOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
-import { storageService } from './storage';
+import { storageService, normalizeCasing } from './storage';
 
 const PROFILES_STORAGE_KEY = 'cantina_user_profiles';
 const ACTIVE_PROFILE_KEY = 'cantina_active_profile';
@@ -142,14 +142,17 @@ class AuthService {
             const icon = isDisplay ? 'Tv' : isCashier ? 'ShieldCheck' : (env.icon || defaultMatch?.icon || 'UtensilsCrossed');
             const color = isDisplay ? 'emerald' : isCashier ? 'amber' : (env.color || defaultMatch?.color || 'orange');
 
-            let finalName = env.name || defaultMatch?.name || env.id;
-            if (env.id === 'COZINHA' && (finalName.includes('COZINHA 1') || finalName === 'COZINHA')) {
-              finalName = 'COZINHA PIZZA';
+            let finalName = normalizeCasing(env.name || defaultMatch?.name || env.id);
+            if (env.id === 'COZINHA' && (finalName.toUpperCase().includes('COZINHA 1') || finalName.toUpperCase() === 'COZINHA' || finalName.toUpperCase() === 'COZINHA PIZZA')) {
+              finalName = 'Cozinha Pizza';
               hadLegacyJunk = true;
             }
-            let finalShortName = env.shortName || finalName;
-            if (env.id === 'COZINHA' && (finalShortName.includes('COZINHA 1') || finalShortName === 'COZINHA')) {
-              finalShortName = 'COZINHA PIZZA';
+            if (env.id === 'COZINHA_2' && (finalName.toUpperCase() === 'COZINHA 2' || finalName.toUpperCase() === 'COZINHA_2')) {
+              finalName = 'Cozinha 2';
+              hadLegacyJunk = true;
+            }
+            let finalShortName = normalizeCasing(env.shortName || finalName);
+            if (finalName !== env.name || finalShortName !== env.shortName) {
               hadLegacyJunk = true;
             }
 
@@ -208,11 +211,11 @@ class AuthService {
   }
 
   addEnvironment({ name, shortName, type = 'kitchen', icon, color, description = '', linkedKitchen = '' }) {
-    const cleanName = (name || '').trim();
+    const cleanName = normalizeCasing((name || '').trim());
     if (!cleanName) throw new Error('O nome do ambiente é obrigatório');
 
-    const cleanShortName = (shortName || cleanName).trim().toUpperCase();
-    const slug = cleanShortName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/gi, '_');
+    const cleanShortName = normalizeCasing((shortName || cleanName).trim());
+    const slug = cleanShortName.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/gi, '_');
     const id = slug || `ENV_${Date.now()}`;
 
     const envs = this.getEnvironments();
@@ -263,10 +266,13 @@ class AuthService {
           ? (updatedData.linkedKitchen !== undefined ? updatedData.linkedKitchen : (e.linkedKitchen || '')) 
           : '';
 
+        const newName = updatedData.name ? normalizeCasing(updatedData.name.trim()) : normalizeCasing(e.name);
+        const newShortName = updatedData.shortName ? normalizeCasing(updatedData.shortName.trim()) : normalizeCasing(e.shortName || newName);
+
         return {
           ...e,
-          name: updatedData.name ? updatedData.name.trim() : e.name,
-          shortName: updatedData.shortName ? updatedData.shortName.trim().toUpperCase() : e.shortName,
+          name: newName,
+          shortName: newShortName,
           type: nextType,
           icon: nextIcon,
           color: nextColor,
