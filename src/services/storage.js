@@ -33,6 +33,7 @@ const DOC_SECURITY = 'seguranca';
 const DOC_SYSTEM = 'sistema';
 const DOC_TIME_LIMITS = 'tempos_pedidos';
 const LOCAL_SCREENS_LOCKED_KEY = 'cantina_screens_locked';
+const FIREBASE_ENABLED_KEY = 'cantina_firebase_enabled';
 
 // Configuração padrão lida a partir das variáveis de ambiente (.env)
 export const DEFAULT_FIREBASE_CONFIG = {
@@ -143,40 +144,49 @@ class StorageService {
     return this.initFirebase();
   }
 
-  initFirebase() {
-    const config = this.getFirebaseConfig();
-    if (!config || !config.apiKey) {
-      this.isFirebaseReady = false;
-      this.notifyConnectionStatus();
-      return false;
-    }
-
+  // --- CONTROLE DE BANCO EM NUVEM (LIGA / DESLIGA) ---
+  isFirebaseEnabled() {
     try {
-      this.app = getApps().length > 0 ? getApp() : initializeApp(config);
-      this.db = getFirestore(this.app);
-      this.isFirebaseReady = true;
-      this.notifyConnectionStatus();
-      console.log('✅ Firebase Firestore conectado com sucesso ao projeto:', config.projectId);
-      
-      // Inicia o listener em tempo real imediatamente
-      this.startFirestoreListener();
-      setTimeout(() => this.purgeLegacyOrders(), 1200);
-      setTimeout(() => this.syncLocalConfigsToCloudIfEmpty(), 2000);
+      const saved = localStorage.getItem(FIREBASE_ENABLED_KEY);
+      return saved !== 'false';
+    } catch (_) {
       return true;
-    } catch (e) {
-      console.error('❌ Falha ao inicializar Firebase:', e);
-      this.isFirebaseReady = false;
-      this.notifyConnectionStatus();
-      return false;
     }
   }
 
-  // --- SINCRONIZAÇÃO EM TEMPO REAL CENTRALIZADA ---
+  setFirebaseEnabled(enabled) {
+    try {
+      localStorage.setItem(FIREBASE_ENABLED_KEY, enabled ? 'true' : 'false');
+    } catch (e) {
+      console.error('Erro ao salvar estado do Firebase:', e);
+    }
 
-  // Inicia o listener de snapshot do Cloud Firestore
-  startFirestoreListener() {
-    if (!this.isFirebaseReady || !this.db) return;
+    if (!enabled) {
+      console.log('🛑 [Modo Local / Economia de Cota] Banco em nuvem DESLIGADO. Operações agora são 100% locais sem consumir Firestore.');
+      this.stopFirestoreListeners();
+      this.isFirebaseReady = false;
+      this.notifyConnectionStatus();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cantina_firebase_enabled_changed', { detail: false }));
+      }
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'FIREBASE_ENABLED_CHANGED', payload: false });
+      }
+      return false;
+    } else {
+      console.log('🚀 [Banco em Nuvem] LIGADO. Conectando ao Cloud Firestore...');
+      const ok = this.initFirebase();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cantina_firebase_enabled_changed', { detail: true }));
+      }
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'FIREBASE_ENABLED_CHANGED', payload: true });
+      }
+      return ok;
+    }
+  }
 
+  stopFirestoreListeners() {
     if (this.unsubscribeFirestore) {
       try { this.unsubscribeFirestore(); } catch (_) {}
       this.unsubscribeFirestore = null;
@@ -213,6 +223,51 @@ class StorageService {
       try { this.unsubscribeTimeLimits(); } catch (_) {}
       this.unsubscribeTimeLimits = null;
     }
+  }
+
+  initFirebase() {
+    if (!this.isFirebaseEnabled()) {
+      console.log('🟡 [Modo Local] Cloud Firestore desativado pelo botão Liga/Desliga. Operando 100% offline/local.');
+      this.stopFirestoreListeners();
+      this.isFirebaseReady = false;
+      this.notifyConnectionStatus();
+      return false;
+    }
+
+    const config = this.getFirebaseConfig();
+    if (!config || !config.apiKey) {
+      this.isFirebaseReady = false;
+      this.notifyConnectionStatus();
+      return false;
+    }
+
+    try {
+      this.app = getApps().length > 0 ? getApp() : initializeApp(config);
+      this.db = getFirestore(this.app);
+      this.isFirebaseReady = true;
+      this.notifyConnectionStatus();
+      console.log('✅ Firebase Firestore conectado com sucesso ao projeto:', config.projectId);
+      
+      // Inicia o listener em tempo real imediatamente
+      this.startFirestoreListener();
+      setTimeout(() => this.purgeLegacyOrders(), 1200);
+      setTimeout(() => this.syncLocalConfigsToCloudIfEmpty(), 2000);
+      return true;
+    } catch (e) {
+      console.error('❌ Falha ao inicializar Firebase:', e);
+      this.isFirebaseReady = false;
+      this.notifyConnectionStatus();
+      return false;
+    }
+  }
+
+  // --- SINCRONIZAÇÃO EM TEMPO REAL CENTRALIZADA ---
+
+  // Inicia o listener de snapshot do Cloud Firestore
+  startFirestoreListener() {
+    if (!this.isFirebaseReady || !this.db || !this.isFirebaseEnabled()) return;
+
+    this.stopFirestoreListeners();
 
     try {
       // 1. Listener de pedidos e configurações em tempo real
@@ -602,6 +657,17 @@ class StorageService {
         }
         if (event.data?.type === 'CURRENCY_SYMBOL_UPDATED') {
           window.dispatchEvent(new CustomEvent('cantina_currency_changed', { detail: event.data.payload }));
+        }
+        if (event.data?.type === 'FIREBASE_ENABLED_CHANGED') {
+          const isEnabled = event.data.payload;
+          if (!isEnabled) {
+            this.stopFirestoreListeners();
+            this.isFirebaseReady = false;
+            this.notifyConnectionStatus();
+          } else {
+            this.initFirebase();
+          }
+          window.dispatchEvent(new CustomEvent('cantina_firebase_enabled_changed', { detail: isEnabled }));
         }
         if (event.data?.type === 'ORDER_TIME_LIMITS_UPDATED') {
           if (event.data.payload) {

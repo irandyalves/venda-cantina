@@ -198,6 +198,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
   // Configurações Gerais do Sistema (Espaçamento de cards, efeitos, sons)
   const [systemSettings, setSystemSettings] = useState(() => storageService.getSystemSettings());
+  const [isCloudEnabled, setIsCloudEnabled] = useState(() => storageService.isFirebaseEnabled());
 
   const kitchenEnvironments = environments.filter(e => e.type === 'kitchen');
 
@@ -217,17 +218,22 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
     const handleSystemChange = (e) => {
       setSystemSettings(e.detail || storageService.getSystemSettings());
     };
+    const handleFbEnabledChange = (e) => {
+      setIsCloudEnabled(!!e.detail);
+    };
     window.addEventListener('cantina_currency_changed', handleCurrencyChanged);
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
     window.addEventListener('cantina_screens_locked_changed', handleScreensLockChange);
     window.addEventListener('cantina_background_settings_changed', handleBgChange);
     window.addEventListener('cantina_system_settings_changed', handleSystemChange);
+    window.addEventListener('cantina_firebase_enabled_changed', handleFbEnabledChange);
     return () => {
       window.removeEventListener('cantina_currency_changed', handleCurrencyChanged);
       window.removeEventListener('cantina_environments_changed', handleEnvsChange);
       window.removeEventListener('cantina_screens_locked_changed', handleScreensLockChange);
       window.removeEventListener('cantina_background_settings_changed', handleBgChange);
       window.removeEventListener('cantina_system_settings_changed', handleSystemChange);
+      window.removeEventListener('cantina_firebase_enabled_changed', handleFbEnabledChange);
     };
   }, []);
 
@@ -1500,6 +1506,21 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <span>Travar Telas</span>
               </>
             )}
+          </button>
+
+          {/* BOTÃO INDICADOR BANCO NUVEM / MODO LOCAL (ECONOMIA DE COTA) */}
+          <button
+            type="button"
+            onClick={() => onOpenConfig('firebase')}
+            className={`px-2.5 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 ${
+              isCloudEnabled
+                ? 'bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border-emerald-500/50'
+                : 'bg-amber-950/70 hover:bg-amber-900/80 text-amber-300 border-amber-500/50'
+            }`}
+            title={isCloudEnabled ? 'Banco em Nuvem Online. Clique para gerenciar ou ativar Modo Local.' : 'Modo Local Ativo (Zero consumo de cota Firestore). Clique para ligar a nuvem.'}
+          >
+            <span className={`w-2 h-2 rounded-full ${isCloudEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span className="hidden sm:inline">{isCloudEnabled ? 'Nuvem Online' : 'Modo Local'}</span>
           </button>
 
           {/* BOTÃO CONFIGURAÇÕES: APENAS A ENGRENAGEM COLORIDA SEM FUNDO */}

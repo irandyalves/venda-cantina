@@ -6,6 +6,10 @@ import {
   Trash2, 
   Save, 
   Cloud, 
+  Power,
+  Database,
+  Wifi,
+  WifiOff,
   DollarSign, 
   CheckCircle2, 
   AlertCircle, 
@@ -210,6 +214,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     appId: ''
   });
   const [firebaseStatus, setFirebaseStatus] = useState(null);
+  const [isCloudDbEnabled, setIsCloudDbEnabled] = useState(() => storageService.isFirebaseEnabled());
 
   // Estado Ambientes e Perfis
   const [environments, setEnvironments] = useState(() => authService.getEnvironments());
@@ -594,6 +599,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     }
 
     const savedFb = storageService.getFirebaseConfig();
+    setIsCloudDbEnabled(storageService.isFirebaseEnabled());
     if (savedFb) {
       setFirebaseConfig(savedFb);
       setFirebaseStatus({ success: true, message: 'Configuração conectada ao Firebase.' });
@@ -1606,7 +1612,20 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
 
 
-  // --- AÇÕES DO FIREBASE ---
+  // --- AÇÕES DO FIREBASE (LIGA / DESLIGA E CONFIGURAÇÃO) ---
+  const handleToggleCloudDb = () => {
+    const nextState = !isCloudDbEnabled;
+    storageService.setFirebaseEnabled(nextState);
+    setIsCloudDbEnabled(nextState);
+    if (nextState) {
+      setFirebaseStatus({ success: true, message: 'Banco em nuvem LIGADO com sucesso! Sincronização em tempo real ativa.' });
+      showToast('Banco em nuvem ligado com sucesso!', 'Nuvem Conectada');
+    } else {
+      setFirebaseStatus({ success: false, message: 'Banco em nuvem DESLIGADO. Operando 100% em modo local com zero consumo de leituras e gravações.' });
+      showToast('Banco em nuvem desligado. Operando 100% local!', 'Modo Local / Economia', 'warning');
+    }
+  };
+
   const handleSaveFirebase = (e) => {
     e.preventDefault();
     try {
@@ -3133,22 +3152,109 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
           )}
 
           {/* =========================================================
-              ABA 2: CONEXÃO COM O FIREBASE ONLINE
+              ABA 2: CONEXÃO COM O FIREBASE ONLINE & CONTROLE DE BANCO
              ========================================================= */}
           {activeTab === 'firebase' && (
             <div className="space-y-6">
               
+              {/* CARD DE LIGA / DESLIGA O BANCO EM NUVEM FIRESTORE */}
+              <div className={`p-6 rounded-2xl border-2 transition-all shadow-2xl space-y-4 ${
+                isCloudDbEnabled
+                  ? 'bg-gradient-to-br from-slate-900 via-emerald-950/40 to-slate-900 border-emerald-500 shadow-emerald-950/60'
+                  : 'bg-gradient-to-br from-slate-900 via-amber-950/40 to-slate-900 border-amber-500 shadow-amber-950/60'
+              }`}>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div className="space-y-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl border ${
+                        isCloudDbEnabled 
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                          : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                      }`}>
+                        <Database className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-white text-base sm:text-lg tracking-wide flex items-center gap-2">
+                          <span>Banco de Dados em Nuvem</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold font-mono border ${
+                            isCloudDbEnabled
+                              ? 'bg-emerald-950 text-emerald-300 border-emerald-500/60'
+                              : 'bg-amber-950 text-amber-300 border-amber-500/60'
+                          }`}>
+                            {isCloudDbEnabled ? 'ONLINE' : 'MODO LOCAL'}
+                          </span>
+                        </h3>
+                        <p className="text-xs text-slate-300 font-medium">
+                          {isCloudDbEnabled
+                            ? 'Conectado ao Google Cloud Firestore em tempo real.'
+                            : 'Nuvem pausada. Operando 100% na memória local (localStorage).'
+                          }
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300 pt-1">
+                      <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                        {isCloudDbEnabled ? <Wifi className="w-4 h-4 text-emerald-400 shrink-0" /> : <WifiOff className="w-4 h-4 text-amber-400 shrink-0" />}
+                        <span>
+                          <strong>Sincronização entre aparelhos:</strong> {isCloudDbEnabled ? 'Ativa (Celular, Tablet, PC)' : 'Apenas neste computador'}
+                        </span>
+                      </div>
+                      <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                        <Cloud className="w-4 h-4 text-sky-400 shrink-0" />
+                        <span>
+                          <strong>Consumo de cota Firebase:</strong> {isCloudDbEnabled ? 'Normal (Lendo/Gravando)' : 'ZERO (Economia Total)'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* BOTÃO GRANDE DE LIGA / DESLIGA */}
+                  <div className="flex flex-col items-center justify-center shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleToggleCloudDb}
+                      className={`w-full sm:w-auto px-7 py-4 rounded-2xl font-black text-sm sm:text-base transition-all shadow-xl flex items-center justify-center gap-3 cursor-pointer active:scale-95 border-2 ${
+                        isCloudDbEnabled
+                          ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 border-emerald-300 shadow-emerald-950/80 ring-4 ring-emerald-500/20'
+                          : 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 border-amber-300 shadow-amber-950/80 ring-4 ring-amber-500/20'
+                      }`}
+                      title={isCloudDbEnabled ? 'Toque para desligar a nuvem e trabalhar em modo local' : 'Toque para ligar a nuvem e sincronizar os pedidos'}
+                    >
+                      <Power className="w-6 h-6 stroke-[3]" />
+                      <div className="text-left leading-tight">
+                        <div className="text-sm sm:text-base font-black">
+                          {isCloudDbEnabled ? 'BANCO LIGADO' : 'BANCO DESLIGADO'}
+                        </div>
+                        <div className="text-[10px] font-bold opacity-80">
+                          {isCloudDbEnabled ? 'Toque para desligar' : 'Toque para ligar'}
+                        </div>
+                      </div>
+                    </button>
+                    <span className="text-[10px] text-slate-400 font-bold mt-1.5 text-center">
+                      {isCloudDbEnabled ? '● Sincronizando com Firestore' : '○ Operações 100% Locais'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-800 text-xs text-slate-400 leading-relaxed bg-slate-950/50 p-3 rounded-xl border border-slate-800/80">
+                  <span className="text-amber-300 font-bold">💡 Por que desligar o banco? </span>
+                  O Google Firebase oferece uma cota gratuita diária de aproximadamente <strong>50.000 leituras</strong> e <strong>20.000 gravações</strong>. Desligar o banco é ideal para realizar testes, simular pedidos e treinar novos operadores sem gastar essa cota e sem risco de travamento por limite excedido.
+                </div>
+              </div>
+
+              {/* DADOS E CREDENCIAIS DE CONEXÃO FIREBASE */}
               <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-700 pb-3">
                   <Cloud className="w-5 h-5 text-amber-400" />
-                  <h3 className="font-extrabold text-white text-base">Conexão Firebase da Minha Conta</h3>
+                  <h3 className="font-extrabold text-white text-base">Credenciais da Conta Firebase</h3>
                 </div>
 
                 <div className="text-xs text-slate-300 leading-relaxed bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-1">
-                  <p className="font-bold text-amber-300">Status da Sincronização em Tempo Real (Realtime):</p>
+                  <p className="font-bold text-amber-300">Status dos Serviços:</p>
                   <p className="text-slate-400">
                     • <strong>Hospedagem Web:</strong> <span className="text-white font-mono">cantina-express-32161.web.app</span><br/>
-                    • <strong>Banco Cloud Firestore:</strong> <span className="text-emerald-400 font-mono font-bold">{firebaseConfig.projectId || 'carga-patrimonio'}</span> (Ativo com WebSocket contínuo e Heartbeat de 2s)
+                    • <strong>Banco Cloud Firestore:</strong> <span className="text-emerald-400 font-mono font-bold">{firebaseConfig.projectId || 'carga-patrimonio'}</span> {isCloudDbEnabled ? '(Ativo na nuvem)' : '(Desligado temporariamente)'}
                   </p>
                 </div>
 
@@ -3211,7 +3317,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <div className="pt-2 flex justify-end">
                     <button
                       type="submit"
-                      className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg flex items-center gap-2"
+                      className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg flex items-center gap-2 cursor-pointer active:scale-95"
                     >
                       <Save className="w-4 h-4" />
                       <span>Salvar e Atualizar Firebase</span>
