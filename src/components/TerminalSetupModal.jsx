@@ -71,7 +71,7 @@ export default function TerminalSetupModal({ isOpen, onSelectEnvironment, onClos
 
         {/* FEEDBACK DE CONFIRMAÇÃO */}
         {isConfirming && selectedEnv ? (
-          <div className="p-8 bg-emerald-950/80 border-2 border-emerald-400 rounded-3xl text-center space-y-4 animate-scaleUp">
+          <div className="p-8 bg-emerald-950/80 border-2 border-emerald-400 rounded-3xl text-center space-y-5 animate-scaleUp">
             <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
               <CheckCircle2 className="w-10 h-10 animate-bounce" />
             </div>
@@ -84,8 +84,17 @@ export default function TerminalSetupModal({ isOpen, onSelectEnvironment, onClos
               </p>
             </div>
             <p className="text-xs text-slate-300">
-              Pronto! Agora é só levar este aparelho e deixá-lo na bancada correspondente para operar.
+              Pronto! Este aparelho está configurado para operar nesta bancada.
             </p>
+
+            <button
+              type="button"
+              onClick={() => onSelectEnvironment(selectedEnv)}
+              className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm sm:text-base rounded-2xl shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2 mx-auto active:scale-95"
+            >
+              <span>Acessar Painel Agora</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
           </div>
         ) : (
           /* LISTA DE AMBIENTES DISPONÍVEIS */

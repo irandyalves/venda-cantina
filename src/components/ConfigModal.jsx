@@ -64,7 +64,11 @@ import {
   LayoutGrid,
   Lock,
   Unlock,
-  MapPin
+  MapPin,
+  Activity,
+  BarChart3,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import { storageService, formatPrice, BACKGROUND_PRESETS, getSectionBackgroundStyle, resolveSpacingPx, resolveHeightPx } from '../services/storage';
 import { authService, PERFIS } from '../services/auth';
@@ -211,7 +215,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   };
 
   // Estado Firebase Config
-  const [firebaseConfig, setFirebaseConfig] = useState({
+  const [firebaseConfig, setFirebaseConfig] = useState(() => storageService.getFirebaseConfig() || {
     apiKey: '',
     authDomain: '',
     projectId: '',
@@ -221,6 +225,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
   });
   const [firebaseStatus, setFirebaseStatus] = useState(null);
   const [isCloudDbEnabled, setIsCloudDbEnabled] = useState(() => storageService.isFirebaseEnabled());
+  const [firestoreMetrics, setFirestoreMetrics] = useState(() => storageService.getFirestoreMetrics());
+  const [isTestingFirestore, setIsTestingFirestore] = useState(false);
+  const [firestoreTestResult, setFirestoreTestResult] = useState(null);
 
   // Estado Conexão de Dispositivos por QR Code
   const [qrTargetEnv, setQrTargetEnv] = useState('ask');
@@ -476,6 +483,9 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     const handleScreensLockChange = (e) => {
       setScreensLocked(!!e.detail);
     };
+    const handleMetricsChange = (e) => {
+      setFirestoreMetrics(e.detail || storageService.getFirestoreMetrics());
+    };
 
     window.addEventListener('cantina_environments_changed', handleEnvsChange);
     window.addEventListener('cantina_production_routing_changed', handleRoutingChange);
@@ -487,6 +497,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     window.addEventListener('cantina_background_settings_changed', handleBgChange);
     window.addEventListener('cantina_system_settings_changed', handleSystemChange);
     window.addEventListener('cantina_screens_locked_changed', handleScreensLockChange);
+    window.addEventListener('cantina_firestore_metrics_changed', handleMetricsChange);
 
     return () => {
       unsubOrders();
@@ -500,6 +511,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       window.removeEventListener('cantina_background_settings_changed', handleBgChange);
       window.removeEventListener('cantina_system_settings_changed', handleSystemChange);
       window.removeEventListener('cantina_screens_locked_changed', handleScreensLockChange);
+      window.removeEventListener('cantina_firestore_metrics_changed', handleMetricsChange);
     };
   }, []);
 
@@ -1763,6 +1775,35 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       setFirebaseStatus({ success: false, message: 'Banco em nuvem DESLIGADO. Operando 100% em modo local com zero consumo de leituras e gravações.' });
       showToast('Banco em nuvem desligado. Operando 100% local!', 'Modo Local / Economia', 'warning');
     }
+  };
+
+  const handleTestFirestore = async () => {
+    setIsTestingFirestore(true);
+    setFirestoreTestResult(null);
+    try {
+      const res = await storageService.testFirestoreConnection();
+      setFirestoreTestResult(res);
+      setFirestoreMetrics(storageService.getFirestoreMetrics());
+      if (res.success) {
+        showToast(`Conexão OK! Latência: ${res.latencyMs}ms. Cota ativa.`, 'Firebase Testado');
+      } else if (res.isBlocked) {
+        showToast(res.message, 'Cota Excedida', 'error');
+      } else {
+        showToast(res.message, 'Atenção', 'warning');
+      }
+    } catch (err) {
+      setFirestoreTestResult({ success: false, message: err.message, isBlocked: false });
+      showToast('Falha no teste: ' + err.message, 'Erro', 'error');
+    } finally {
+      setIsTestingFirestore(false);
+    }
+  };
+
+  const handleResetFirestoreMetrics = () => {
+    const clean = storageService.resetFirestoreMetrics();
+    setFirestoreMetrics(clean);
+    setFirestoreTestResult(null);
+    showToast('Contador de uso de hoje zerado com sucesso!', 'Contador Reiniciado');
   };
 
   const handleSaveFirebase = (e) => {
@@ -3379,6 +3420,225 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <div className="pt-3 border-t border-slate-800 text-xs text-slate-400 leading-relaxed bg-slate-950/50 p-3 rounded-xl border border-slate-800/80">
                   <span className="text-amber-300 font-bold">💡 Por que desligar o banco? </span>
                   O Google Firebase oferece uma cota gratuita diária de aproximadamente <strong>50.000 leituras</strong> e <strong>20.000 gravações</strong>. Desligar o banco é ideal para realizar testes, simular pedidos e treinar novos operadores sem gastar essa cota e sem risco de travamento por limite excedido.
+                </div>
+              </div>
+
+              {/* =========================================================
+                  PAINEL DE CONSUMO & COTA DO FIREBASE (LEITURAS E GRAVAÇÕES)
+                 ========================================================= */}
+              <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 p-6 rounded-2xl border-2 border-sky-500/40 shadow-2xl space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-sky-500/20 text-sky-400 rounded-xl border border-sky-500/40 shadow-[0_0_15px_rgba(14,165,233,0.3)]">
+                      <BarChart3 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-white text-base sm:text-lg flex items-center gap-2">
+                        <span>Contador de Uso & Cota Firebase</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold font-mono border ${
+                          firestoreMetrics.isBlocked
+                            ? 'bg-rose-950 text-rose-300 border-rose-500/60 animate-pulse'
+                            : 'bg-sky-950 text-sky-300 border-sky-500/50'
+                        }`}>
+                          {firestoreMetrics.isBlocked ? 'COTA BLOQUEADA' : 'COTA DIÁRIA'}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-300">
+                        Acompanhe em tempo real o total de leituras e gravações consumidas hoje pelo sistema.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleTestFirestore}
+                      disabled={isTestingFirestore}
+                      className="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
+                      title="Testar resposta e cota atual do Firebase"
+                    >
+                      <Zap className={`w-4 h-4 ${isTestingFirestore ? 'animate-spin' : 'text-amber-400'}`} />
+                      <span>{isTestingFirestore ? 'Testando...' : 'Testar Conexão e Cota'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleResetFirestoreMetrics}
+                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                      title="Zerar contadores de hoje"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Zerar</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ALERTA DE COTA SE EXCEDIDA OU PRÓXIMA DO LIMITE */}
+                {firestoreMetrics.isBlocked && (
+                  <div className="p-4 rounded-xl bg-rose-950/80 border-2 border-rose-500 text-rose-200 text-xs space-y-1.5 animate-fadeIn">
+                    <div className="flex items-center gap-2 font-black text-rose-300 text-sm">
+                      <AlertTriangle className="w-5 h-5 text-rose-400 animate-bounce" />
+                      <span>ALERTA CRÍTICO: LIMITE DA COTA DO FIREBASE EXCEDIDO!</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      O Firebase bloqueou temporariamente novas operações com o erro <strong>RESOURCE_EXHAUSTED</strong>.
+                      Para não interromper suas vendas, clique no botão grande <strong>BANCO DESLIGADO</strong> acima. As vendas e fechamentos continuarão funcionando 100% de forma local sem perda de dados!
+                    </p>
+                  </div>
+                )}
+
+                {/* FEEDBACK DO TESTE MANUAL */}
+                {firestoreTestResult && (
+                  <div className={`p-3.5 rounded-xl border text-xs flex items-center gap-3 animate-fadeIn ${
+                    firestoreTestResult.success
+                      ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300'
+                      : firestoreTestResult.isBlocked
+                        ? 'bg-rose-950/70 border-rose-500/50 text-rose-300'
+                        : 'bg-amber-950/70 border-amber-500/50 text-amber-300'
+                  }`}>
+                    {firestoreTestResult.success ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                    )}
+                    <div className="flex-1">
+                      <div className="font-bold">{firestoreTestResult.message}</div>
+                      {firestoreTestResult.latencyMs > 0 && (
+                        <div className="text-[11px] opacity-80 mt-0.5">Tempo de ida e volta (ping): {firestoreTestResult.latencyMs} ms</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* CARDS DE ESTATÍSTICA (LEITURAS, GRAVAÇÕES E LATÊNCIA) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  {/* CARD 1: LEITURAS */}
+                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
+                      <span className="flex items-center gap-1.5 text-sky-400">
+                        <Activity className="w-4 h-4" />
+                        <span>Leituras Hoje</span>
+                      </span>
+                      <span className="font-mono text-white text-xs">
+                        {Math.min(100, Math.round((firestoreMetrics.readsToday / 50000) * 100))}%
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl sm:text-3xl font-black text-white font-mono">
+                        {firestoreMetrics.readsToday.toLocaleString('pt-BR')}
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        / 50.000
+                      </span>
+                    </div>
+
+                    {/* Barra de progresso */}
+                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          (firestoreMetrics.readsToday / 50000) > 0.85
+                            ? 'bg-rose-500'
+                            : (firestoreMetrics.readsToday / 50000) > 0.6
+                              ? 'bg-amber-400'
+                              : 'bg-sky-400'
+                        }`}
+                        style={{ width: `${Math.min(100, (firestoreMetrics.readsToday / 50000) * 100)}%` }}
+                      />
+                    </div>
+
+                    <div className="text-[10px] text-slate-400 flex items-center justify-between pt-0.5">
+                      <span>Cota diária gratuita</span>
+                      <span className="text-emerald-400 font-bold">
+                        {Math.max(0, 50000 - firestoreMetrics.readsToday).toLocaleString('pt-BR')} restantes
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* CARD 2: GRAVAÇÕES */}
+                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
+                      <span className="flex items-center gap-1.5 text-amber-400">
+                        <Database className="w-4 h-4" />
+                        <span>Gravações Hoje</span>
+                      </span>
+                      <span className="font-mono text-white text-xs">
+                        {Math.min(100, Math.round((firestoreMetrics.writesToday / 20000) * 100))}%
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl sm:text-3xl font-black text-white font-mono">
+                        {firestoreMetrics.writesToday.toLocaleString('pt-BR')}
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        / 20.000
+                      </span>
+                    </div>
+
+                    {/* Barra de progresso */}
+                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          (firestoreMetrics.writesToday / 20000) > 0.85
+                            ? 'bg-rose-500'
+                            : (firestoreMetrics.writesToday / 20000) > 0.6
+                              ? 'bg-amber-400'
+                              : 'bg-emerald-400'
+                        }`}
+                        style={{ width: `${Math.min(100, (firestoreMetrics.writesToday / 20000) * 100)}%` }}
+                      />
+                    </div>
+
+                    <div className="text-[10px] text-slate-400 flex items-center justify-between pt-0.5">
+                      <span>Cota diária gratuita</span>
+                      <span className="text-emerald-400 font-bold">
+                        {Math.max(0, 20000 - firestoreMetrics.writesToday).toLocaleString('pt-BR')} restantes
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* CARD 3: LATÊNCIA & STATUS */}
+                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-3 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
+                      <span className="flex items-center gap-1.5 text-emerald-400">
+                        <Zap className="w-4 h-4" />
+                        <span>Latência Nuvem</span>
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                        !isCloudDbEnabled
+                          ? 'bg-amber-950 text-amber-300'
+                          : firestoreMetrics.isBlocked
+                            ? 'bg-rose-950 text-rose-300'
+                            : 'bg-emerald-950 text-emerald-300'
+                      }`}>
+                        {!isCloudDbEnabled ? 'Desligado' : firestoreMetrics.isBlocked ? 'Bloqueado' : 'Online'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                        {firestoreMetrics.lastLatencyMs !== null 
+                          ? `${firestoreMetrics.lastLatencyMs} ms` 
+                          : isCloudDbEnabled ? 'Ativa' : 'Offline'}
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {firestoreMetrics.lastLatencyMs !== null
+                          ? (firestoreMetrics.lastLatencyMs < 200 ? '⚡ Resposta Ultra-Rápida' : firestoreMetrics.lastLatencyMs < 600 ? '✓ Resposta Normal' : '⚠️ Latência Moderada')
+                          : isCloudDbEnabled ? 'Clique em Testar Conexão' : 'Operando em modo local'}
+                      </p>
+                    </div>
+
+                    <div className="text-[10px] text-slate-400 border-t border-slate-800/80 pt-2 flex items-center justify-between">
+                      <span>Google Firestore</span>
+                      <span className="text-sky-300 font-mono">us-central1</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-400 bg-slate-950/50 p-3 rounded-xl border border-slate-800 flex items-center gap-2">
+                  <span className="text-sky-300 font-bold">ℹ️ Informação:</span>
+                  <span>Os contadores de leituras e gravações ajudam você a controlar a cota gratuita do Firebase e operar sem custos nem travamentos.</span>
                 </div>
               </div>
 

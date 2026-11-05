@@ -34,6 +34,7 @@ const DOC_SYSTEM = 'sistema';
 const DOC_TIME_LIMITS = 'tempos_pedidos';
 const LOCAL_SCREENS_LOCKED_KEY = 'cantina_screens_locked';
 const FIREBASE_ENABLED_KEY = 'cantina_firebase_enabled';
+const LOCAL_FIRESTORE_METRICS_KEY = 'cantina_firestore_metrics';
 
 // Configuração padrão lida a partir das variáveis de ambiente (.env)
 export const DEFAULT_FIREBASE_CONFIG = {
@@ -184,6 +185,156 @@ class StorageService {
     }
   }
 
+  // --- CONTADOR E MONITORAMENTO DE USO DO FIREBASE (LEITURAS E GRAVAÇÕES) ---
+  getTodayDateString() {
+    try {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    } catch (_) {
+      return '2026-11-05';
+    }
+  }
+
+  getFirestoreMetrics() {
+    const today = this.getTodayDateString();
+    try {
+      const saved = localStorage.getItem(LOCAL_FIRESTORE_METRICS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.date === today) {
+          return {
+            date: today,
+            readsToday: Number(parsed.readsToday) || 0,
+            writesToday: Number(parsed.writesToday) || 0,
+            maxReads: 50000,
+            maxWrites: 20000,
+            lastLatencyMs: parsed.lastLatencyMs !== undefined ? parsed.lastLatencyMs : null,
+            isBlocked: !!parsed.isBlocked,
+            blockReason: parsed.blockReason || null,
+            lastTestTimestamp: parsed.lastTestTimestamp || null
+          };
+        }
+      }
+    } catch (_) {}
+
+    return {
+      date: today,
+      readsToday: 0,
+      writesToday: 0,
+      maxReads: 50000,
+      maxWrites: 20000,
+      lastLatencyMs: null,
+      isBlocked: false,
+      blockReason: null,
+      lastTestTimestamp: null
+    };
+  }
+
+  saveFirestoreMetrics(metrics) {
+    try {
+      localStorage.setItem(LOCAL_FIRESTORE_METRICS_KEY, JSON.stringify(metrics));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cantina_firestore_metrics_changed', { detail: metrics }));
+      }
+    } catch (_) {}
+  }
+
+  incrementCloudReads(count = 1) {
+    if (count <= 0) return;
+    const metrics = this.getFirestoreMetrics();
+    metrics.readsToday += count;
+    this.saveFirestoreMetrics(metrics);
+  }
+
+  incrementCloudWrites(count = 1) {
+    if (count <= 0) return;
+    const metrics = this.getFirestoreMetrics();
+    metrics.writesToday += count;
+    this.saveFirestoreMetrics(metrics);
+  }
+
+  handleCloudError(err) {
+    if (!err) return;
+    const errStr = String(err?.message || err?.code || err || '').toLowerCase();
+    const isQuota = (
+      errStr.includes('resource-exhausted') || 
+      errStr.includes('quota') || 
+      errStr.includes('limit') || 
+      errStr.includes('too many') ||
+      err?.code === 'resource-exhausted'
+    );
+
+    if (isQuota) {
+      console.error('🚨 [Firebase Alerta Crítico] Limite de cota do Firestore atingido!', err);
+      const metrics = this.getFirestoreMetrics();
+      metrics.isBlocked = true;
+      metrics.blockReason = 'Cota diária do Firebase atingida (RESOURCE_EXHAUSTED). Desligue o banco para operar localmente.';
+      this.saveFirestoreMetrics(metrics);
+    }
+  }
+
+  resetFirestoreMetrics() {
+    const today = this.getTodayDateString();
+    const clean = {
+      date: today,
+      readsToday: 0,
+      writesToday: 0,
+      maxReads: 50000,
+      maxWrites: 20000,
+      lastLatencyMs: null,
+      isBlocked: false,
+      blockReason: null,
+      lastTestTimestamp: Date.now()
+    };
+    this.saveFirestoreMetrics(clean);
+    return clean;
+  }
+
+  async testFirestoreConnection() {
+    if (!this.isFirebaseReady || !this.db || !this.isFirebaseEnabled()) {
+      return {
+        success: false,
+        latencyMs: 0,
+        isBlocked: false,
+        message: 'Banco em nuvem está DESLIGADO ou não inicializado. Ative-o para testar.'
+      };
+    }
+
+    const startTime = performance.now();
+    try {
+      const pingDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
+      await getDoc(pingDocRef);
+      const latencyMs = Math.round(performance.now() - startTime);
+
+      this.incrementCloudReads(1);
+      const metrics = this.getFirestoreMetrics();
+      metrics.lastLatencyMs = latencyMs;
+      metrics.isBlocked = false;
+      metrics.blockReason = null;
+      metrics.lastTestTimestamp = Date.now();
+      this.saveFirestoreMetrics(metrics);
+
+      return {
+        success: true,
+        latencyMs,
+        isBlocked: false,
+        message: `Conexão excelente com Firebase! Resposta em ${latencyMs}ms. Cota diária livre.`
+      };
+    } catch (err) {
+      const latencyMs = Math.round(performance.now() - startTime);
+      this.handleCloudError(err);
+      const metrics = this.getFirestoreMetrics();
+      return {
+        success: false,
+        latencyMs,
+        isBlocked: metrics.isBlocked,
+        message: metrics.isBlocked 
+          ? 'ALERTA: Cota diária do Firebase atingida (RESOURCE_EXHAUSTED). Desligue o banco para operar localmente sem travar!' 
+          : `Erro de conexão: ${err.message || 'Falha de rede'}`
+      };
+    }
+  }
+
   stopFirestoreListeners() {
     if (this.unsubscribeFirestore) {
       try { this.unsubscribeFirestore(); } catch (_) {}
@@ -271,6 +422,9 @@ class StorageService {
       // 1. Listener de pedidos e configurações em tempo real
       const colRef = collection(this.db, COLLECTION_ORDERS);
       this.unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
+        const changesCount = snapshot.docChanges ? snapshot.docChanges().length : 0;
+        this.incrementCloudReads(changesCount > 0 ? changesCount : (snapshot.size || 1));
+
         const list = [];
         snapshot.forEach((docSnap) => {
           const docId = docSnap.id;
@@ -284,6 +438,7 @@ class StorageService {
         console.log(`📡 [Firestore Realtime] ${list.length} pedidos recebidos via WebSocket da nuvem`);
         this.notifyOrderSubscribers(list);
       }, (error) => {
+        this.handleCloudError(error);
         console.error('⚠️ [Firestore Realtime] Erro no onSnapshot, agendando reconexão:', error);
         if (!this.isReconnecting) {
           this.isReconnecting = true;
@@ -297,6 +452,7 @@ class StorageService {
       // 2. Listener dedicado de Ambientes em tempo real na nuvem (coleção cantina_configuracoes)
       const envsDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
       this.unsubscribeEnvironments = onSnapshot(envsDocRef, (docSnap) => {
+        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (Array.isArray(data?.environments) && data.environments.length > 0) {
@@ -305,12 +461,14 @@ class StorageService {
           }
         }
       }, (err) => {
+        this.handleCloudError(err);
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar ambientes:', err);
       });
 
       // 3. Listener de Roteamento de Produção em tempo real na nuvem
       const routingDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
       this.unsubscribeRouting = onSnapshot(routingDocRef, (docSnap) => {
+        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.routing) {
@@ -319,12 +477,15 @@ class StorageService {
           }
         }
       }, (err) => {
+        this.handleCloudError(err);
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar roteamento:', err);
       });
 
       // 4. Listener de Histórico de Turnos em tempo real na nuvem (coleção cantina_historico_turnos)
       const historyColRef = collection(this.db, COLLECTION_HISTORY);
       this.unsubscribeHistory = onSnapshot(historyColRef, (snapshot) => {
+        const changesCount = snapshot.docChanges ? snapshot.docChanges().length : 0;
+        this.incrementCloudReads(changesCount > 0 ? changesCount : 1);
         const historyList = [];
         snapshot.forEach((docSnap) => {
           historyList.push({ ...docSnap.data(), id: docSnap.id });
@@ -334,12 +495,14 @@ class StorageService {
         localStorage.setItem(LOCAL_TURNO_HISTORY_KEY, JSON.stringify(historyList));
         window.dispatchEvent(new CustomEvent('cantina_turno_history_changed', { detail: historyList }));
       }, (err) => {
+        this.handleCloudError(err);
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar histórico de turnos:', err);
       });
 
       // 5. Listener de Produtos e Cardápio em tempo real na nuvem
       const productsDocRef = doc(this.db, COLLECTION_SETTINGS, 'produtos');
       this.unsubscribeProducts = onSnapshot(productsDocRef, (docSnap) => {
+        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (Array.isArray(data?.categories) && data.categories.length > 0) {
@@ -348,12 +511,14 @@ class StorageService {
           }
         }
       }, (err) => {
+        this.handleCloudError(err);
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar produtos:', err);
       });
 
       // 6. Listener de Eventos em tempo real na nuvem
       const eventsDocRef = doc(this.db, COLLECTION_SETTINGS, 'eventos');
       this.unsubscribeEvents = onSnapshot(eventsDocRef, (docSnap) => {
+        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.currentEvent) {
@@ -366,12 +531,14 @@ class StorageService {
           }
         }
       }, (err) => {
+        this.handleCloudError(err);
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar eventos:', err);
       });
 
       // 7. Listener de Trava de Telas (Segurança Monitores/Tablets) em tempo real na nuvem
       const securityDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_SECURITY);
       this.unsubscribeSecurity = onSnapshot(securityDocRef, (docSnap) => {
+        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           const locked = !!data?.screensLocked;
@@ -379,12 +546,14 @@ class StorageService {
           this.setLocalScreensLocked(locked, false);
         }
       }, (err) => {
+        this.handleCloudError(err);
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar segurança:', err);
       });
 
       // 8. Listener de Configurações Gerais do Sistema (Altura/Espaço dos Cards, Efeitos, Sons, Tempos) em tempo real na nuvem
       const systemDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_SYSTEM);
       this.unsubscribeSystem = onSnapshot(systemDocRef, (docSnap) => {
+        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.settings) {
@@ -393,12 +562,14 @@ class StorageService {
           }
         }
       }, (err) => {
+        this.handleCloudError(err);
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar configurações do sistema:', err);
       });
 
       // 9. Listener de Limites de Tempo de Pedidos (Cozinha) em tempo real na nuvem
       const timeLimitsDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_TIME_LIMITS);
       this.unsubscribeTimeLimits = onSnapshot(timeLimitsDocRef, (docSnap) => {
+        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.limits) {
@@ -407,6 +578,7 @@ class StorageService {
           }
         }
       }, (err) => {
+        this.handleCloudError(err);
         console.warn('⚠️ [Firestore Realtime] Aviso ao escutar limites de tempo de pedidos:', err);
       });
     } catch (err) {
@@ -539,9 +711,8 @@ class StorageService {
         syncChannel.postMessage({ type: 'ENVIRONMENTS_UPDATED', payload: fullList });
       }
 
-      if (hadChanges || missingSystemDefaults.length > 0) {
-        this.saveEnvironmentsCloud(fullList);
-      }
+      // CRÍTICO: Não chamar this.saveEnvironmentsCloud(fullList) aqui!
+      // Chamar saveEnvironmentsCloud dentro de um snapshot gera loop infinito de escrita no Firestore.
     } catch (e) {
       console.error('Erro ao processar ambientes da nuvem:', e);
     }
@@ -563,8 +734,10 @@ class StorageService {
         updatedAt: serverTimestamp()
       };
       await setDoc(settingsDocRef, payload);
+      this.incrementCloudWrites(1);
       console.log('☁️ Ambientes salvos no Firestore na nuvem com sucesso:', environments.length);
     } catch (err) {
+      this.handleCloudError(err);
       console.error('⚠️ Erro ao salvar ambientes no Firestore:', err);
     }
   }
@@ -592,8 +765,10 @@ class StorageService {
         routing,
         updatedAt: serverTimestamp()
       }, { merge: true });
+      this.incrementCloudWrites(1);
       console.log('☁️ Roteamento salvo no Firestore na nuvem com sucesso');
     } catch (err) {
+      this.handleCloudError(err);
       console.error('⚠️ Erro ao salvar roteamento no Firestore:', err);
     }
   }
@@ -1455,8 +1630,10 @@ class StorageService {
           ...order,
           firebaseCreatedAt: serverTimestamp()
         });
+        this.incrementCloudWrites(1);
         console.log('✅ Pedido gravado no Firestore em tempo real:', orderId);
       } catch (err) {
+        this.handleCloudError(err);
         console.error('⚠️ Falha ao salvar no Firestore:', err);
       }
     }
@@ -1493,8 +1670,10 @@ class StorageService {
           status: newStatus,
           updatedAt: serverTimestamp()
         }, { merge: true });
+        this.incrementCloudWrites(1);
         console.log('✅ Status atualizado no Firestore para:', newStatus, targetDocId);
       } catch (err) {
+        this.handleCloudError(err);
         console.error('⚠️ Erro ao atualizar status no Firestore:', err);
       }
     }
@@ -1538,8 +1717,10 @@ class StorageService {
           bellRungAt: timestamp,
           updatedAt: serverTimestamp()
         }, { merge: true });
+        this.incrementCloudWrites(1);
         console.log('🔔 Sino acionado no Firestore para pedido:', targetDocId);
       } catch (err) {
+        this.handleCloudError(err);
         console.error('⚠️ Erro ao registrar sino no Firestore:', err);
       }
     }

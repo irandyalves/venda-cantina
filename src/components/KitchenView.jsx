@@ -104,13 +104,29 @@ export default function KitchenView({ environment, onNavigate }) {
 
   // Helper para verificar se um item individual pertence a esta cozinha/ambiente
   const isItemForThisKitchen = (it) => {
-    const currentEnvId = environment?.id || 'COZINHA';
+    const currentEnvId = String(environment?.id || 'COZINHA').trim();
+    const currentEnvName = String(environment?.name || '').trim();
+    const currentEnvShort = String(environment?.shortName || '').trim();
     const envUpper = currentEnvId.toUpperCase();
+    const envNameUpper = currentEnvName.toUpperCase();
+
+    // Helper de correspondência flexível (case-insensitive com ID, nome ou shortName)
+    const matchesCurrent = (target) => {
+      if (!target || target === 'none') return false;
+      const t = String(target).trim().toLowerCase();
+      return (
+        t === currentEnvId.toLowerCase() ||
+        t === currentEnvName.toLowerCase() ||
+        t === currentEnvShort.toLowerCase() ||
+        (currentEnvId === 'COZINHA' && (t === 'cozinha' || t === 'cozinha 1' || t === 'cozinha pizza' || t === 'cozinha_pizza')) ||
+        (currentEnvId === 'COZINHA_2' && (t === 'cozinha 2' || t === 'cozinha_2' || t === 'cozinha pastel' || t === 'cozinha_pastel'))
+      );
+    };
 
     // 1. Destino explícito no item
     if (it.targetEnvironment) {
       if (it.targetEnvironment === 'none') return false;
-      return it.targetEnvironment === currentEnvId;
+      return matchesCurrent(it.targetEnvironment);
     }
 
     // 2. Destino no productionRouting por id específico do item ou variação
@@ -118,13 +134,13 @@ export default function KitchenView({ environment, onNavigate }) {
     if (specificId && productionRouting?.destinationEnv?.[specificId]) {
       const dest = productionRouting.destinationEnv[specificId];
       if (dest === 'none') return false;
-      return dest === currentEnvId;
+      return matchesCurrent(dest);
     }
     const varId = it.variationId;
     if (varId && productionRouting?.destinationEnv?.[varId]) {
       const dest = productionRouting.destinationEnv[varId];
       if (dest === 'none') return false;
-      return dest === currentEnvId;
+      return matchesCurrent(dest);
     }
 
     // 3. Destino no productionRouting por categoria
@@ -132,7 +148,7 @@ export default function KitchenView({ environment, onNavigate }) {
     if (cat && productionRouting?.destinationEnv?.[cat]) {
       const dest = productionRouting.destinationEnv[cat];
       if (dest === 'none') return false;
-      return dest === currentEnvId;
+      return matchesCurrent(dest);
     }
 
     // 4. Verificação por sendToKitchen
@@ -140,14 +156,25 @@ export default function KitchenView({ environment, onNavigate }) {
 
     // 5. Mapeamento padrão por palavras-chave de categoria e ambiente
     const desc = String(it.description || it.name || it.itemName || '').toLowerCase();
-    if (envUpper.includes('ACAI') || envUpper.includes('AÇAÍ')) {
+    
+    // Se o ambiente for Pizza ou Cozinha 1
+    if (envUpper.includes('PIZZA') || envNameUpper.includes('PIZZA') || currentEnvId === 'COZINHA') {
+      return cat.includes('pizza') || desc.includes('pizza') || desc.includes('fatia') || desc.includes('inteira') || desc.includes('margueritta') || desc.includes('calabresa');
+    }
+
+    // Se o ambiente for Pastel ou Cozinha 2
+    if (envUpper.includes('PASTEL') || envNameUpper.includes('PASTEL') || currentEnvId === 'COZINHA_2') {
+      return cat.includes('pastel') || desc.includes('pastel') || desc.includes('queijo') || desc.includes('carne') || desc.includes('frango');
+    }
+
+    // Se o ambiente for Açaí
+    if (envUpper.includes('ACAI') || envUpper.includes('AÇAÍ') || envNameUpper.includes('ACAI') || envNameUpper.includes('AÇAÍ')) {
       return cat.includes('acai') || cat.includes('açaí') || desc.includes('açaí') || desc.includes('acai') || desc.includes('copo') || desc.includes('tigela');
     }
-    if (envUpper.includes('BATATA')) {
+
+    // Se o ambiente for Batata
+    if (envUpper.includes('BATATA') || envNameUpper.includes('BATATA')) {
       return cat.includes('batata') || desc.includes('batata') || desc.includes('cone') || desc.includes('cheddar');
-    }
-    if (envUpper.includes('PIZZA') || currentEnvId === 'COZINHA') {
-      return cat.includes('pizza') || desc.includes('pizza') || desc.includes('fatia') || desc.includes('inteira') || desc.includes('margueritta') || desc.includes('calabresa');
     }
 
     return cat.includes(currentEnvId.toLowerCase()) || desc.includes(currentEnvId.toLowerCase());
@@ -157,6 +184,27 @@ export default function KitchenView({ environment, onNavigate }) {
   const isOrderForKitchen = (order) => {
     if (order.sendToKitchen === false) {
       return false;
+    }
+
+    const currentEnvId = String(environment?.id || 'COZINHA').trim();
+    const currentEnvName = String(environment?.name || '').trim();
+    const currentEnvShort = String(environment?.shortName || '').trim();
+
+    const matchesCurrent = (target) => {
+      if (!target || target === 'none') return false;
+      const t = String(target).trim().toLowerCase();
+      return (
+        t === currentEnvId.toLowerCase() ||
+        t === currentEnvName.toLowerCase() ||
+        t === currentEnvShort.toLowerCase() ||
+        (currentEnvId === 'COZINHA' && (t === 'cozinha' || t === 'cozinha 1' || t === 'cozinha pizza' || t === 'cozinha_pizza')) ||
+        (currentEnvId === 'COZINHA_2' && (t === 'cozinha 2' || t === 'cozinha_2' || t === 'cozinha pastel' || t === 'cozinha_pastel'))
+      );
+    };
+
+    // Se o pedido no nível principal já veio direcionado para esta cozinha
+    if (order.targetEnvironment && matchesCurrent(order.targetEnvironment)) {
+      return true;
     }
 
     const items = getOrderItems(order);
@@ -210,7 +258,7 @@ export default function KitchenView({ environment, onNavigate }) {
       unsubscribeStatus();
       if (newestTimerRef.current) clearTimeout(newestTimerRef.current);
     };
-  }, [soundEnabled, productionRouting]);
+  }, [soundEnabled, productionRouting, environment]);
 
   // Normalização de itens para exibição no card
   const getOrderItems = (order) => {
