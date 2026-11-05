@@ -89,10 +89,10 @@ export default function AutoToast({ toast, onClose, duration = 2000 }) {
             </div>
 
             {/* Título Principal no centro da Bola */}
-            <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest ${
+            <span className={`text-[10px] sm:text-xs font-black tracking-widest ${
               isSuccess ? 'text-emerald-400' : isError ? 'text-rose-400' : 'text-amber-400'
             }`}>
-              {isSuccess ? 'PEDIDO ENVIADO!' : (toast.title || 'ATENÇÃO')}
+              {isSuccess ? 'Pedido Enviado!' : (toast.title || 'Atenção')}
             </span>
 
             {/* Número da Comanda / Senha com destaque */}
@@ -104,7 +104,7 @@ export default function AutoToast({ toast, onClose, duration = 2000 }) {
 
             {/* Nome do Cliente */}
             {toast.customerName && (
-              <span className="text-[10px] sm:text-[11px] font-bold text-slate-200 uppercase truncate max-w-[130px] sm:max-w-[160px]">
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-200 truncate max-w-[130px] sm:max-w-[160px]">
                 {toast.customerName}
               </span>
             )}

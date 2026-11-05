@@ -1371,7 +1371,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <span className="text-slate-600 font-bold select-none text-[10px] shrink-0">|</span>
 
           {/* NOME DO CLIENTE: 10% menor, sempre BOLD */}
-          <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wider truncate max-w-[120px]" title={order.customerName}>
+          <span className="text-[11px] font-bold text-slate-100 tracking-wider truncate max-w-[120px]" title={order.customerName}>
             {order.customerName}
           </span>
 
@@ -1379,9 +1379,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           <div 
             onMouseEnter={(e) => handleCardMouseEnter(e, order)}
             onMouseLeave={handleCardMouseLeave}
-            className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider bg-black text-white border border-slate-700 shadow-xs shrink-0 select-none hover:border-amber-400 cursor-pointer transition-all"
+            className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8px] font-black tracking-wider bg-black text-white border border-slate-700 shadow-xs shrink-0 select-none hover:border-amber-400 cursor-pointer transition-all"
           >
-            <span>PEDIDOS</span>
+            <span>Pedidos</span>
             <span className="bg-slate-800 text-amber-400 px-1 py-0.2 rounded font-mono text-[8px]">
               {items.reduce((acc, it) => acc + (it.quantity || 1), 0)}
             </span>
@@ -1594,7 +1594,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     }
                   }
                 }}
-                className={`w-full h-12 text-white text-xs sm:text-sm font-black uppercase ${
+                className={`w-full h-12 text-white text-xs sm:text-sm font-black ${
                   !isNameFocused && !customerName ? 'pl-9' : 'pl-3'
                 } pr-8 rounded-r-xl rounded-l-none outline-none transition-all placeholder:font-bold placeholder:text-[11px] sm:placeholder:text-xs focus:placeholder:text-transparent border-0 relative z-0 ${
                   showNameError
@@ -1641,9 +1641,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             <div className="flex items-center gap-1.5 shrink-0">
               {[
                 { id: 'PIX', label: 'PIX', icon: PixIcon },
-                { id: 'DEBITO', label: 'DÉBITO', icon: DebitCardIcon },
-                { id: 'CREDITO', label: 'CRÉDITO', icon: CreditCardIcon },
-                { id: 'DINHEIRO', label: 'DINHEIRO', icon: CashIcon },
+                { id: 'DEBITO', label: 'Débito', icon: DebitCardIcon },
+                { id: 'CREDITO', label: 'Crédito', icon: CreditCardIcon },
+                { id: 'DINHEIRO', label: 'Dinheiro', icon: CashIcon },
               ].map((pm) => {
                 const isSelected = paymentMethod === pm.id;
                 const IconComp = pm.icon;
@@ -1652,7 +1652,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     key={pm.id}
                     type="button"
                     onClick={() => setPaymentMethod(pm.id)}
-                    className={`h-12 px-2.5 sm:px-3 rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 border-2 ${
+                    className={`h-12 px-2.5 sm:px-3 rounded-xl font-black text-[11px] sm:text-xs tracking-wider transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 border-2 ${
                       isSelected
                         ? 'bg-[#06090e] text-emerald-300 border-emerald-400 animate-soft-green-pulse shadow-[0_0_12px_rgba(16,185,129,0.35)]'
                         : 'bg-slate-950/80 hover:bg-slate-900 text-slate-400 hover:text-white border-slate-800 hover:border-slate-700'
@@ -1673,7 +1673,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               type="button"
               onClick={handleFinalizeCart}
               disabled={isSubmittingCart || cart.length === 0}
-              className={`h-12 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-between overflow-hidden transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
+              className={`h-12 rounded-xl font-black text-xs sm:text-sm tracking-wider flex items-center justify-between overflow-hidden transition-all shadow-xl border-2 active:scale-95 cursor-pointer ${
                 cart.length > 0
                   ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 border-emerald-300 shadow-emerald-950/80 pl-4 pr-0'
                   : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-60 px-5'
@@ -1681,7 +1681,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             >
               <div className="flex items-center gap-2 sm:gap-2.5 pr-3">
                 <Send className="w-4 h-4 fill-current" />
-                <span>FINALIZAR PEDIDOS</span>
+                <span>Finalizar Pedidos</span>
               </div>
               {cart.length > 0 && (
                 <div className="h-full flex items-center justify-center px-3.5 bg-black text-white font-mono text-sm sm:text-base font-black border-l-2 border-emerald-300/80 animate-cart-item-birth shrink-0">
@@ -1822,7 +1822,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             {/* BARRA DE NAVEGAÇÃO / FILTRO RÁPIDO POR TIPO */}
             <nav className="w-full pl-6 pr-4 min-h-[46px] py-1.5 flex items-center justify-between gap-2 flex-wrap relative">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1 py-2">
+                <span className="text-[11px] font-black text-slate-400 tracking-wider flex items-center gap-1.5 mr-1 py-2">
                   <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
                   Tipo:
                 </span>
@@ -1837,7 +1837,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
                   }`}
                 >
-                  <span>TODOS</span>
+                  <span>Todos</span>
                   <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${
                     selectedTypeFilter === 'all'
                       ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
@@ -1862,7 +1862,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                           : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-850/50'
                       }`}
                     >
-                      <span className="uppercase text-[11px] font-black">
+                      <span className="text-[11px] font-black">
                         {c.name}
                       </span>
                       <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${
@@ -1939,7 +1939,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   {/* TOPO: CATEGORIA À ESQUERDA, LAPIZINHO ✏️ + X ✕ À DIREITA (+ BADGE SE ESTIVER NA COMANDA) */}
                   <div className="flex items-center justify-between gap-1.5 pb-1">
                     <span 
-                      className="text-[10px] font-black uppercase tracking-wider block font-mono truncate"
+                      className="text-[10px] font-black tracking-wider block font-mono truncate"
                       style={{ color: itemColor }}
                     >
                       {category.name}
@@ -1990,7 +1990,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
                     {/* Informações: Nome e Descrição */}
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-black text-xs sm:text-sm text-white uppercase tracking-wide truncate leading-snug" title={item.name}>
+                      <h3 className="font-black text-xs sm:text-sm text-white tracking-wide truncate leading-snug" title={item.name}>
                         {item.name}
                       </h3>
                       <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5">
@@ -2011,8 +2011,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-950/90 text-emerald-400 border-t border-b border-l-0 border-r-0 border-emerald-500/30 font-black transition-all flex items-center justify-between cursor-pointer active:scale-[0.98] card-btn-pulse"
                     title={hasMultipleOptions ? `Clique para escolher as opções de ${item.name}` : `Clique para adicionar ${item.name} à comanda`}
                   >
-                    <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-slate-300 shrink-0">
-                      CLIQUE PARA ADICIONAR!
+                    <span className="text-[8px] sm:text-[9px] font-black tracking-wider text-slate-300 shrink-0">
+                      Clique para adicionar!
                     </span>
                     <span className="font-mono font-black text-xs sm:text-sm text-emerald-400 shrink-0">
                       {formatPrice(displayPrice, showCurrencySymbol)}
@@ -2035,8 +2035,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-ping" />
-                        <span className="text-[10px] sm:text-[11px] font-black text-emerald-300 uppercase tracking-wider truncate">
-                          ESCOLHA UMA OPÇÃO:
+                        <span className="text-[10px] sm:text-[11px] font-black text-emerald-300 tracking-wider truncate">
+                          Escolha uma opção:
                         </span>
                       </div>
                       <button
@@ -2069,7 +2069,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                             }`}
                             title={`Escolher ${opt.name} por ${formatPrice(opt.price, showCurrencySymbol)}`}
                           >
-                            <span className="text-[9px] uppercase font-black tracking-wider opacity-90">
+                            <span className="text-[9px] font-black tracking-wider opacity-90">
                               {opt.name}
                             </span>
                             <span className="font-mono font-black text-sm">
@@ -2081,7 +2081,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     </div>
 
                     {/* RODAPÉ DO MODALZINHO COM O NOME DO ITEM */}
-                    <div className="text-[9px] text-slate-400 text-center uppercase tracking-wider font-bold truncate">
+                    <div className="text-[9px] text-slate-400 text-center tracking-wider font-bold truncate">
                       {item.name}
                     </div>
                   </div>
@@ -2142,9 +2142,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
         {/* LINHA DE RESUMO SUPERIOR DO RODAPÉ */}
         <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pt-1.5 pb-1 text-[11px] shrink-0">
           <div className="flex items-center gap-2">
-            <span className="font-black text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+            <span className="font-black text-slate-400 tracking-wider text-[10px] flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-amber-400" />
-              <span>FLUXO DE PEDIDOS:</span>
+              <span>Fluxo de pedidos:</span>
             </span>
             <span className="text-[10px] text-slate-500 hidden sm:inline">(Arraste a linha superior para redimensionar • Rolagem até 10+ pedidos)</span>
           </div>
@@ -2169,8 +2169,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.35)] flex items-center justify-center">
                   <Flame className="w-3.5 h-3.5 text-emerald-400 animate-spin-pulse-green-glow" />
                 </span>
-                <span className="text-[11px] font-black uppercase tracking-wider text-amber-300">
-                  EM PREPARAÇÃO
+                <span className="text-[11px] font-black tracking-wider text-amber-300">
+                  Em Preparação
                 </span>
               </div>
               <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-950/80 px-2 py-0.2 rounded border border-amber-500/30">
@@ -2197,8 +2197,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-emerald-500/25 shrink-0 pr-2">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
-                  PRONTAS (RETIRAR)
+                <span className="text-[11px] font-black tracking-wider text-emerald-300">
+                  Prontas (Retirar)
                 </span>
               </div>
               <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-950/80 px-2 py-0.2 rounded border border-emerald-500/30">
@@ -2225,8 +2225,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
             <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800 shrink-0 pr-2">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3 h-3 text-slate-400" />
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                  RETIRADAS / ENTREGUES
+                <span className="text-[11px] font-black tracking-wider text-slate-400">
+                  Retiradas / Entregues
                 </span>
               </div>
               <span className="text-[10px] font-mono font-black text-slate-400 bg-slate-950 px-2 py-0.2 rounded border border-slate-800">
@@ -2269,7 +2269,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <Plus className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
+                  <h3 className="font-black text-sm sm:text-base text-white tracking-wide">
                     Adicionar em {quickAddModal.category.name}
                   </h3>
                   <p className="text-[11px] text-slate-400">Novo sabor ou opção para venda rápida</p>
@@ -2343,13 +2343,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <button
                   type="button"
                   onClick={() => setQuickAddModal({ isOpen: false, category: null })}
-                  className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                  className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="py-2 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  className="py-2 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
                   <span>Salvar Item</span>
@@ -2378,7 +2378,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <Trash2 className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
+                  <h3 className="font-black text-sm sm:text-base text-white tracking-wide">
                     Gerenciar Exclusão em {quickDeleteModal.category.name}
                   </h3>
                   <p className="text-[11px] text-slate-400">Escolha o item a remover ou exclua a categoria</p>
@@ -2408,14 +2408,14 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <button
                     type="button"
                     onClick={() => setQuickDeleteModal(prev => ({ ...prev, itemToDelete: null }))}
-                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
                   >
                     Voltar
                   </button>
                   <button
                     type="button"
                     onClick={() => handleConfirmQuickDelete(quickDeleteModal.itemToDelete)}
-                    className="py-2 px-5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
+                    className="py-2 px-5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Confirmar Exclusão</span>
@@ -2427,7 +2427,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 {!['pizza', 'acai', 'batata'].includes(quickDeleteModal.category.id) && (
                   <div className="bg-rose-950/40 border border-rose-500/50 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-md">
                     <div className="min-w-0">
-                      <div className="font-black text-xs text-rose-300 uppercase flex items-center gap-1.5">
+                      <div className="font-black text-xs text-rose-300 flex items-center gap-1.5">
                         <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
                         <span className="truncate">Excluir Categoria {quickDeleteModal.category.name}</span>
                       </div>
@@ -2438,7 +2438,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     <button
                       type="button"
                       onClick={() => handleDeleteCategory(quickDeleteModal.category)}
-                      className="py-2 px-3.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5"
+                      className="py-2 px-3.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Excluir Categoria</span>
@@ -2447,7 +2447,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 )}
 
                 <div className="space-y-2">
-                  <div className="text-xs font-black text-slate-300 uppercase tracking-wide flex items-center justify-between">
+                  <div className="text-xs font-black text-slate-300 tracking-wide flex items-center justify-between">
                     <span>Escolha qual item quer excluir:</span>
                     {quickDeleteModal.category.items?.length > 0 && (
                       <span className="text-[10px] text-slate-400 font-normal">
@@ -2468,7 +2468,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                           className="bg-slate-950/90 hover:bg-slate-950 border border-slate-800 hover:border-rose-500/60 p-2.5 rounded-xl flex items-center justify-between gap-3 transition-all group"
                         >
                           <div className="min-w-0">
-                            <div className="text-xs font-black text-white uppercase truncate">
+                            <div className="text-xs font-black text-white truncate">
                               {it.name}
                             </div>
                             <div className="text-[11px] font-mono text-emerald-400 font-bold mt-0.5">
@@ -2480,7 +2480,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                           <button
                             type="button"
                             onClick={() => setQuickDeleteModal(prev => ({ ...prev, itemToDelete: it }))}
-                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-all shadow-md shadow-rose-950/50 cursor-pointer flex items-center gap-1.5 shrink-0"
+                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-black text-xs tracking-wider rounded-lg transition-all shadow-md shadow-rose-950/50 cursor-pointer flex items-center gap-1.5 shrink-0"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                             <span>Excluir</span>
@@ -2495,7 +2495,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <button
                     type="button"
                     onClick={() => setQuickDeleteModal({ isOpen: false, category: null, itemToDelete: null })}
-                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                    className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
                   >
                     Fechar
                   </button>
@@ -2524,10 +2524,10 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   <Pencil className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
+                  <h3 className="font-black text-sm sm:text-base text-white tracking-wide">
                     Editar Item / Preço / Ícone / Cor
                   </h3>
-                  <p className="text-[11px] text-amber-400 font-bold uppercase tracking-wider">
+                  <p className="text-[11px] text-amber-400 font-bold tracking-wider">
                     {quickEditModal.category.name}
                   </p>
                 </div>
@@ -2543,8 +2543,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
 
             <form onSubmit={handleSaveQuickEdit} className="space-y-4">
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-300 block mb-1">
-                  Nome do Item / Sabor:
+                <label className="text-xs font-bold tracking-wider text-slate-300 block mb-1">
+                  Nome do item / sabor:
                 </label>
                 <input
                   type="text"
@@ -2559,8 +2559,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               {quickEditModal.category.id === 'pizza' ? (
                 <div className="flex flex-row items-center gap-2.5 sm:gap-3 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <label className="text-xs font-black uppercase tracking-wider text-amber-400 whitespace-nowrap">
-                      FATIA (R$):
+                    <label className="text-xs font-bold tracking-wider text-amber-400 whitespace-nowrap">
+                      Fatia (R$):
                     </label>
                     <input
                       type="text"
@@ -2572,8 +2572,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   </div>
                   <div className="h-6 w-px bg-slate-800 shrink-0" />
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <label className="text-xs font-black uppercase tracking-wider text-yellow-400 whitespace-nowrap">
-                      INTEIRA (R$):
+                    <label className="text-xs font-bold tracking-wider text-yellow-400 whitespace-nowrap">
+                      Inteira (R$):
                     </label>
                     <input
                       type="text"
@@ -2586,8 +2586,8 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 </div>
               ) : (
                 <div className="flex items-center gap-2.5 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-                  <label className="text-xs font-black uppercase tracking-wider text-emerald-400 whitespace-nowrap">
-                    PREÇO (R$):
+                  <label className="text-xs font-bold tracking-wider text-emerald-400 whitespace-nowrap">
+                    Preço (R$):
                   </label>
                   <input
                     type="text"
@@ -2602,11 +2602,11 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               {/* ONDE O PEDIDO VAI (DESTINO DE PREPARO / COZINHA) */}
               <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <label className="text-xs font-bold tracking-wider text-slate-300 flex items-center gap-1.5">
                     <ChefHat className="w-4 h-4 text-amber-400" />
-                    <span>Onde o Pedido Vai (Cozinha de Preparo)</span>
+                    <span>Onde o pedido vai (Cozinha de preparo)</span>
                   </label>
-                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                  <span className="text-[10px] text-amber-400 font-bold tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                     {quickEditModal.category.name}
                   </span>
                 </div>
@@ -2625,7 +2625,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                       ))}
                       {!kitchenEnvironments.some(e => e.id === 'COZINHA') && (
                         <option value="COZINHA" className="bg-slate-900 text-amber-300 font-bold">
-                          🍳 COZINHA PIZZA
+                          🍳 Cozinha Pizza
                         </option>
                       )}
                       <option value="none" className="bg-slate-900 text-slate-300 font-bold">
@@ -2654,7 +2654,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               {/* SEÇÃO DE ARTE / FOTO / ÍCONE 2D */}
               <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <label className="text-xs font-bold tracking-wider text-slate-300 flex items-center gap-1.5">
                     <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
                     <span>Arte / Foto do Produto</span>
                   </label>
@@ -2742,7 +2742,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 {/* Galeria Expansível 2D */}
                 {quickEditShowPresets && (
                   <div className="space-y-1.5 pt-2 border-t border-slate-800 animate-fadeIn">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    <span className="text-[10px] font-bold tracking-wider text-slate-400 block">
                       Toque para escolher entre os 50 ícones vetoriais 2D:
                     </span>
                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-950 rounded-xl border border-slate-800/80">
@@ -2775,9 +2775,9 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
               {/* SELEÇÃO DE COR DE DESTAQUE: BOLINHAS METADE DO TAMANHO, TODAS NA MESMA LINHA */}
               <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <label className="text-xs font-bold tracking-wider text-slate-300 flex items-center gap-1.5">
                     <Palette className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Cor de Destaque do Item</span>
+                    <span>Cor de destaque do item</span>
                   </label>
                   <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
                     <span 
@@ -2818,13 +2818,13 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                 <button
                   type="button"
                   onClick={() => setQuickEditModal({ isOpen: false, item: null, category: null, name: '', price: '0,00', pedacoPrice: '0,00', inteiraPrice: '0,00', color: '#eab308', image: null, icon2d: null, destination: 'COZINHA' })}
-                  className="py-2 px-4 bg-slate-800 hover:bg-slate-750 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                  className="py-2 px-4 bg-slate-800 hover:bg-slate-750 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="py-2 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  className="py-2 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs tracking-wider rounded-xl transition-all shadow-md shadow-emerald-950/50 active:scale-95 cursor-pointer flex items-center gap-1.5"
                 >
                   <Save className="w-4 h-4" />
                   <span>Salvar Alterações</span>

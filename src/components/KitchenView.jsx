@@ -542,9 +542,9 @@ export default function KitchenView({ environment, onNavigate }) {
                 >
                   {/* TAG PISCANTE DE NOVO PEDIDO (DURANTE OS 10 SEGUNDOS) */}
                   {isNewestHighlight && (
-                    <div className="absolute -top-2 left-3 bg-purple-600 border border-purple-400/60 text-white font-black text-[8px] px-1.5 py-0.2 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-bounce z-10">
+                    <div className="absolute -top-2 left-3 bg-purple-600 border border-purple-400/60 text-white font-black text-[8px] px-1.5 py-0.2 rounded-full tracking-wider flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-bounce z-10">
                       <Sparkles className="w-2.5 h-2.5 text-purple-200" />
-                      <span>NOVO PEDIDO!</span>
+                      <span>Novo Pedido!</span>
                     </div>
                   )}
 
@@ -559,7 +559,7 @@ export default function KitchenView({ environment, onNavigate }) {
                       </span>
                     )}
                     <span className="text-slate-600 font-bold select-none text-[10px] shrink-0">|</span>
-                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-100 uppercase truncate" title={order.customerName}>
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-100 truncate" title={order.customerName}>
                       {order.customerName}
                     </span>
                   </div>
@@ -658,7 +658,7 @@ export default function KitchenView({ environment, onNavigate }) {
                           title="Entregar pedido concluído"
                         >
                           <Check className="w-2.5 h-2.5 stroke-[3]" />
-                          <span>ENTREGAR</span>
+                          <span>Entregar</span>
                         </button>
                       </div>
                     ) : (

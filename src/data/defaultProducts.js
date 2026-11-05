@@ -3,7 +3,7 @@
 export const DEFAULT_CATEGORIES = [
   {
     id: 'pizza',
-    name: 'PIZZA',
+    name: 'Pizza',
     icon: 'Pizza',
     color: 'from-amber-500 to-red-600',
     prefix: {
@@ -19,13 +19,13 @@ export const DEFAULT_CATEGORIES = [
     ],
     // Variações que abrem direto ao clicar no sabor da pizza
     variations: [
-      { id: 'pedaco', name: 'PEDAÇO', price: 9.00, prefix: 'Pp-' },
-      { id: 'inteira', name: 'INTEIRA', price: 48.00, prefix: 'Pi-' },
+      { id: 'pedaco', name: 'Pedaço', price: 9.00, prefix: 'Pp-' },
+      { id: 'inteira', name: 'Inteira', price: 48.00, prefix: 'Pi-' },
     ]
   },
   {
     id: 'acai',
-    name: 'AÇAÍ',
+    name: 'Açaí',
     icon: 'IceCream',
     color: 'from-purple-600 to-indigo-800',
     prefixDefault: 'A-',
@@ -39,7 +39,7 @@ export const DEFAULT_CATEGORIES = [
   },
   {
     id: 'batata',
-    name: 'BATATA FRITA',
+    name: 'Batata Frita',
     icon: 'UtensilsCrossed',
     color: 'from-yellow-500 to-amber-600',
     prefixDefault: 'B-',

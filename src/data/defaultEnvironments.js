@@ -10,8 +10,8 @@ export const PERFIS = {
 export const DEFAULT_ENVIRONMENTS = [
   {
     id: 'ADMIN',
-    name: 'ADMIN (Caixa & Gestão)',
-    shortName: 'ADMIN',
+    name: 'Admin (Caixa & Gestão)',
+    shortName: 'Admin',
     type: 'cashier',
     icon: 'ShieldCheck',
     color: 'amber',
@@ -20,8 +20,8 @@ export const DEFAULT_ENVIRONMENTS = [
   },
   {
     id: 'COZINHA',
-    name: 'COZINHA PIZZA',
-    shortName: 'COZINHA PIZZA',
+    name: 'Cozinha Pizza',
+    shortName: 'Cozinha Pizza',
     type: 'kitchen',
     icon: 'UtensilsCrossed',
     color: 'orange',
@@ -30,8 +30,8 @@ export const DEFAULT_ENVIRONMENTS = [
   },
   {
     id: 'COZINHA_2',
-    name: 'COZINHA 2',
-    shortName: 'COZINHA 2',
+    name: 'Cozinha 2',
+    shortName: 'Cozinha 2',
     type: 'kitchen',
     icon: 'UtensilsCrossed',
     color: 'rose',
@@ -40,8 +40,8 @@ export const DEFAULT_ENVIRONMENTS = [
   },
   {
     id: 'PUBLICO',
-    name: 'PÚBLICO (Painel TV)',
-    shortName: 'PÚBLICO',
+    name: 'Público (Painel TV)',
+    shortName: 'Público',
     type: 'display',
     icon: 'Tv',
     color: 'emerald',

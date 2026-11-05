@@ -49,6 +49,18 @@ const syncChannel = typeof window !== 'undefined' && 'BroadcastChannel' in windo
   ? new BroadcastChannel('cantina_sync_channel')
   : null;
 
+export function normalizeCasing(str) {
+  if (!str || typeof str !== 'string') return str;
+  if (str.length >= 2 && str === str.toUpperCase() && /[A-ZÀ-Ú]/.test(str)) {
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(w => w ? w.charAt(0).toUpperCase() + w.slice(1) : '')
+      .join(' ');
+  }
+  return str;
+}
+
 class StorageService {
   constructor() {
     this.app = null;
@@ -436,13 +448,10 @@ class StorageService {
       const updated = cleaned.map(env => {
         const defaultMatch = DEFAULT_ENVIRONMENTS.find(d => d.id === env.id);
         let finalName = env.name || defaultMatch?.name || env.id;
-        if (env.id === 'COZINHA' && (finalName.includes('COZINHA 1') || finalName === 'COZINHA')) {
-          finalName = 'COZINHA PIZZA';
-          hadChanges = true;
-        }
         let finalShortName = env.shortName || finalName;
-        if (env.id === 'COZINHA' && (finalShortName.includes('COZINHA 1') || finalShortName === 'COZINHA')) {
-          finalShortName = 'COZINHA PIZZA';
+        if (defaultMatch && (finalName === 'ADMIN' || finalName.toUpperCase() === 'COZINHA PIZZA' || finalName === 'COZINHA' || finalName === 'COZINHA_2' || finalName === 'PUBLICO')) {
+          finalName = defaultMatch.name;
+          finalShortName = defaultMatch.shortName;
           hadChanges = true;
         }
         return {
@@ -761,54 +770,63 @@ class StorageService {
       const raw = localStorage.getItem(LOCAL_PRODUCTS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        // Normalização de prefixos legados para o novo padrão solicitado (Pp-, Pi-, A-, B-)
+        // Normalização de prefixos legados para o novo padrão solicitado (Pp-, Pi-, A-, B-) e remoção de caixas altas
         let modified = false;
         const normalized = parsed.map(cat => {
-          if (cat.id === 'pizza' && cat.variations) {
-            const variations = cat.variations.map(v => {
+          let catName = normalizeCasing(cat.name);
+          if (catName !== cat.name) modified = true;
+
+          let variations = cat.variations;
+          if (variations && Array.isArray(variations)) {
+            variations = variations.map(v => {
+              const vName = normalizeCasing(v.name);
+              if (vName !== v.name) modified = true;
               if (v.id === 'pedaco' && (v.prefix === 'P ped-' || !v.prefix)) {
                 modified = true;
-                return { ...v, prefix: 'Pp-' };
+                return { ...v, name: vName, prefix: 'Pp-' };
               }
               if (v.id === 'inteira' && (v.prefix === 'P int-' || !v.prefix)) {
                 modified = true;
-                return { ...v, prefix: 'Pi-' };
+                return { ...v, name: vName, prefix: 'Pi-' };
               }
-              return v;
+              return { ...v, name: vName };
             });
-            return { ...cat, variations };
           }
-          if (cat.id === 'acai') {
-            let catPref = cat.prefixDefault;
-            if (catPref === 'Açaí ' || !catPref) {
-              catPref = 'A-';
-              modified = true;
-            }
-            const items = (cat.items || []).map(it => {
-              if (it.prefix === 'Açaí ' || !it.prefix) {
+
+          let items = cat.items;
+          if (items && Array.isArray(items)) {
+            items = items.map(it => {
+              const itName = normalizeCasing(it.name);
+              if (itName !== it.name) modified = true;
+              if (cat.id === 'acai' && (it.prefix === 'Açaí ' || !it.prefix)) {
                 modified = true;
-                return { ...it, prefix: 'A-' };
+                return { ...it, name: itName, prefix: 'A-' };
               }
-              return it;
-            });
-            return { ...cat, prefixDefault: catPref, items };
-          }
-          if (cat.id === 'batata') {
-            let catPref = cat.prefixDefault;
-            if (catPref === 'Bat ' || !catPref) {
-              catPref = 'B-';
-              modified = true;
-            }
-            const items = (cat.items || []).map(it => {
-              if (it.prefix === 'Bat ' || !it.prefix) {
+              if (cat.id === 'batata' && (it.prefix === 'Bat ' || !it.prefix)) {
                 modified = true;
-                return { ...it, prefix: 'B-' };
+                return { ...it, name: itName, prefix: 'B-' };
               }
-              return it;
+              return { ...it, name: itName };
             });
-            return { ...cat, prefixDefault: catPref, items };
           }
-          return cat;
+
+          let catPref = cat.prefixDefault;
+          if (cat.id === 'acai' && (catPref === 'Açaí ' || !catPref)) {
+            catPref = 'A-';
+            modified = true;
+          }
+          if (cat.id === 'batata' && (catPref === 'Bat ' || !catPref)) {
+            catPref = 'B-';
+            modified = true;
+          }
+
+          return {
+            ...cat,
+            name: catName,
+            prefixDefault: catPref,
+            variations,
+            items
+          };
         });
 
         if (modified) {
@@ -823,18 +841,25 @@ class StorageService {
   }
 
   saveProducts(categories, syncCloud = true) {
-    localStorage.setItem(LOCAL_PRODUCTS_KEY, JSON.stringify(categories));
+    const safeCategories = (categories || []).map(cat => ({
+      ...cat,
+      name: normalizeCasing(cat.name),
+      variations: (cat.variations || []).map(v => ({ ...v, name: normalizeCasing(v.name) })),
+      items: (cat.items || []).map(it => ({ ...it, name: normalizeCasing(it.name) }))
+    }));
+
+    localStorage.setItem(LOCAL_PRODUCTS_KEY, JSON.stringify(safeCategories));
     if (syncChannel) {
-      syncChannel.postMessage({ type: 'PRODUCTS_UPDATED', payload: categories });
+      syncChannel.postMessage({ type: 'PRODUCTS_UPDATED', payload: safeCategories });
     }
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('cantina_products_changed', { detail: categories }));
+      window.dispatchEvent(new CustomEvent('cantina_products_changed', { detail: safeCategories }));
     }
     if (syncCloud && this.isFirebaseReady && this.db) {
       try {
         const productsDocRef = doc(this.db, COLLECTION_SETTINGS, 'produtos');
         setDoc(productsDocRef, {
-          categories,
+          categories: safeCategories,
           updatedAt: serverTimestamp()
         }, { merge: true }).catch(e => console.warn('Falha ao salvar produtos na nuvem:', e));
       } catch (err) {

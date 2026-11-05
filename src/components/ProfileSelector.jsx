@@ -138,7 +138,7 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig, compact
           type="button"
           disabled={isSecondaryLocked}
           onClick={handleToggle}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border shadow-xs transition-all uppercase tracking-wider ${
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border shadow-xs transition-all tracking-wider ${
             isSecondaryLocked
               ? 'bg-slate-900/60 border-rose-500/40 opacity-70 cursor-not-allowed text-rose-300'
               : 'bg-slate-900/90 hover:bg-slate-800 text-amber-400 border-amber-500/50 hover:border-amber-400 active:scale-95 cursor-pointer'
@@ -146,7 +146,7 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig, compact
           title={isSecondaryLocked ? 'Tela travada pelo Administrador' : 'Alternar ambiente de trabalho'}
         >
           <ShieldCheck className="w-3 h-3 text-amber-400" />
-          <span className="text-[9px] font-black">ADMIN</span>
+          <span className="text-[9px] font-black">Admin</span>
           {isSecondaryLocked ? (
             <Lock className="w-2.5 h-2.5 text-red-500 shrink-0" />
           ) : (
@@ -181,7 +181,7 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig, compact
           </div>
 
           {/* Nome do ambiente (sem a palavra AMBIENTE em cima, mesmo tamanho de COZINHA BATATA) */}
-          <span className="text-sm sm:text-base font-black tracking-wide text-white uppercase leading-none">
+          <span className="text-sm sm:text-base font-black tracking-wide text-white leading-none">
             {displayName}
           </span>
 
@@ -207,7 +207,7 @@ export default function ProfileSelector({ onProfileChange, onOpenConfig, compact
           
           {/* CABEÇALHO DO DROPDOWN */}
           <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
-            <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
+            <div className="text-[11px] font-bold text-slate-400 tracking-wider">
               Escolher Ambiente de Trabalho
             </div>
             {onOpenConfig && (

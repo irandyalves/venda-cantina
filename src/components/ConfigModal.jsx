@@ -961,10 +961,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
       return;
     }
 
-    const cleanPrefix = newCatPrefixInput.trim() || `${cleanName.substring(0, 3).toUpperCase()}-`;
+    const cleanPrefix = newCatPrefixInput.trim() || `${cleanName.substring(0, 3)}-`;
     const newCat = {
       id: catSlug,
-      name: cleanName.toUpperCase(),
+      name: cleanName,
       icon: 'Utensils',
       prefixDefault: cleanPrefix,
       items: [],
@@ -1305,11 +1305,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         return;
       }
       finalCatId = cleanCatName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '_');
-      finalCatName = cleanCatName.toUpperCase();
+      finalCatName = cleanCatName;
     }
 
     const priceNum = parseCurrencyMask(newItemPrice);
-    const cleanPrefix = newItemPrefix.trim() || (finalCatId === 'pizza' ? 'Pp-' : finalCatId === 'acai' ? 'A-' : finalCatId === 'batata' ? 'B-' : `${finalCatId.substring(0, 3).toUpperCase()}-`);
+    const cleanPrefix = newItemPrefix.trim() || (finalCatId === 'pizza' ? 'Pp-' : finalCatId === 'acai' ? 'A-' : finalCatId === 'batata' ? 'B-' : `${finalCatId.substring(0, 3)}-`);
     const cleanDesc = newItemDesc.trim();
 
     const newItem = {
@@ -1331,7 +1331,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     } else {
       updated.push({
         id: finalCatId,
-        name: finalCatName || finalCatId.toUpperCase(),
+        name: finalCatName || finalCatId,
         icon: 'Utensils',
         prefixDefault: cleanPrefix,
         items: [newItem],
@@ -1369,7 +1369,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
     setNewCategoryName('');
     setNewItemDesc('');
     setNewItemColor('#eab308');
-    showToast(`"${cleanName}" adicionado em "${finalCatName || finalCatId.toUpperCase()}" com sucesso!`, 'Item Cadastrado');
+    showToast(`"${cleanName}" adicionado em "${finalCatName || finalCatId}" com sucesso!`, 'Item Cadastrado');
   };
 
   // Atualização direta da cor do item pelo cardápio
@@ -2064,7 +2064,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
         ...it,
         id: it.id,
         name: it.name,
-        categoryName: (cat.name || cat.id).toUpperCase(),
+        categoryName: cat.name || cat.id,
         price: it.price,
         prefix: it.prefix || cat.prefixDefault || 'Ped-',
         categoryId: cat.id,
@@ -2369,7 +2369,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       >
                         <div>
                           <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${typeBadgeColor}`}>
+                            <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border ${typeBadgeColor}`}>
                               {typeLabel}
                             </span>
                             <div className="flex items-center gap-0.5">
@@ -2581,7 +2581,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 {/* CATEGORIAS CADASTRADAS: FILTROS INTERATIVOS COM ESTILO DE ABAS DO PRINT 2 */}
                 <div className="bg-slate-950/70 pt-2 px-3 pb-0 rounded-2xl border border-slate-800 shadow-inner flex items-center justify-between gap-3 flex-wrap border-b border-slate-800">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1 py-2">
+                    <span className="text-[11px] font-black text-slate-400 tracking-wider flex items-center gap-1.5 mr-1 py-2">
                       <Filter className="w-3.5 h-3.5 text-amber-400" />
                       Filtrar:
                     </span>
@@ -2621,7 +2621,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                               : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-800/40'
                           }`}
                         >
-                          <span className="uppercase text-[11px] font-black">{c.name}</span>
+                          <span className="text-[11px] font-black">{c.name}</span>
                           <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
                             isSelected
                               ? 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-black'
@@ -2667,7 +2667,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     >
                       {/* TOPO: NOME DO ITEM (EM CIMA DO ÍCONE, DESTACADO DE PONTA A PONTA) */}
                       <div className="flex items-center justify-between gap-1 min-w-0">
-                        <h4 className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wide truncate flex-1" title={item.name}>
+                        <h4 className="text-[11px] sm:text-xs font-black text-white tracking-wide truncate flex-1" title={item.name}>
                           {item.name}
                         </h4>
                       </div>
@@ -2686,7 +2686,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="text-[8.5px] font-bold text-slate-400 w-[82px] shrink-0">Categoria do Item</span>
                               <span 
-                                className="text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border font-mono inline-block truncate max-w-[95px] bg-emerald-950/80 text-emerald-300 border-emerald-500/50"
+                                className="text-[8.5px] font-black tracking-wider px-1.5 py-0.5 rounded border font-mono inline-block truncate max-w-[95px] bg-emerald-950/80 text-emerald-300 border-emerald-500/50"
                                 title={item.categoryName}
                               >
                                 {item.categoryName}
@@ -2724,7 +2724,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                       handleChangeItemDestination(targetId, e.target.value, item.name);
                                     }}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="text-[8.5px] font-bold uppercase px-1.5 py-0.5 rounded border outline-none cursor-pointer truncate max-w-[115px] bg-red-950/90 text-red-300 border-red-500/60 hover:border-red-400 focus:border-red-300"
+                                    className="text-[8.5px] font-bold px-1.5 py-0.5 rounded border outline-none cursor-pointer truncate max-w-[115px] bg-red-950/90 text-red-300 border-red-500/60 hover:border-red-400 focus:border-red-300"
                                     title="Escolha o local de retirada / cozinha deste item"
                                   >
                                     {kitchenEnvironments.map((env) => (
@@ -2792,7 +2792,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                 className="absolute right-full mr-2 top-0 z-50 bg-slate-950/98 backdrop-blur-md border border-slate-700 rounded-2xl p-2.5 shadow-2xl w-60 animate-fadeIn"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <div className="text-[10px] font-black uppercase tracking-wider text-slate-300 mb-2 flex items-center justify-between border-b border-slate-800 pb-1">
+                                <div className="text-[10px] font-black tracking-wider text-slate-300 mb-2 flex items-center justify-between border-b border-slate-800 pb-1">
                                   <span className="flex items-center gap-1">
                                     <Palette className="w-3 h-3 text-amber-400" />
                                     <span>Cor do Item</span>
@@ -2849,7 +2849,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-800/80">
                         {/* SENHA */}
                         <div className="bg-slate-950/80 px-1.5 py-1 rounded-lg border border-slate-800 focus-within:border-amber-500/60 flex items-center justify-between gap-1 transition-colors">
-                          <label className="text-[9px] text-slate-400 font-black uppercase tracking-wider shrink-0 select-none">
+                          <label className="text-[9px] text-slate-400 font-black tracking-wider shrink-0 select-none">
                             Senha
                           </label>
                           <input
@@ -2863,7 +2863,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
                         {/* VALOR */}
                         <div className="bg-slate-950/80 px-1.5 py-1 rounded-lg border border-slate-800 focus-within:border-emerald-500/60 flex items-center justify-between gap-1.5 transition-colors">
-                          <label className="text-[9px] text-slate-400 font-black uppercase tracking-wider shrink-0 select-none">
+                          <label className="text-[9px] text-slate-400 font-black tracking-wider shrink-0 select-none">
                             Valor
                           </label>
                           <input
@@ -2919,24 +2919,24 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   {/* CARDS TOTALIZADORES NO CABEÇALHO AO LADO DE HISTÓRICO */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase leading-none">Total Geral</div>
+                      <div className="text-[9px] font-bold text-slate-400 leading-none">Total Geral</div>
                       <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">{formatPrice(totalGeral, showCurrencySymbol)}</div>
                       <div className="text-[8px] text-slate-500 leading-none">{activeOrders.length} ativas</div>
                     </div>
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
-                      <div className="text-[9px] font-bold text-emerald-400 uppercase leading-none">PIX</div>
+                      <div className="text-[9px] font-bold text-emerald-400 leading-none">PIX</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalPix, showCurrencySymbol)}</div>
                     </div>
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
-                      <div className="text-[9px] font-bold text-teal-400 uppercase leading-none">Dinheiro</div>
+                      <div className="text-[9px] font-bold text-teal-400 leading-none">Dinheiro</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalDinheiro, showCurrencySymbol)}</div>
                     </div>
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
-                      <div className="text-[9px] font-bold text-blue-400 uppercase leading-none">Cartões</div>
+                      <div className="text-[9px] font-bold text-blue-400 leading-none">Cartões</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalDebito + totalCredito, showCurrencySymbol)}</div>
                     </div>
                     <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
-                      <div className="text-[9px] font-bold text-rose-400 uppercase leading-none">Excluídas</div>
+                      <div className="text-[9px] font-bold text-rose-400 leading-none">Excluídas</div>
                       <div className="text-xs sm:text-sm font-black text-rose-400 font-mono leading-tight mt-0.5">{orders.length - activeOrders.length}</div>
                     </div>
                   </div>
@@ -2946,7 +2946,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-1 flex-1 min-h-0 flex flex-col">
                   <div className="flex-1 min-h-[280px] overflow-y-auto">
                     <table className="w-full text-left text-[11px] text-slate-300">
-                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[9px] tracking-wider z-10 border-b border-slate-800">
+                      <thead className="bg-slate-950 text-slate-400 sticky top-0 text-[9px] tracking-wider z-10 border-b border-slate-800">
                         <tr>
                           <th className="py-1.5 px-2">Comanda</th>
                           <th className="py-1.5 px-2">Cliente</th>
@@ -2983,7 +2983,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                       {ord.customerName}
                                     </span>
                                     {isCancelled && (
-                                      <span className="no-underline text-[8px] font-black uppercase tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1 py-0.2 rounded shadow-sm inline-block">
+                                      <span className="no-underline text-[8px] font-black tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1 py-0.2 rounded shadow-sm inline-block">
                                         EXCLUÍDO
                                       </span>
                                     )}
@@ -3239,7 +3239,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               >
                 <form onSubmit={handleCreateEvent} className="bg-slate-950/95 p-4 rounded-xl border border-amber-500/50 space-y-3 shadow-2xl">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                    <div className="text-xs font-black text-amber-400 tracking-wider flex items-center gap-1.5">
                       <CalendarPlus className="w-4 h-4" />
                       <span>Cadastrar Novo Evento da Cantina</span>
                     </div>
@@ -3357,7 +3357,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   {/* CARDS COM TOTALIZADORES NA FRENTE DO TÍTULO */}
                   <div className="flex items-center gap-2 flex-wrap flex-1 justify-start lg:justify-center">
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase leading-none">Total Geral</div>
+                      <div className="text-[9px] font-bold text-slate-400 leading-none">Total Geral</div>
                       <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono leading-tight mt-0.5">{formatPrice(totalGeral, showCurrencySymbol)}</div>
                       <div className="text-[8px] text-slate-500 leading-none">
                         {activeOrders.length} ativas
@@ -3370,22 +3370,22 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     </div>
 
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
-                      <div className="text-[9px] font-bold text-emerald-400 uppercase leading-none">PIX</div>
+                      <div className="text-[9px] font-bold text-emerald-400 leading-none">PIX</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalPix, showCurrencySymbol)}</div>
                     </div>
 
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
-                      <div className="text-[9px] font-bold text-teal-400 uppercase leading-none">Dinheiro</div>
+                      <div className="text-[9px] font-bold text-teal-400 leading-none">Dinheiro</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalDinheiro, showCurrencySymbol)}</div>
                     </div>
 
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
-                      <div className="text-[9px] font-bold text-blue-400 uppercase leading-none">Débito</div>
+                      <div className="text-[9px] font-bold text-blue-400 leading-none">Débito</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalDebito, showCurrencySymbol)}</div>
                     </div>
 
                     <div className="bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
-                      <div className="text-[9px] font-bold text-indigo-400 uppercase leading-none">Crédito</div>
+                      <div className="text-[9px] font-bold text-indigo-400 leading-none">Crédito</div>
                       <div className="text-xs sm:text-sm font-black text-white font-mono leading-tight mt-0.5">{formatPrice(totalCredito, showCurrencySymbol)}</div>
                     </div>
                   </div>
@@ -3405,7 +3405,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <div className="border border-slate-700/80 rounded-xl overflow-hidden mt-2 flex-1 flex flex-col min-h-0 bg-slate-950/40">
                   <div className="overflow-y-auto flex-1 min-h-[350px]">
                     <table className="w-full text-left text-[11px] text-slate-300">
-                      <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[9px] tracking-wider z-10 shadow-sm border-b border-slate-800">
+                      <thead className="bg-slate-950 text-slate-400 sticky top-0 text-[9px] tracking-wider z-10 shadow-sm border-b border-slate-800">
                         <tr>
                           {/* COLUNA DATA/HORA */}
                           <th 
@@ -3540,7 +3540,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                                     {ord.customerName}
                                   </span>
                                   {isCancelled && (
-                                    <span className="no-underline text-[8px] font-black uppercase tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1 py-0.2 rounded shadow-sm inline-block">
+                                    <span className="no-underline text-[8px] font-black tracking-wider bg-rose-950 text-rose-400 border border-rose-800 px-1 py-0.2 rounded shadow-sm inline-block">
                                       EXCLUÍDO
                                     </span>
                                   )}
@@ -3670,7 +3670,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex items-center gap-1 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 truncate">Normal</span>
+                        <span className="text-[10px] font-black tracking-wider text-emerald-400 truncate">Normal</span>
                       </div>
                       <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.2 rounded shrink-0">
                         Até {orderTimeLimits.greenLimit || 1}m
@@ -3694,7 +3694,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex items-center gap-1 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 truncate">No Prazo</span>
+                        <span className="text-[10px] font-black tracking-wider text-sky-400 truncate">No Prazo</span>
                       </div>
                       <span className="text-[10px] font-mono font-black text-sky-400 bg-sky-500/20 border border-sky-500/30 px-1.5 py-0.2 rounded shrink-0">
                         Até {orderTimeLimits.blueLimit || 2}m
@@ -3718,7 +3718,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex items-center gap-1 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 truncate">Alerta</span>
+                        <span className="text-[10px] font-black tracking-wider text-amber-300 truncate">Alerta</span>
                       </div>
                       <span className="text-[10px] font-mono font-black text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.2 rounded shrink-0">
                         Até {orderTimeLimits.yellowLimit || 3}m
@@ -3742,7 +3742,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex items-center gap-1 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 truncate">Atrasado</span>
+                        <span className="text-[10px] font-black tracking-wider text-orange-400 truncate">Atrasado</span>
                       </div>
                       <span className="text-[10px] font-mono font-black text-orange-400 bg-orange-500/20 border border-orange-500/30 px-1.5 py-0.2 rounded shrink-0">
                         Até {orderTimeLimits.orangeLimit || 4}m
@@ -3766,7 +3766,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <div className="min-w-0">
                       <div className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-ping" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-300 truncate">Crítico</span>
+                        <span className="text-[10px] font-black tracking-wider text-rose-300 truncate">Crítico</span>
                       </div>
                       <div className="text-[9px] text-rose-400 font-mono truncate">&gt; {orderTimeLimits.orangeLimit}m</div>
                     </div>
@@ -4136,7 +4136,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     {/* 1. SEÇÃO DE TIPOS DE FUNDO */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 flex items-center gap-1.5">
+                        <label className="text-[11px] tracking-wider font-bold text-slate-400 flex items-center gap-1.5">
                           <Layers className="w-3.5 h-3.5 text-amber-400" />
                           <span>Tipos de Texturas e Fundos</span>
                         </label>
@@ -4442,7 +4442,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <span className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
                         <Tv className="w-3.5 h-3.5" />
                       </span>
-                      <h4 className="text-xs font-black text-white uppercase tracking-wide truncate">
+                      <h4 className="text-xs font-black text-white tracking-wide truncate">
                         TEMPO DA SENHA
                       </h4>
                     </div>
@@ -4494,7 +4494,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       <span className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 shrink-0">
                         <LayoutGrid className="w-3.5 h-3.5" />
                       </span>
-                      <h4 className="text-xs font-black text-white uppercase tracking-wide truncate">
+                      <h4 className="text-xs font-black text-white tracking-wide truncate">
                         ALTURA & DISTÂNCIA ENTRE OS CARDS
                       </h4>
                     </div>
@@ -4511,7 +4511,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="p-0.5 bg-amber-500/20 text-amber-400 rounded shrink-0">
                           <ChefHat className="w-3 h-3" />
                         </span>
-                        <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide truncate">
+                        <span className="text-[11px] font-bold text-slate-100 tracking-wide truncate">
                           Cozinhas
                         </span>
                       </div>
@@ -4563,7 +4563,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="p-0.5 bg-indigo-500/20 text-indigo-400 rounded shrink-0">
                           <Tv className="w-3 h-3" />
                         </span>
-                        <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide truncate">
+                        <span className="text-[11px] font-bold text-slate-100 tracking-wide truncate">
                           Público
                         </span>
                       </div>
@@ -4615,7 +4615,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <span className="p-0.5 bg-emerald-500/20 text-emerald-400 rounded shrink-0">
                           <LayoutGrid className="w-3 h-3" />
                         </span>
-                        <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide truncate">
+                        <span className="text-[11px] font-bold text-slate-100 tracking-wide truncate">
                           Rodapé
                         </span>
                       </div>
@@ -4672,7 +4672,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-200 truncate">
+                      <span className="text-[11px] font-black tracking-wider text-slate-200 truncate">
                         Pré-Visualização em Tempo Real
                       </span>
                     </div>
@@ -4721,7 +4721,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           className="bg-slate-900 border-y border-amber-500/50 px-1.5 py-0.5 flex items-center justify-between text-[9.5px]"
                         >
                           <span className="font-mono font-black text-amber-400">#0042</span>
-                          <span className="font-bold text-white uppercase truncate text-[9px]">MARIA</span>
+                          <span className="font-bold text-white truncate text-[9px]">Maria</span>
                           <span className="text-[8.5px] text-amber-300 font-bold">PREPARO</span>
                         </div>
                         <div 
@@ -4729,7 +4729,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           className="bg-emerald-950/40 border-y border-emerald-500/60 px-1.5 py-0.5 flex items-center justify-between text-[9.5px]"
                         >
                           <span className="font-mono font-black text-emerald-400">#0041</span>
-                          <span className="font-bold text-white uppercase truncate text-[9px]">JOÃO</span>
+                          <span className="font-bold text-white truncate text-[9px]">João</span>
                           <span className="text-[8.5px] text-emerald-300 font-bold">PRONTO</span>
                         </div>
                       </div>
@@ -4747,7 +4747,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           className="bg-slate-900 border-y border-l-[3px] border-amber-400 rounded-l px-1.5 py-0.5 flex items-center justify-between text-[9.5px]"
                         >
                           <span className="font-mono font-black text-amber-300">#0042</span>
-                          <span className="font-bold text-slate-200 uppercase truncate text-[9px]">MARIA</span>
+                          <span className="font-bold text-slate-200 truncate text-[9px]">Maria</span>
                           <span className="text-[7.5px] bg-slate-800 text-amber-300 px-1 py-0.2 rounded font-mono">PREPARO</span>
                         </div>
                         <div 
@@ -4755,7 +4755,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                           className="bg-slate-900 border-y border-l-[3px] border-emerald-400 rounded-l px-1.5 py-0.5 flex items-center justify-between text-[9.5px]"
                         >
                           <span className="font-mono font-black text-emerald-400">#0041</span>
-                          <span className="font-bold text-slate-200 uppercase truncate text-[9px]">JOÃO</span>
+                          <span className="font-bold text-slate-200 truncate text-[9px]">João</span>
                           <span className="text-[7.5px] bg-slate-800 text-emerald-300 px-1 py-0.2 rounded font-mono">PRONTO</span>
                         </div>
                       </div>
@@ -4932,7 +4932,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <div className="bg-emerald-950/60 border border-emerald-500/40 rounded-2xl p-3.5 flex items-start gap-3 text-left">
                 <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <span className="text-xs font-black text-emerald-300 uppercase tracking-wide block">
+                  <span className="text-xs font-black text-emerald-300 tracking-wide block">
                     Cópia Salva no Histórico
                   </span>
                   <p className="text-[11px] text-emerald-200/90 leading-relaxed">
@@ -4944,7 +4944,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 flex items-start gap-3 text-left">
                 <RotateCcw className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <span className="text-xs font-black text-amber-300 uppercase tracking-wide block">
+                  <span className="text-xs font-black text-amber-300 tracking-wide block">
                     Reinício das Filas de Pedidos
                   </span>
                   <p className="text-[11px] text-slate-300 leading-relaxed">
@@ -5008,10 +5008,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight leading-tight">
+              <h3 className="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
                 TEM CERTEZA MESMO QUE QUER EXCLUIR O HISTÓRICO?
               </h3>
-              <p className="text-xs sm:text-sm font-black text-rose-400 uppercase tracking-wider bg-rose-950/80 border border-rose-500/50 py-1.5 px-3 rounded-xl inline-block shadow-inner">
+              <p className="text-xs sm:text-sm font-black text-rose-400 tracking-wider bg-rose-950/80 border border-rose-500/50 py-1.5 px-3 rounded-xl inline-block shadow-inner">
                 ESSA AÇÃO NÃO PODERÁ SER DESFEITA.
               </p>
               <p className="text-xs text-slate-400 pt-1 leading-relaxed">
@@ -5232,7 +5232,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         if (autoP) setNewItemPrefix(`${autoP}-`);
                       }
                     }}
-                    className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-amber-400"
+                    className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-amber-400"
                   />
                 </div>
               )}
@@ -5252,8 +5252,8 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         : 'Ex: Copo 400ml, Batata Frita, Suco...'
                     }
                     value={newItemName}
-                    onChange={(e) => setNewItemName(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-emerald-400"
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-emerald-400"
                   />
                 </div>
 
@@ -5633,7 +5633,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 {/* Galeria Expansível de Ícones 2D Presets (50 ícones) */}
                 {showPresetPicker && (
                   <div className="space-y-1.5 pt-2 border-t border-slate-800 animate-fadeIn">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    <span className="text-[10px] font-bold tracking-wider text-slate-400 block">
                       Toque para escolher entre os 50 ícones vetoriais 2D:
                     </span>
                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 max-h-56 overflow-y-auto p-2 bg-slate-950 rounded-xl border border-slate-800/80">
@@ -5779,7 +5779,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <AlertTriangle className="w-6 h-6 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-rose-400 tracking-wider uppercase">
+                <h3 className="text-xl font-black text-rose-400 tracking-wider">
                   ATENÇÃO!
                 </h3>
                 <p className="text-xs text-slate-400">
@@ -5803,7 +5803,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Cliente:</span>
-                    <span className="font-bold text-white uppercase">{cancelConfirmModal.order.customerName}</span>
+                    <span className="font-bold text-white">{cancelConfirmModal.order.customerName}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Item:</span>
@@ -5822,7 +5822,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={() => setCancelConfirmModal({ isOpen: false, order: null })}
-                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
               >
                 <X className="w-4 h-4" />
                 <span>NÃO</span>
@@ -5831,7 +5831,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={handleConfirmCancelOrder}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>SIM</span>
@@ -5857,7 +5857,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <Trash2 className="w-6 h-6" />
               </span>
               <div>
-                <h3 className="text-xl font-black text-rose-400 tracking-wider uppercase">
+                <h3 className="text-xl font-black text-rose-400 tracking-wider">
                   ATENÇÃO!
                 </h3>
                 <p className="text-xs text-slate-400">
@@ -5896,7 +5896,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={() => setDeleteItemConfirmModal({ isOpen: false, item: null })}
-                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
               >
                 <X className="w-4 h-4" />
                 <span>NÃO</span>
@@ -5905,7 +5905,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={handleConfirmDeleteItem}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>SIM</span>
@@ -5925,7 +5925,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <FolderPlus className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-black text-white tracking-wide uppercase">
+                  <h3 className="text-base font-black text-white tracking-wide">
                     Nova Categoria de Itens
                   </h3>
                   <p className="text-[11px] text-slate-400">
@@ -5960,7 +5960,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                       if (autoP) setNewCatPrefixInput(`${autoP}-`);
                     }
                   }}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-emerald-400"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-emerald-400"
                 />
               </div>
 
@@ -5990,7 +5990,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     {categories.filter(c => !['pizza', 'acai', 'batata'].includes(c.id)).map(c => (
                       <div key={c.id} className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
                         <div>
-                          <span className="font-bold text-white uppercase">{c.name}</span>
+                          <span className="font-bold text-white">{c.name}</span>
                           <span className="text-[10px] text-slate-400 ml-2">({(c.items || []).length} itens)</span>
                         </div>
                         <button
@@ -6012,13 +6012,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <button
                   type="button"
                   onClick={() => setShowAddCategoryModal(false)}
-                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs tracking-wider rounded-xl transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                  className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Criar Categoria</span>
@@ -6039,7 +6039,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <ChefHat className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-black text-white tracking-wide uppercase">
+                  <h3 className="text-base font-black text-white tracking-wide">
                     Novo Ambiente de Trabalho
                   </h3>
                   <p className="text-[11px] text-slate-400">
@@ -6064,10 +6064,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <input
                   type="text"
                   required
-                  placeholder="Ex: COZINHA 2, PIZZARIA..."
+                  placeholder="Ex: Cozinha 2, Pizzaria..."
                   value={newEnvName}
-                  onChange={(e) => setNewEnvName(e.target.value.toUpperCase())}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-indigo-400"
+                  onChange={(e) => setNewEnvName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-indigo-400"
                 />
               </div>
 
@@ -6132,13 +6132,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <button
                   type="button"
                   onClick={() => setShowAddEnvModal(false)}
-                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs tracking-wider rounded-xl transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                  className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-950/50 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Cadastrar</span>
@@ -6159,7 +6159,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <Pencil className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-black text-white tracking-wide uppercase">
+                  <h3 className="text-base font-black text-white tracking-wide">
                     Configurar Ambiente
                   </h3>
                   <p className="text-[11px] text-slate-400">
@@ -6184,10 +6184,10 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <input
                   type="text"
                   required
-                  placeholder="Ex: COZINHA 2 XX"
+                  placeholder="Ex: Cozinha 2"
                   value={editingEnv.name}
-                  onChange={(e) => setEditingEnv({ ...editingEnv, name: e.target.value.toUpperCase() })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold uppercase outline-none focus:border-emerald-400"
+                  onChange={(e) => setEditingEnv({ ...editingEnv, name: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none focus:border-emerald-400"
                 />
               </div>
 
@@ -6248,13 +6248,13 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <button
                   type="button"
                   onClick={() => { setShowEditEnvModal(false); setEditingEnv(null); }}
-                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                  className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs tracking-wider rounded-xl transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center justify-center gap-1.5"
+                  className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Save className="w-4 h-4" />
                   <span>Salvar Nome</span>
@@ -6274,7 +6274,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <Trash2 className="w-6 h-6" />
               </span>
               <div>
-                <h3 className="text-xl font-black text-rose-400 tracking-wider uppercase">
+                <h3 className="text-xl font-black text-rose-400 tracking-wider">
                   ATENÇÃO!
                 </h3>
                 <p className="text-xs text-slate-400">
@@ -6293,7 +6293,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={() => setDeleteEnvConfirmModal({ isOpen: false, env: null })}
-                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
               >
                 <X className="w-4 h-4" />
                 <span>NÃO</span>
@@ -6302,7 +6302,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={handleConfirmDeleteEnv}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>SIM</span>
@@ -6326,11 +6326,11 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
             </div>
 
             <div className="space-y-1.5">
-              <h3 className="text-base font-black text-white uppercase tracking-wide">
+              <h3 className="text-base font-black text-white tracking-wide">
                 Excluir Categoria
               </h3>
               <p className="text-sm font-bold text-slate-200 leading-relaxed">
-                Tem certeza que deseja excluir a categoria <strong className="text-rose-400 uppercase">"{deleteCatConfirmModal.category.name}"</strong>?
+                Tem certeza que deseja excluir a categoria <strong className="text-rose-400">"{deleteCatConfirmModal.category.name}"</strong>?
               </p>
               <p className="text-[11px] text-slate-400">
                 {(deleteCatConfirmModal.category.items || []).length > 0 
@@ -6343,7 +6343,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={() => setDeleteCatConfirmModal({ isOpen: false, category: null })}
-                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-black text-xs tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 flex items-center justify-center gap-1.5 shadow-md"
               >
                 <X className="w-4 h-4" />
                 <span>NÃO</span>
@@ -6352,7 +6352,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={() => handleDeleteCategory(deleteCatConfirmModal.category)}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-rose-950/50 cursor-pointer border border-rose-400/50 flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>SIM, EXCLUIR</span>
@@ -6376,7 +6376,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 <RotateCcw className="w-6 h-6" />
               </span>
               <div>
-                <h3 className="text-lg font-black text-white tracking-wide uppercase">
+                <h3 className="text-lg font-black text-white tracking-wide">
                   Reabrir Caixa
                 </h3>
                 <p className="text-xs text-emerald-400 font-mono">
@@ -6406,7 +6406,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 type="button"
                 disabled={isReopeningTurno}
                 onClick={() => setReopenTurnoConfirmModal({ isOpen: false, turno: null })}
-                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold text-xs tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -6415,7 +6415,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 type="button"
                 disabled={isReopeningTurno}
                 onClick={handleConfirmReopenTurno}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer border border-emerald-400/50 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer border border-emerald-400/50 flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 <RotateCcw className={`w-4 h-4 ${isReopeningTurno ? 'animate-spin' : ''}`} />
                 <span>{isReopeningTurno ? 'Reabrindo...' : 'Sim, Reabrir Caixa'}</span>
@@ -6444,7 +6444,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <Search className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wide flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
                     <span>Conferência Aprofundada do Turno</span>
                     <span className="text-xs font-mono font-bold text-amber-400 bg-amber-950/90 px-2 py-0.5 rounded-lg border border-amber-500/40">
                       {selectedTurnoForConference.event?.name || 'Cantina Geral'}
@@ -6472,7 +6472,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               {/* GRID FINANCEIRO DETALHADO */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                 <div className="bg-slate-950/90 p-3 rounded-2xl border border-emerald-500/40 shadow-sm">
-                  <div className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Faturamento Total</div>
+                  <div className="text-[10px] font-black text-emerald-400 tracking-wider">Faturamento Total</div>
                   <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
                     {formatPrice(selectedTurnoForConference.totalRevenue, showCurrencySymbol)}
                   </div>
@@ -6480,28 +6480,28 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 </div>
 
                 <div className="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 shadow-sm">
-                  <div className="text-[10px] font-black text-purple-400 uppercase tracking-wider">PIX</div>
+                  <div className="text-[10px] font-black text-purple-400 tracking-wider">PIX</div>
                   <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
                     {formatPrice(selectedTurnoForConference.paymentBreakdown?.pix, showCurrencySymbol)}
                   </div>
                 </div>
 
                 <div className="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 shadow-sm">
-                  <div className="text-[10px] font-black text-teal-400 uppercase tracking-wider">Dinheiro</div>
+                  <div className="text-[10px] font-black text-teal-400 tracking-wider">Dinheiro</div>
                   <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
                     {formatPrice(selectedTurnoForConference.paymentBreakdown?.dinheiro, showCurrencySymbol)}
                   </div>
                 </div>
 
                 <div className="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 shadow-sm">
-                  <div className="text-[10px] font-black text-blue-400 uppercase tracking-wider">Cartão Débito</div>
+                  <div className="text-[10px] font-black text-blue-400 tracking-wider">Cartão Débito</div>
                   <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
                     {formatPrice(selectedTurnoForConference.paymentBreakdown?.debito, showCurrencySymbol)}
                   </div>
                 </div>
 
                 <div className="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 shadow-sm">
-                  <div className="text-[10px] font-black text-indigo-400 uppercase tracking-wider">Cartão Crédito</div>
+                  <div className="text-[10px] font-black text-indigo-400 tracking-wider">Cartão Crédito</div>
                   <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
                     {formatPrice(selectedTurnoForConference.paymentBreakdown?.credito, showCurrencySymbol)}
                   </div>
@@ -6511,7 +6511,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               {/* SEÇÃO 1: BALANÇO DE PRODUTOS VENDIDOS (AUDITORIA DE ITENS) */}
               <div className="bg-slate-950/60 rounded-2xl border border-slate-800 p-4 space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <h4 className="text-xs sm:text-sm font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-black text-amber-300 tracking-wider flex items-center gap-2">
                     <Pizza className="w-4 h-4 text-amber-400" />
                     <span>Produtos e Quantidades Vendidas neste Turno</span>
                   </h4>
@@ -6551,7 +6551,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               {/* SEÇÃO 2: LISTA COMPLETA DE COMANDAS DO TURNO */}
               <div className="bg-slate-950/60 rounded-2xl border border-slate-800 p-4 space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <h4 className="text-xs sm:text-sm font-black text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-200 tracking-wider flex items-center gap-2">
                     <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
                     <span>Todas as Comandas Deste Turno ({(selectedTurnoForConference.orders || []).length})</span>
                   </h4>
@@ -6559,7 +6559,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
 
                 <div className="border border-slate-800 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
                   <table className="w-full text-left text-xs text-slate-300">
-                    <thead className="bg-slate-950 text-slate-400 sticky top-0 uppercase text-[10px] tracking-wider z-10">
+                    <thead className="bg-slate-950 text-slate-400 sticky top-0 text-[10px] tracking-wider z-10">
                       <tr>
                         <th className="p-2.5">Comanda</th>
                         <th className="p-2.5">Cliente</th>
@@ -6577,7 +6577,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         return (
                           <tr key={idx} className="hover:bg-slate-900/60 transition-colors">
                             <td className="p-2.5 font-black text-orange-400">{ord.orderNumber}</td>
-                            <td className="p-2.5 font-sans font-bold text-slate-100 uppercase">{ord.customerName}</td>
+                            <td className="p-2.5 font-sans font-bold text-slate-100">{ord.customerName}</td>
                             <td className="p-2.5 font-sans text-[11px] text-slate-300">
                               {items.map(it => `${it.quantity}x ${it.description || it.name || it.itemName}`).join(', ')}
                             </td>
@@ -6607,7 +6607,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
               <button
                 type="button"
                 onClick={() => setSelectedTurnoForConference(null)}
-                className="py-2.5 px-5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                className="py-2.5 px-5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
               >
                 Fechar
               </button>
@@ -6617,7 +6617,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                 onClick={() => {
                   handleRequestReopenTurno(selectedTurnoForConference);
                 }}
-                className="py-2.5 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center gap-2 border border-emerald-400"
+                className="py-2.5 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-950/50 cursor-pointer flex items-center gap-2 border border-emerald-400"
               >
                 <RotateCcw className="w-4 h-4 stroke-[3]" />
                 <span>Reabrir Este Caixa</span>

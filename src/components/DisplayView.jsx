@@ -226,15 +226,15 @@ export default function DisplayView({ environment, onNavigate }) {
       : [order];
       
     const first = items[0] || {};
-    const cat = (first.categoryName || first.category || '').toUpperCase();
-    const varName = (first.variationName || '').toUpperCase();
-    const name = (first.itemName || first.name || '').toUpperCase();
+    const cat = first.categoryName || first.category || '';
+    const varName = first.variationName || '';
+    const name = first.itemName || first.name || '';
     
     let desc = '';
-    if (cat.includes('PIZZA')) {
-      desc = `PIZZA ${varName ? `${varName}` : name}`;
+    if (cat.toLowerCase().includes('pizza')) {
+      desc = `Pizza ${varName ? `${varName}` : name}`;
     } else {
-      const qtyStr = first.quantity && first.quantity > 1 ? `${first.quantity}X ` : '';
+      const qtyStr = first.quantity && first.quantity > 1 ? `${first.quantity}x ` : '';
       desc = `${qtyStr}${name || cat}${varName ? ` ${varName}` : ''}`;
     }
     
@@ -242,16 +242,16 @@ export default function DisplayView({ environment, onNavigate }) {
   };
 
   // Helper para formatar o texto do item conforme o padrão solicitado:
-  // Ex: PIZZA [PEDAÇO (verde bold)] : MARGUERITTA (lilás brilho bold)
+  // Ex: Pizza [Pedaço (verde bold)] : Margueritta (lilás brilho bold)
   const renderItemDetails = (order) => {
     // Se o pedido tiver múltiplos itens na comanda
     if (order.items && Array.isArray(order.items) && order.items.length > 0) {
       return (
         <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm">
           {order.items.map((it, idx) => {
-            const cat = (it.categoryName || it.category || '').toUpperCase();
-            const varName = (it.variationName || '').toUpperCase();
-            const name = (it.itemName || it.name || '').toUpperCase();
+            const cat = it.categoryName || it.category || '';
+            const varName = it.variationName || '';
+            const name = it.itemName || it.name || '';
             const qty = it.quantity || 1;
             return (
               <span key={idx} className="inline-flex items-center gap-1">
@@ -265,7 +265,7 @@ export default function DisplayView({ environment, onNavigate }) {
                 {cat && name && cat !== name && (
                   <>
                     <span className="text-slate-400 font-bold">:</span>
-                    <span className="text-purple-300 font-black tracking-wider uppercase drop-shadow-[0_0_8px_rgba(216,180,254,0.7)] text-xs sm:text-sm">
+                    <span className="text-purple-300 font-black tracking-wider drop-shadow-[0_0_8px_rgba(216,180,254,0.7)] text-xs sm:text-sm">
                       {name}
                     </span>
                   </>
@@ -277,11 +277,11 @@ export default function DisplayView({ environment, onNavigate }) {
       );
     }
 
-    const categoryName = (order.categoryName || order.category || 'ITEM').toUpperCase();
-    const variationName = (order.variationName || '').toUpperCase();
-    const itemName = (order.itemName || '').toUpperCase();
+    const categoryName = order.categoryName || order.category || 'Item';
+    const variationName = order.variationName || '';
+    const itemName = order.itemName || '';
 
-    // Se tiver variação explícita (como PEDAÇO ou INTEIRA na pizza)
+    // Se tiver variação explícita (como Pedaço ou Inteira na pizza)
     if (variationName) {
       return (
         <div className="flex flex-wrap items-center gap-1 text-xs sm:text-sm">
@@ -290,7 +290,7 @@ export default function DisplayView({ environment, onNavigate }) {
             [{variationName}]
           </span>
           <span className="text-slate-400 font-bold">:</span>
-          <span className="text-purple-300 font-black tracking-wider uppercase drop-shadow-[0_0_8px_rgba(216,180,254,0.7)] text-xs sm:text-sm">
+          <span className="text-purple-300 font-black tracking-wider drop-shadow-[0_0_8px_rgba(216,180,254,0.7)] text-xs sm:text-sm">
             {itemName}
           </span>
         </div>
@@ -402,8 +402,8 @@ export default function DisplayView({ environment, onNavigate }) {
               <span className="p-2 bg-amber-500/20 text-amber-400 rounded-full animate-bounce">
                 <Sparkles className="w-6 h-6" />
               </span>
-              <span className="text-xl sm:text-2xl md:text-3xl uppercase font-black tracking-widest text-amber-300 bg-amber-950/80 px-8 py-2 rounded-full border-2 border-amber-500/60 shadow-[0_0_25px_rgba(245,158,11,0.6)]">
-                SENHA
+              <span className="text-xl sm:text-2xl md:text-3xl font-black tracking-widest text-amber-300 bg-amber-950/80 px-8 py-2 rounded-full border-2 border-amber-500/60 shadow-[0_0_25px_rgba(245,158,11,0.6)]">
+                Senha
               </span>
               <span className="p-2 bg-amber-500/20 text-amber-400 rounded-full animate-bounce">
                 <Sparkles className="w-6 h-6" />
@@ -419,8 +419,8 @@ export default function DisplayView({ environment, onNavigate }) {
 
             {/* 2. NOME DA PESSOA */}
             <div className="py-4 px-4 border-y-2 border-slate-800/80 bg-slate-900/70 rounded-2xl">
-              <div className="text-3xl sm:text-5xl md:text-6xl font-black text-white uppercase tracking-wider drop-shadow-[0_0_25px_rgba(255,255,255,0.7)]">
-                {deliveredModalOrder.customerName ? deliveredModalOrder.customerName.toUpperCase() : 'CLIENTE'}
+              <div className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-wider drop-shadow-[0_0_25px_rgba(255,255,255,0.7)]">
+                {deliveredModalOrder.customerName || 'Cliente'}
               </div>
             </div>
 
@@ -458,8 +458,8 @@ export default function DisplayView({ environment, onNavigate }) {
                   <Flame className="w-5 h-5 text-emerald-400 animate-spin-pulse-green-glow" />
                 </span>
                 <div>
-                  <h2 className="text-base sm:text-lg font-black text-amber-300 uppercase tracking-widest leading-tight">
-                    EM PREPARAÇÃO
+                  <h2 className="text-base sm:text-lg font-black text-amber-300 tracking-widest leading-tight">
+                    Em Preparação
                   </h2>
                   <p className="text-[10px] text-slate-400">Na cozinha sendo preparado</p>
                 </div>
@@ -495,13 +495,13 @@ export default function DisplayView({ environment, onNavigate }) {
 
                       <span className="text-amber-400 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                      <span className="text-lg sm:text-xl md:text-2xl font-black text-white uppercase tracking-wide truncate shrink-0 max-w-[38%]">
-                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                      <span className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-wide truncate shrink-0 max-w-[38%]">
+                        {order.customerName || 'Cliente'}
                       </span>
 
                       <span className="text-amber-400 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                      <span className="text-sm sm:text-base md:text-lg font-bold text-white uppercase tracking-wider truncate">
+                      <span className="text-sm sm:text-base md:text-lg font-bold text-white tracking-wider truncate">
                         {formatOrderSummary(order)}
                       </span>
                     </div>
@@ -520,8 +520,8 @@ export default function DisplayView({ environment, onNavigate }) {
                   <Sparkles className="w-5 h-5 animate-pulse" />
                 </span>
                 <div>
-                  <h2 className="text-base sm:text-lg font-black text-emerald-300 uppercase tracking-widest leading-tight">
-                    PRONTOS
+                  <h2 className="text-base sm:text-lg font-black text-emerald-300 tracking-widest leading-tight">
+                    Prontos
                   </h2>
                   <p className="text-[10px] text-slate-400">Aguardando retirada no balcão</p>
                 </div>
@@ -557,13 +557,13 @@ export default function DisplayView({ environment, onNavigate }) {
 
                       <span className="text-emerald-400 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                      <span className="text-lg sm:text-xl md:text-2xl font-black text-white uppercase tracking-wide truncate shrink-0 max-w-[55%]">
-                        {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                      <span className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-wide truncate shrink-0 max-w-[55%]">
+                        {order.customerName || 'Cliente'}
                       </span>
 
                       <span className="text-emerald-400 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                      <span className="text-sm sm:text-base md:text-lg font-bold text-white uppercase tracking-wider truncate">
+                      <span className="text-sm sm:text-base md:text-lg font-bold text-white tracking-wider truncate">
                         {formatOrderSummary(order)}
                       </span>
                     </div>
@@ -583,8 +583,8 @@ export default function DisplayView({ environment, onNavigate }) {
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   </span>
                   <div>
-                    <h2 className="text-base sm:text-lg font-black text-blue-300 uppercase tracking-wider leading-tight">
-                      ENTREGUES
+                    <h2 className="text-base sm:text-lg font-black text-blue-300 tracking-wider leading-tight">
+                      Entregues
                     </h2>
                     <p className="text-[10px] text-slate-400">Últimos pedidos entregues</p>
                   </div>
@@ -620,13 +620,13 @@ export default function DisplayView({ environment, onNavigate }) {
 
                         <span className="text-blue-400/50 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                        <span className="text-lg sm:text-xl md:text-2xl font-black text-slate-300 uppercase tracking-wide truncate shrink-0 max-w-[55%]">
-                          {order.customerName ? order.customerName.toUpperCase() : 'CLIENTE'}
+                        <span className="text-lg sm:text-xl md:text-2xl font-black text-slate-300 tracking-wide truncate shrink-0 max-w-[55%]">
+                          {order.customerName || 'Cliente'}
                         </span>
 
                         <span className="text-blue-400/50 text-lg sm:text-xl md:text-2xl font-black select-none shrink-0">•</span>
 
-                        <span className="text-sm sm:text-base md:text-lg font-bold text-slate-300 uppercase tracking-wider truncate">
+                        <span className="text-sm sm:text-base md:text-lg font-bold text-slate-300 tracking-wider truncate">
                           {formatOrderSummary(order)}
                         </span>
                       </div>
