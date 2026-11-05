@@ -2679,17 +2679,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                     <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
                     <span>Arte / Foto do Produto</span>
                   </label>
-                  {(quickEditModal.image || quickEditModal.icon2d) && (
-                    <button
-                      type="button"
-                      onClick={handleQuickEditClearCustomArt}
-                      className="text-[11px] font-bold text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Restaurar ícone padrão da categoria"
-                    >
-                      <Eraser className="w-3 h-3" />
-                      <span>Restaurar Padrão</span>
-                    </button>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -2713,7 +2702,7 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                   {/* Ações de Foto e Presets */}
                   <div className="flex-1 space-y-2 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <label className="cursor-pointer px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs">
+                      <label className="cursor-pointer px-3 py-1.5 bg-transparent hover:bg-amber-500/10 text-amber-300 hover:text-amber-200 border-2 border-dashed border-amber-500/50 hover:border-amber-400 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all">
                         <Upload className="w-3.5 h-3.5" />
                         <span>{quickEditIsProcessingImg ? 'Processando...' : 'Carregar Foto'}</span>
                         <input
@@ -2737,13 +2726,6 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
                         <ImageIcon className="w-3.5 h-3.5" />
                         <span>{quickEditShowPresets ? 'Fechar Galeria' : 'Galeria 2D (50 Ícones)'}</span>
                       </button>
-
-                      {quickEditModal.image && (
-                        <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
-                          <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
-                          <span>Foto Ativa (~{Math.max(1, Math.round((quickEditModal.image.length * 0.75) / 1024))} KB)</span>
-                        </span>
-                      )}
                     </div>
 
                     <label className="flex items-center gap-2 cursor-pointer select-none">

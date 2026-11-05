@@ -5654,17 +5654,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                     <span>Arte / Foto do Produto (Card Intuitivo):</span>
                   </label>
-                  {(gearItemData.image || gearItemData.icon2d) && (
-                    <button
-                      type="button"
-                      onClick={handleClearCustomArt}
-                      className="text-[11px] font-bold text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Voltar ao ícone padrão automático"
-                    >
-                      <Eraser className="w-3 h-3" />
-                      <span>Restaurar Padrão</span>
-                    </button>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-3.5 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800/80">
@@ -5686,7 +5675,7 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                   <div className="flex-1 space-y-2 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       {/* Botão de Upload de Foto */}
-                      <label className="cursor-pointer px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs">
+                      <label className="cursor-pointer px-3 py-1.5 bg-transparent hover:bg-amber-500/10 text-amber-300 hover:text-amber-200 border-2 border-dashed border-amber-500/50 hover:border-amber-400 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all">
                         <Upload className="w-3.5 h-3.5" />
                         <span>{isProcessingImage ? 'Processando...' : 'Carregar Foto'}</span>
                         <input
@@ -5711,14 +5700,6 @@ export default function ConfigModal({ isOpen, onClose, initialTab = 'products' }
                         <ImageIcon className="w-3.5 h-3.5" />
                         <span>{showPresetPicker ? 'Fechar Galeria' : 'Galeria 2D (50 Ícones)'}</span>
                       </button>
-
-                      {/* Indicador de Foto Ativa com Tamanho Reduzido */}
-                      {gearItemData.image && (
-                        <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-1 rounded-lg inline-flex items-center gap-1 shadow-xs animate-fadeIn">
-                          <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
-                          <span>Foto Ativa (~{Math.max(1, Math.round((gearItemData.image.length * 0.75) / 1024))} KB)</span>
-                        </span>
-                      )}
                     </div>
 
                     {/* Toggle de Remoção Automática de Fundo */}
