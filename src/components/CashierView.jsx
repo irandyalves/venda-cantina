@@ -978,9 +978,45 @@ export default function CashierView({ environment, onOpenConfig, onNavigate }) {
           targetEnvironment = itemExplicitEnv;
           sendToKitchen = itemExplicitEnv !== 'none' && itemExplicitSend !== false;
         } else {
-          // Padrão do sistema: Pizza vai para 'COZINHA', outros direto no balcão
-          sendToKitchen = (catId === 'pizza');
-          targetEnvironment = sendToKitchen ? 'COZINHA' : 'none';
+          // Roteamento padrão inteligente:
+          const catLower = String(catId || '').toLowerCase();
+          const nameLower = String(item?.name || '').toLowerCase();
+
+          // Encontra ambiente correspondente entre os cadastrados
+          const findKitchen = (keyword) => {
+            return environments.find(e => 
+              e.type === 'kitchen' && (
+                e.id.toLowerCase().includes(keyword) || 
+                e.name.toLowerCase().includes(keyword) || 
+                (e.shortName && e.shortName.toLowerCase().includes(keyword))
+              )
+            );
+          };
+
+          const pizzaKitchen = findKitchen('pizza') || environments.find(e => e.id === 'COZINHA') || environments.find(e => e.type === 'kitchen');
+          const pastelKitchen = findKitchen('pastel') || environments.find(e => e.id === 'COZINHA_2') || environments.find(e => e.type === 'kitchen');
+          const acaiKitchen = findKitchen('açaí') || findKitchen('acai') || environments.find(e => e.id === 'COZINHA_2') || environments.find(e => e.type === 'kitchen');
+          const batataKitchen = findKitchen('batata') || environments.find(e => e.id === 'COZINHA_2') || environments.find(e => e.type === 'kitchen');
+
+          if (catLower.includes('pizza') || nameLower.includes('pizza')) {
+            sendToKitchen = true;
+            targetEnvironment = pizzaKitchen?.id || 'COZINHA';
+          } else if (catLower.includes('pastel') || nameLower.includes('pastel')) {
+            sendToKitchen = true;
+            targetEnvironment = pastelKitchen?.id || 'COZINHA_2';
+          } else if (catLower.includes('acai') || catLower.includes('açaí') || nameLower.includes('açaí') || nameLower.includes('acai')) {
+            sendToKitchen = true;
+            targetEnvironment = acaiKitchen?.id || 'COZINHA_2';
+          } else if (catLower.includes('batata') || nameLower.includes('batata')) {
+            sendToKitchen = true;
+            targetEnvironment = batataKitchen?.id || 'COZINHA_2';
+          } else if (catLower.includes('bebida') || catLower.includes('refrigerante') || catLower.includes('agua') || catLower.includes('água') || catLower.includes('suco')) {
+            sendToKitchen = false;
+            targetEnvironment = 'none';
+          } else {
+            sendToKitchen = true;
+            targetEnvironment = environments.find(e => e.type === 'kitchen')?.id || 'COZINHA';
+          }
         }
 
         return {

@@ -104,6 +104,11 @@ export default function KitchenView({ environment, onNavigate }) {
 
   // Helper para verificar se um item individual pertence a esta cozinha/ambiente
   const isItemForThisKitchen = (it) => {
+    // Se o item foi explicitamente marcado como balcão sem preparo
+    if (it.targetEnvironment === 'none' || it.sendToKitchen === false) {
+      return false;
+    }
+
     const currentEnvId = String(environment?.id || 'COZINHA').trim();
     const currentEnvName = String(environment?.name || '').trim();
     const currentEnvShort = String(environment?.shortName || '').trim();
@@ -124,9 +129,8 @@ export default function KitchenView({ environment, onNavigate }) {
     };
 
     // 1. Destino explícito no item
-    if (it.targetEnvironment) {
-      if (it.targetEnvironment === 'none') return false;
-      return matchesCurrent(it.targetEnvironment);
+    if (it.targetEnvironment && matchesCurrent(it.targetEnvironment)) {
+      return true;
     }
 
     // 2. Destino no productionRouting por id específico do item ou variação
@@ -134,13 +138,13 @@ export default function KitchenView({ environment, onNavigate }) {
     if (specificId && productionRouting?.destinationEnv?.[specificId]) {
       const dest = productionRouting.destinationEnv[specificId];
       if (dest === 'none') return false;
-      return matchesCurrent(dest);
+      if (matchesCurrent(dest)) return true;
     }
     const varId = it.variationId;
     if (varId && productionRouting?.destinationEnv?.[varId]) {
       const dest = productionRouting.destinationEnv[varId];
       if (dest === 'none') return false;
-      return matchesCurrent(dest);
+      if (matchesCurrent(dest)) return true;
     }
 
     // 3. Destino no productionRouting por categoria
@@ -148,13 +152,10 @@ export default function KitchenView({ environment, onNavigate }) {
     if (cat && productionRouting?.destinationEnv?.[cat]) {
       const dest = productionRouting.destinationEnv[cat];
       if (dest === 'none') return false;
-      return matchesCurrent(dest);
+      if (matchesCurrent(dest)) return true;
     }
 
-    // 4. Verificação por sendToKitchen
-    if (it.sendToKitchen === false) return false;
-
-    // 5. Mapeamento padrão por palavras-chave de categoria e ambiente
+    // 4. Mapeamento padrão por palavras-chave de categoria e ambiente
     const desc = String(it.description || it.name || it.itemName || '').toLowerCase();
     
     // Se o ambiente for Pizza ou Cozinha 1
@@ -182,7 +183,8 @@ export default function KitchenView({ environment, onNavigate }) {
 
   // Helper para verificar se o pedido é destinado para preparo neste ambiente/cozinha específico
   const isOrderForKitchen = (order) => {
-    if (order.sendToKitchen === false) {
+    // Se o pedido foi explicitamente marcado como não cozinha
+    if (order.sendToKitchen === false && order.targetEnvironment === 'none') {
       return false;
     }
 
@@ -202,7 +204,7 @@ export default function KitchenView({ environment, onNavigate }) {
       );
     };
 
-    // Se o pedido no nível principal já veio direcionado para esta cozinha
+    // Se o pedido no nível principal foi direcionado para esta cozinha
     if (order.targetEnvironment && matchesCurrent(order.targetEnvironment)) {
       return true;
     }
@@ -269,7 +271,9 @@ export default function KitchenView({ environment, onNavigate }) {
       description: order.fullDescription || order.itemName || 'Item',
       quantity: order.quantity || 1,
       categoryId: order.category || order.categoryName || 'outros',
-      unitPrice: order.unitPrice || order.totalPrice || 0
+      unitPrice: order.unitPrice || order.totalPrice || 0,
+      targetEnvironment: order.targetEnvironment,
+      sendToKitchen: order.sendToKitchen !== false
     }];
   };
 
