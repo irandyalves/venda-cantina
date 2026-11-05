@@ -202,15 +202,18 @@ class StorageService {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.date === today) {
+          const rawReads = Number(parsed.readsToday) || 0;
+          // Limpa qualquer valor inflado artificialmente por snapshots ociosos
+          const cleanReads = rawReads > 2000 ? 0 : rawReads;
           return {
             date: today,
-            readsToday: Number(parsed.readsToday) || 0,
+            readsToday: cleanReads,
             writesToday: Number(parsed.writesToday) || 0,
             maxReads: 50000,
             maxWrites: 20000,
             lastLatencyMs: parsed.lastLatencyMs !== undefined ? parsed.lastLatencyMs : null,
-            isBlocked: !!parsed.isBlocked,
-            blockReason: parsed.blockReason || null,
+            isBlocked: false,
+            blockReason: null,
             lastTestTimestamp: parsed.lastTestTimestamp || null
           };
         }
@@ -422,9 +425,6 @@ class StorageService {
       // 1. Listener de pedidos e configurações em tempo real
       const colRef = collection(this.db, COLLECTION_ORDERS);
       this.unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
-        const changesCount = snapshot.docChanges ? snapshot.docChanges().length : 0;
-        this.incrementCloudReads(changesCount > 0 ? changesCount : (snapshot.size || 1));
-
         const list = [];
         snapshot.forEach((docSnap) => {
           const docId = docSnap.id;
@@ -452,7 +452,6 @@ class StorageService {
       // 2. Listener dedicado de Ambientes em tempo real na nuvem (coleção cantina_configuracoes)
       const envsDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ENVIRONMENTS);
       this.unsubscribeEnvironments = onSnapshot(envsDocRef, (docSnap) => {
-        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (Array.isArray(data?.environments) && data.environments.length > 0) {
@@ -468,7 +467,6 @@ class StorageService {
       // 3. Listener de Roteamento de Produção em tempo real na nuvem
       const routingDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_ROUTING);
       this.unsubscribeRouting = onSnapshot(routingDocRef, (docSnap) => {
-        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.routing) {
@@ -484,8 +482,6 @@ class StorageService {
       // 4. Listener de Histórico de Turnos em tempo real na nuvem (coleção cantina_historico_turnos)
       const historyColRef = collection(this.db, COLLECTION_HISTORY);
       this.unsubscribeHistory = onSnapshot(historyColRef, (snapshot) => {
-        const changesCount = snapshot.docChanges ? snapshot.docChanges().length : 0;
-        this.incrementCloudReads(changesCount > 0 ? changesCount : 1);
         const historyList = [];
         snapshot.forEach((docSnap) => {
           historyList.push({ ...docSnap.data(), id: docSnap.id });
@@ -502,7 +498,6 @@ class StorageService {
       // 5. Listener de Produtos e Cardápio em tempo real na nuvem
       const productsDocRef = doc(this.db, COLLECTION_SETTINGS, 'produtos');
       this.unsubscribeProducts = onSnapshot(productsDocRef, (docSnap) => {
-        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (Array.isArray(data?.categories) && data.categories.length > 0) {
@@ -518,7 +513,6 @@ class StorageService {
       // 6. Listener de Eventos em tempo real na nuvem
       const eventsDocRef = doc(this.db, COLLECTION_SETTINGS, 'eventos');
       this.unsubscribeEvents = onSnapshot(eventsDocRef, (docSnap) => {
-        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.currentEvent) {
@@ -538,7 +532,6 @@ class StorageService {
       // 7. Listener de Trava de Telas (Segurança Monitores/Tablets) em tempo real na nuvem
       const securityDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_SECURITY);
       this.unsubscribeSecurity = onSnapshot(securityDocRef, (docSnap) => {
-        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           const locked = !!data?.screensLocked;
@@ -553,7 +546,6 @@ class StorageService {
       // 8. Listener de Configurações Gerais do Sistema (Altura/Espaço dos Cards, Efeitos, Sons, Tempos) em tempo real na nuvem
       const systemDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_SYSTEM);
       this.unsubscribeSystem = onSnapshot(systemDocRef, (docSnap) => {
-        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.settings) {
@@ -569,7 +561,6 @@ class StorageService {
       // 9. Listener de Limites de Tempo de Pedidos (Cozinha) em tempo real na nuvem
       const timeLimitsDocRef = doc(this.db, COLLECTION_SETTINGS, DOC_TIME_LIMITS);
       this.unsubscribeTimeLimits = onSnapshot(timeLimitsDocRef, (docSnap) => {
-        this.incrementCloudReads(1);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.limits) {
@@ -1622,20 +1613,28 @@ class StorageService {
       syncChannel.postMessage({ type: 'ORDER_CREATED', payload: order });
     }
 
-    // 2. Grava no Cloud Firestore na nuvem
-    if (this.isFirebaseReady && this.db) {
-      try {
-        const orderRef = doc(this.db, COLLECTION_ORDERS, orderId);
-        await setDoc(orderRef, {
-          ...order,
-          firebaseCreatedAt: serverTimestamp()
-        });
-        this.incrementCloudWrites(1);
-        console.log('✅ Pedido gravado no Firestore em tempo real:', orderId);
-      } catch (err) {
-        this.handleCloudError(err);
-        console.error('⚠️ Falha ao salvar no Firestore:', err);
-      }
+    // 2. Grava no Cloud Firestore na nuvem em background (com timeout para nunca travar o caixa)
+    if (this.isFirebaseReady && this.db && this.isFirebaseEnabled()) {
+      const cloudSavePromise = (async () => {
+        try {
+          const orderRef = doc(this.db, COLLECTION_ORDERS, orderId);
+          await setDoc(orderRef, {
+            ...order,
+            firebaseCreatedAt: serverTimestamp()
+          });
+          this.incrementCloudWrites(1);
+          console.log('✅ Pedido gravado no Firestore em tempo real:', orderId);
+        } catch (err) {
+          this.handleCloudError(err);
+          console.error('⚠️ Falha ao salvar no Firestore:', err);
+        }
+      })();
+
+      // Aguarda até 600ms pelo Firestore: se demorar ou travar na fila, libera o caixa imediatamente
+      await Promise.race([
+        cloudSavePromise,
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
     }
 
     return order;
@@ -1662,20 +1661,27 @@ class StorageService {
       syncChannel.postMessage({ type: 'ORDER_STATUS_CHANGED', payload: { orderId: targetDocId, newStatus } });
     }
 
-    // 2. Grava no Cloud Firestore na nuvem garantindo merge
-    if (this.isFirebaseReady && this.db) {
-      try {
-        const orderRef = doc(this.db, COLLECTION_ORDERS, targetDocId);
-        await setDoc(orderRef, {
-          status: newStatus,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-        this.incrementCloudWrites(1);
-        console.log('✅ Status atualizado no Firestore para:', newStatus, targetDocId);
-      } catch (err) {
-        this.handleCloudError(err);
-        console.error('⚠️ Erro ao atualizar status no Firestore:', err);
-      }
+    // 2. Grava no Cloud Firestore na nuvem com timeout
+    if (this.isFirebaseReady && this.db && this.isFirebaseEnabled()) {
+      const cloudUpdatePromise = (async () => {
+        try {
+          const orderRef = doc(this.db, COLLECTION_ORDERS, targetDocId);
+          await setDoc(orderRef, {
+            status: newStatus,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+          this.incrementCloudWrites(1);
+          console.log('✅ Status atualizado no Firestore para:', newStatus, targetDocId);
+        } catch (err) {
+          this.handleCloudError(err);
+          console.error('⚠️ Erro ao atualizar status no Firestore:', err);
+        }
+      })();
+
+      await Promise.race([
+        cloudUpdatePromise,
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
     }
 
     return updated;
@@ -1709,20 +1715,27 @@ class StorageService {
       });
     }
 
-    if (this.isFirebaseReady && this.db) {
-      try {
-        const orderRef = doc(this.db, COLLECTION_ORDERS, targetDocId);
-        await setDoc(orderRef, {
-          status: 'pronto',
-          bellRungAt: timestamp,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-        this.incrementCloudWrites(1);
-        console.log('🔔 Sino acionado no Firestore para pedido:', targetDocId);
-      } catch (err) {
-        this.handleCloudError(err);
-        console.error('⚠️ Erro ao registrar sino no Firestore:', err);
-      }
+    if (this.isFirebaseReady && this.db && this.isFirebaseEnabled()) {
+      const cloudBellPromise = (async () => {
+        try {
+          const orderRef = doc(this.db, COLLECTION_ORDERS, targetDocId);
+          await setDoc(orderRef, {
+            status: 'pronto',
+            bellRungAt: timestamp,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+          this.incrementCloudWrites(1);
+          console.log('🔔 Sino acionado no Firestore para pedido:', targetDocId);
+        } catch (err) {
+          this.handleCloudError(err);
+          console.error('⚠️ Erro ao registrar sino no Firestore:', err);
+        }
+      })();
+
+      await Promise.race([
+        cloudBellPromise,
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
     }
 
     return updated;
